@@ -21,32 +21,53 @@
         </div>
     </div>
 
-    <header class="hero-gallery">
-        <div class="slider-container">
-            <div class="slide active" style="background-image: url('https://file.nbfox.com/wp-content/uploads/2020/03/11/20200311190149-5e69359d4d3e5.jpg');"></div>
-            <div class="slide" style="background-image: url('https://img.dpm.org.cn/Uploads/Picture/2017/04/01/s58defb9d45b7f.jpg');"></div>
-            <div class="slide" style="background-image: url('img/Мона Лиза.jpg');"></div>
-        </div>
-        <div class="hero-overlay"></div>
-        <div class="hero-content">
-            <h1>🎨 艺启智AI - 乡村美术助教</h1>
-        </div>
-        <div class="slider-dots">
-            </div>
-    </header>
-
-    <nav id="main-nav">
+    <nav id="global-nav">
         <div class="nav-content">
-            <button data-target="step-generator" class="nav-btn active">分步绘画指导</button>
-            <button data-target="style-workshop" class="nav-btn">名画风格体验</button>
-            <button data-target="art-qa" class="nav-btn">艺术知识问答</button>
-            <button data-target="idea-generator" class="nav-btn">创意灵感生成</button>
+            <a href="#" id="home-logo-btn" class="nav-logo">🎨 艺启智AI</a>
+            <div class="nav-links">
+                <button data-target="home-view" class="nav-btn active">首页</button>
+                <button data-target="step-generator" class="nav-btn">分步绘画指导</button>
+                <button data-target="style-workshop" class="nav-btn">名画风格体验</button>
+                <button data-target="art-qa" class="nav-btn">艺术知识问答</button>
+                <button data-target="idea-generator" class="nav-btn">创意灵感生成</button>
+            </div>
         </div>
     </nav>
 
-    <main id="main-content" class="hidden">
+    <header id="home-view" class="view-panel active">
+        <div class="hero-gallery">
+            <div class="slider-container">
+                <div class="slide active" style="background-image: url('img/Starry Night.jpg');"></div>
+                <div class="slide" style="background-image: url('img/千里江山图.jpg');"></div>
+                <div class="slide" style="background-image: url('img/Мона Лиза.jpg');"></div>
+            </div>
+            <div class="slider-dots"></div>
+        </div>
+
+        <div class="home-content-overlay">
+            <h1>欢迎来到乡村美术助教</h1>
+            <p>为乡村教师提供零门槛、专业化的美术教学支持。</p>
+
+            <div class="feature-cards-container">
+                <div class="feature-card" data-target="step-generator">
+                    <h3>分步绘画指导</h3>
+                    <p>AI 助教手把手教孩子画画</p>
+                </div>
+                <div class="feature-card" data-target="style-workshop">
+                    <h3>名画风格体验</h3>
+                    <p>用梵高、毕加索的风格作画</p>
+                </div>
+                <div class="feature-card" data-target="art-qa">
+                    <h3>艺术知识问答</h3>
+                    <p>你的随身艺术百科全书</p>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main id="tool-content" class="view-panel hidden">
         <div id="feature-panels">
-            <section id="step-generator" class="feature-panel active">
+            <section id="step-generator" class="feature-panel hidden">
                 <h2>分步绘画指导生成器</h2>
                 <div class="form-group">
                     <label for="theme-input">绘画主题:</label>
@@ -130,7 +151,7 @@
                 </p>
             </div>
             <div class="footer-column">
-                <h3>艺术资源</h3>
+                <h3>艺术资源（来自策展人）</h3>
                 <ul>
                     <li><a href="https://www.dpm.org.cn/lights/index.html" target="_blank">故宫博物院</a></li>
                     <li><a href="https://www.metmuseum.org/art/collection" target="_blank">大都会艺术博物馆</a></li>
