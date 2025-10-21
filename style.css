@@ -1,24 +1,30 @@
 /* * "艺启智AI - 乡村美术助教"
- * 视觉优化方案 (V7 - 画廊/门户分离架构)
+ * 视觉优化方案 (V3 - 经典美术馆主题)
  */
 
-/* 1. 引入字体 */
+/* 1. 引入衬线字体 (用于标题) 和无衬线字体 (用于正文) */
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500&family=Noto+Serif+SC:wght@600;700&display=swap');
 
-/* 2. “博物馆”色板 */
+/* 2. 建立“博物馆”色板 */
 :root {
+    /* 主色：沉稳、专业的深空灰蓝 */
     --primary-color: #34495E;
+    /* 辅色：用于标题和文字的深灰色 */
     --secondary-color: #2C3E50;
-    --accent-color: #B8860B;
-    --light-bg: #F8F9FA; /* 标准浅背景 */
+    /* 点缀色：优雅的暗金色，用于按钮和高光 */
+    --accent-color: #B8860B; /* DarkGoldenrod */
+    /* 浅背景：画廊白/画布白 */
+    --light-bg: #F8F9FA;
+    /* 深文字：基础文字颜色 */
     --dark-text: #333333;
+    /* 边框/分割线 */
     --border-color: #EAECEE;
+    /* 阴影：更柔和、更细腻 */
     --card-shadow: 0 4px 25px rgba(44, 62, 80, 0.08);
 
+    /* 字体 */
     --font-serif: 'Noto Serif SC', 'Source Serif Pro', serif;
     --font-sans: 'Noto Sans SC', -apple-system, sans-serif;
-
-    --nav-height: 60px;
 }
 
 /* 3. 全局样式 */
@@ -29,391 +35,363 @@ body {
     color: var(--dark-text);
     margin: 0;
     padding: 0;
-    padding-top: var(--nav-height); /* 为导航栏留出空间 */
-    overflow-x: hidden;
-    transition: background-color 0.5s ease; /* 背景切换动画 */
-    display: flex;
-    flex-direction: column;
-    min-height: 100vh; /* 确保 body 至少撑满视口高度 */
-    box-sizing: border-box; /* 确保 padding-top 包含在内 */
-
-}
-/* [V6.1 新] 当显示工具页时，强制使用标准浅背景 */
-body.showing-tools {
-    background-color: var(--light-bg);
 }
 
+/* 4. Header：引入名画背景*/
+header {
+    background-image: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)),
+                      url('https://file.nbfox.com/wp-content/uploads/2020/03/11/20200311190149-5e69359d4d3e5.jpg');
+
+    /* 默认使用深色背景 */
+    background-color: var(--secondary-color);
+    background-size: cover;
+    background-position: center;
+
+    color: white;
+    padding: 4rem 1.5rem; /* 增加高度 */
+    text-align: center;
+    margin-bottom: 0;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+h1 {
+    color: white;
+    font-family: var(--font-serif); /* 应用衬线字体 */
+    font-weight: 700;
+    font-size: 2.5rem;
+    margin-bottom: 2rem;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+}
 
 h2 {
-    font-family: var(--font-serif);
-    border-bottom: 2px solid var(--accent-color);
+    font-family: var(--font-serif); /* 应用衬线字体 */
+    border-bottom: 2px solid var(--accent-color); /* 黄金点缀 */
     padding-bottom: 10px;
     margin-bottom: 25px;
     color: var(--secondary-color);
     font-weight: 600;
 }
 
-/* 4. API 密钥模态框 */
-.modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.6);
-    backdrop-filter: blur(5px);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-    opacity: 1;
-    transition: opacity 0.3s ease;
-}
-.modal-overlay.hidden {
-    opacity: 0;
-    pointer-events: none;
-}
-.modal-content {
-    background: white;
-    padding: 2.5rem;
-    border-radius: 12px;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+/* 5. 优化API密钥区：使其成为一个优雅的“门槛” */
+#api-key-section {
     max-width: 500px;
-    width: 90%;
-    text-align: center;
-    animation: modal-fade-in 0.3s ease-out;
-}
-@keyframes modal-fade-in {
-    from { transform: translateY(-20px) scale(0.98); opacity: 0; }
-    to { transform: translateY(0) scale(1); opacity: 1; }
-}
-.modal-content h2 { font-family: var(--font-serif); color: var(--secondary-color); margin-top: 0; }
-.modal-content p { margin-bottom: 1.5rem; }
-#api-key-section input[type="password"] { width: 70%; padding: 10px; border: 2px solid var(--border-color); border-radius: 8px; transition: all 0.3s ease; }
-#api-key-section input[type="password"]:focus { border-color: var(--accent-color); box-shadow: 0 0 8px rgba(184, 134, 11, 0.2); outline: none; }
-#api-key-section button { padding: 10px 15px; background-color: var(--accent-color); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 500; transition: background-color 0.3s ease; }
-#api-key-section button:hover { background-color: #CF970E; }
-.modal-content small { display: block; margin-top: 15px; color: #777; }
-.modal-content small a { color: var(--accent-color); font-weight: 500; }
-
-
-/* 5. [V6 新] 全局置顶导航栏 */
-#global-nav {
-    width: 100%;
-    height: var(--nav-height);
-    background-color: var(--secondary-color);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    z-index: 900;
-    position: fixed; /* 置顶 */
-    top: 0;
-    left: 0;
-    border-bottom: 3px solid var(--accent-color);
-    padding: 0 20px;
-    box-sizing: border-box;
-}
-.nav-content {
-    width: 100%;
-    height: 100%;
     margin: 0 auto;
-    padding: 0 20px;
-    display: flex;
-    align-items: center;
-    position: relative;
+    background: rgba(255, 255, 255, 0.95); /* 半透明 */
+    padding: 20px 25px;
+    border-radius: 12px;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+    backdrop-filter: blur(5px); /* 毛玻璃效果 (如果背景是图片) */
 }
-.nav-logo {
-    font-family: var(--font-serif);
-    font-size: 1.25rem;
-    font-weight: 700;
+#api-key-section label {
+    color: var(--secondary-color);
+    font-weight: 500;
+}
+#api-key-section input[type="password"] {
+    width: 65%;
+    padding: 10px;
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+#api-key-section input[type="password"]:focus {
+    border-color: var(--accent-color);
+    box-shadow: 0 0 8px rgba(184, 134, 11, 0.2);
+    outline: none;
+}
+#api-key-section button {
+    padding: 10px 15px;
+    background-color: var(--primary-color);
     color: white;
-    text-decoration: none;
-    transition: color 0.3s ease;
-    flex-shrink: 0; /* 防止Logo被压缩 */
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: background-color 0.3s ease;
 }
-.nav-logo:hover {
-    color: #EAECEE;
+#api-key-section button:hover {
+    background-color: var(--secondary-color);
 }
-.nav-links {
+#api-key-section small {
+    display: block;
+    margin-top: 15px;
+    color: var(--secondary-color);
+}
+#api-key-section small a {
+    color: var(--accent-color);
+    font-weight: 500;
+}
+
+/* 6. 优化主体布局：打造一个“浮动”的内容面板 */
+main {
+    max-width: 900px;
+    margin: -30px auto 20px auto; /* [!!!] 关键：让面板上移，覆盖在Header底部 */
+    position: relative; /* 确保在Header上层 */
+    padding: 0;
+    background: transparent;
+    border-radius: 12px;
+    box-shadow: var(--card-shadow);
+    border: none;
+}
+
+/* 7. 优化导航：经典的“博物馆标签页” */
+#main-nav {
     display: flex;
-    position: absolute;
-    top: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    height: 100%; /* 确保高度撑满，用于垂直对齐 */
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: 0;
+    border-bottom: 2px solid var(--border-color);
+    border-radius: 12px 12px 0 0; /* 顶部圆角 */
+    overflow: hidden;
+    background: #ffffff;
+    padding: 0 20px;
 }
 .nav-btn {
-    padding: 0 16px;
-    height: var(--nav-height);
-    line-height: var(--nav-height);
+    padding: 14px 24px;
     border: none;
     background: none;
     cursor: pointer;
-    font-size: 0.95rem;
+    font-size: 1rem;
     font-weight: 500;
-    color: rgba(255, 255, 255, 0.7);
+    color: var(--secondary-color);
     border-bottom: 4px solid transparent;
+    margin-bottom: -2px;
     transition: all 0.3s ease;
-    white-space: nowrap;
 }
 .nav-btn:hover {
-    background-color: rgba(255, 255, 255, 0.05);
-    color: white;
+    background-color: #FDFEFE;
+    color: var(--accent-color);
 }
 .nav-btn.active {
-    color: white;
+    color: var(--primary-color);
     font-weight: 500;
-    border-bottom-color: white;
+    border-bottom-color: var(--primary-color);
 }
 
-/* 6. 视图面板 (首页和工具区) */
-.view-panel {
-    width: 100%;
-    animation: panel-fade-in 0.5s ease;
-}
-.view-panel.hidden {
-    display: none;
-}
-@keyframes panel-fade-in {
-    from { opacity: 0; }
-    to { opacity: 1; }
-}
-
-/* 7. 首页视图 */
-#home-view {
-    position: relative;
-    width: 100%;
-    min-height: calc(100vh - var(--nav-height));
-    overflow: hidden;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-/* 首页画廊背景 */
-.hero-gallery {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: #2C3E50;
-    z-index: 1; /* 在首页内容之下 */
-    opacity: 0; /* 默认隐藏 */
-    visibility: hidden; /* 默认隐藏 */
-    transition: opacity 0.5s ease, visibility 0s 0.5s; /* 动画 */
-}
-body.showing-home #home-view .hero-gallery {
-    opacity: 1;
-    visibility: visible;
-    transition: opacity 0.5s ease, visibility 0s 0s;
-}
-
-.slider-container { width: 100%; height: 100%; }
-.slide {
-    position: absolute;
-    top: 0; left: 0; width: 100%; height: 100%;
-    background-size: cover;
-    background-position: center;
-    opacity: 0;
-    transition: opacity 1.5s ease-in-out;
-    filter: blur(35px) brightness(0.2) scale(1.1);
-    animation: ken-burns 20s infinite;
-}
-.slide::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; width: 100%; height: 100%;
-    background-image: inherit;
-    background-size: contain;
-    background-position: center;
-    background-repeat: no-repeat;
-    filter: none;
-}
-.slide.active { opacity: 1; }
-@keyframes ken-burns {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.1); }
-    100% { transform: scale(1); }
-}
-.slider-dots {
-    position: absolute;
-    bottom: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 3;
-    display: flex;
-}
-.slider-dots .dot {
-    width: 10px; height: 10px; border-radius: 50%;
-    background: rgba(255, 255, 255, 0.5);
-    margin: 0 5px; cursor: pointer; transition: background 0.3s ease;
-}
-.slider-dots .dot.active { background: white; }
-
-/* 首页“丰富内容” */
-.home-content-overlay {
-    position: relative;
-    z-index: 2;
-    text-align: center;
-    color: white;
-    padding: 20px;
-}
-.home-content-overlay h1 {
-    font-family: var(--font-serif);
-    font-size: 3rem;
-    font-weight: 700;
-    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.7);
-    margin-bottom: 1rem;
-}
-.home-content-overlay p {
-    font-size: 1.25rem;
-    font-weight: 400;
-    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
-    margin-bottom: 0;
-    max-width: 600px;
-    margin-left: auto;
-    margin-right: auto;
-}
-
-/* 首页功能区 */
-#home-features-section {
-    background-color: var(--light-bg);
-    padding: 3rem 1.5rem; /* 上下 3rem, 左右 1.5rem */
-    border-top: 1px solid var(--border-color); /* 与画廊的细微分割 */
-}
-/* 确保卡片容器在 section 内正确居中且宽度一致 */
-.feature-cards-container {
-    max-width: 900px;
-    margin: 0 auto;
-    display: flex;
-    justify-content: center;
-    gap: 20px;
-    flex-wrap: wrap;
-}
-
-/* 首页“特性卡片”*/
-.feature-card {
-    background: #ffffff; /* [V7 新增] 纯白背景 */
-    color: var(--dark-text);
-    padding: 1.5rem 2rem;
-    border-radius: 12px;
-    width: 250px;
-    text-align: left;
-    box-shadow: var(--card-shadow); /* [V7 新增] 使用标准卡片阴影 */
-    border: 1px solid var(--border-color); /* [V7 新增] 标准边框 */
-    transition: all 0.3s ease;
-    cursor: pointer;
-}
-.feature-card:hover {
-    transform: translateY(-10px);
-    box-shadow: 0 12px 40px rgba(44, 62, 80, 0.12);
-}
-.feature-card h3 { font-family: var(--font-serif); color: var(--accent-color); margin-top: 0; font-size: 1.3rem; }
-.feature-card p { font-size: 0.95rem; color: var(--secondary-color); line-height: 1.6; margin-bottom: 0; }
-
-/* 8. 工具区主内容 */
-#tool-content {
-    max-width: 900px;
-    margin: 20px auto;
-    padding: 0;
-    background: #ffffff;
-    border-radius: 12px;
-    box-shadow: var(--card-shadow);
-    overflow: hidden;
-    flex-grow: 1;
-}
+/* 8. 优化功能卡片 */
 .feature-panel {
     padding: 25px 30px;
-}
-.feature-panel.hidden {
-    display: none; /* JS控制显隐 */
+    border: none;
+    border-radius: 0 0 12px 12px; /* 底部圆角 */
+    background: #ffffff;
 }
 
-
-/* 9. 表单样式 */
-.form-group { margin-bottom: 20px; }
-.form-group label { display: block; margin-bottom: 8px; font-weight: 500; color: var(--secondary-color); font-family: var(--font-serif); font-size: 1.1rem; }
+/* 9. 优化表单：经典、简洁 */
+.form-group {
+    margin-bottom: 20px;
+}
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: var(--secondary-color);
+    font-family: var(--font-serif);
+    font-size: 1.1rem;
+}
 .form-group input[type="text"],
-.form-group select { width: 100%; max-width: 400px; padding: 10px 12px; border: 2px solid var(--border-color); border-radius: 8px; box-sizing: border-box; background-color: #FDFEFE; transition: all 0.3s ease; }
+.form-group select {
+    width: 100%;
+    max-width: 400px;
+    padding: 10px 12px;
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    box-sizing: border-box;
+    background-color: #FDFEFE;
+    transition: all 0.3s ease;
+}
 .form-group input[type="text"]:focus,
-.form-group select:focus { border-color: var(--primary-color); box-shadow: 0 0 8px rgba(52, 73, 94, 0.1); outline: none; background-color: #fff; }
+.form-group select:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 8px rgba(52, 73, 94, 0.1);
+    outline: none;
+    background-color: #fff;
+}
 
-/* 10. 主按钮 */
-.cta-btn { padding: 10px 20px; background-color: var(--accent-color); color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 1rem; font-weight: 500; transition: all 0.3s ease; box-shadow: 0 4px 12px rgba(184, 134, 11, 0.2); }
-.cta-btn:hover { background-color: #CF970E; transform: translateY(-2px); box-shadow: 0 6px 16px rgba(184, 134, 11, 0.3); }
-.cta-btn:disabled { background-color: #BDBDBD; box-shadow: none; transform: none; cursor: not-allowed; }
+/* 10. 优化主按钮：使用“点缀金” */
+.cta-btn {
+    padding: 10px 20px;
+    background-color: var(--accent-color);
+    color: white;
+    border: none;
+    border-radius: 8px; /* 经典矩形 */
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(184, 134, 11, 0.2);
+}
+.cta-btn:hover {
+    background-color: #CF970E; /* 悬停更亮 */
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(184, 134, 11, 0.3);
+}
+.cta-btn:disabled {
+    background-color: #BDBDBD;
+    box-shadow: none;
+    transform: none;
+    cursor: not-allowed;
+}
 
-/* 11. 结果区 */
-.result-container { margin-top: 25px; padding: 20px; border: 2px dashed var(--border-color); border-radius: 8px; background: var(--light-bg); min-height: 100px; }
-.loader { border: 4px solid #f3f3f3; border-top: 4px solid var(--accent-color); border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 20px auto; }
-@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-.error-message { color: #C0392B; margin-top: 10px; font-weight: 500; }
-#slideshow-container, #style-result img, .idea-card, #qa-result { animation: result-fade-in 0.5s ease; }
-@keyframes result-fade-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+/* 11. 优化结果区 */
+.result-container {
+    margin-top: 25px;
+    padding: 20px;
+    border: 2px dashed var(--border-color);
+    border-radius: 8px;
+    background: var(--light-bg);
+    min-height: 100px;
+}
 
-/* 12. 幻灯片 */
-#slideshow-container { position: relative; max-width: 512px; margin: auto; text-align: center; }
-#slideshow-content img { max-width: 100%; height: auto; border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05); }
-#slideshow-content p { font-weight: 500; color: var(--secondary-color); font-size: 1rem; margin-top: 15px; }
-.slide-nav-btn { padding: 8px 14px; margin: 10px 5px; cursor: pointer; background-color: var(--primary-color); color: white; border: none; border-radius: 8px; font-weight: 500; transition: all 0.3s ease; }
-.slide-nav-btn:hover { background-color: var(--secondary-color); }
-#step-counter { font-weight: 500; color: var(--secondary-color); }
+.loader {
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid var(--accent-color); /* 匹配点缀色 */
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    animation: spin 1s linear infinite;
+    margin: 20px auto;
+}
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
 
-/* 13. 风格工坊 */
-#style-result img { max-width: 100%; max-height: 512px; display: block; margin: 0 auto; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05); }
-.style-desc { text-align: center; margin-top: 15px; font-style: italic; color: var(--secondary-color); }
+.error-message {
+    color: #C0392B; /* 经典红色 */
+    margin-top: 10px;
+    font-weight: 500;
+}
 
-/* 14. 问答结果 */
-#qa-result { white-space: pre-wrap; line-height: 1.8; font-size: 1.05rem; color: var(--dark-text); }
+/* 12. 优化幻灯片 */
+#slideshow-container {
+    position: relative;
+    max-width: 512px;
+    margin: auto;
+    text-align: center;
+}
+#slideshow-content img {
+    max-width: 100%;
+    height: auto;
+    border: 1px solid var(--border-color); /* 保留细边框 */
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+}
+#slideshow-content p {
+    font-weight: 500;
+    color: var(--secondary-color);
+    font-size: 1rem;
+    margin-top: 15px;
+}
+.slide-nav-btn {
+    padding: 8px 14px;
+    margin: 10px 5px;
+    cursor: pointer;
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+.slide-nav-btn:hover {
+    background-color: var(--secondary-color);
+}
+#step-counter {
+    font-weight: 500;
+    color: var(--secondary-color);
+}
 
-/* 15. 创意灵感卡片 */
-#ideas-result { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; }
-.idea-card { border: 1px solid var(--border-color); border-radius: 12px; padding: 0; box-shadow: 0 2px 8px rgba(0,0,0,0.02); text-align: center; background: #fff; transition: transform 0.3s ease, box-shadow 0.3s ease; overflow: hidden; }
-.idea-card:hover { transform: translateY(-5px); box-shadow: var(--card-shadow); }
-.idea-card img { width: 100%; height: auto; aspect-ratio: 1 / 1; object-fit: cover; border-radius: 0; background: #eee; border-bottom: 1px solid var(--border-color); }
-.idea-card h3, .idea-card p, .idea-card small { padding: 0 15px; }
-.idea-card h3 { font-size: 1.2rem; color: var(--accent-color); margin: 15px 0 10px 0; font-family: var(--font-serif); }
-.idea-card p { font-size: 0.9rem; margin-bottom: 10px; min-height: 40px; }
-.idea-card small { color: var(--secondary-color); font-size: 0.8rem; display: block; margin-bottom: 15px; }
+/* 13. 优化风格工坊结果 */
+#style-result img {
+    max-width: 100%;
+    max-height: 512px;
+    display: block;
+    margin: 0 auto;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+}
+.style-desc {
+    text-align: center;
+    margin-top: 15px;
+    font-style: italic;
+    color: var(--secondary-color);
+}
+
+/* 14. 优化问答结果 */
+#qa-result {
+    white-space: pre-wrap;
+    line-height: 1.8;
+    font-size: 1.05rem;
+    color: var(--dark-text);
+}
+
+/* 15. 优化创意灵感卡片 */
+#ideas-result {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 20px;
+}
+.idea-card {
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 0;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.02); /* 非常轻的阴影 */
+    text-align: center;
+    background: #fff;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    overflow: hidden;
+}
+.idea-card:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--card-shadow); /* 悬停时阴影变重 */
+}
+.idea-card img {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 1 / 1;
+    object-fit: cover;
+    border-radius: 0;
+    background: #eee;
+    border-bottom: 1px solid var(--border-color);
+}
+.idea-card h3,
+.idea-card p,
+.idea-card small {
+    padding: 0 15px;
+}
+.idea-card h3 {
+    font-size: 1.2rem;
+    color: var(--accent-color); /* 标题用金色 */
+    margin: 15px 0 10px 0;
+    font-family: var(--font-serif);
+}
+.idea-card p {
+    font-size: 0.9rem;
+    margin-bottom: 10px;
+    min-height: 40px;
+}
+.idea-card small {
+    color: var(--secondary-color);
+    font-size: 0.8rem;
+    display: block;
+    margin-bottom: 15px;
+}
+
 
 /* 辅助类 */
 .hidden {
     display: none;
 }
 
-/* 16. 全宽策展人页脚 */
-footer { width: 100%; background: var(--secondary-color); color: rgba(255, 255, 255, 0.7); padding: 0; margin-top: 40px; }
-.footer-content { max-width: 900px; margin: 0 auto; padding: 2.5rem 1.5rem; display: flex; flex-wrap: wrap; gap: 20px; }
-.footer-column { flex: 1; min-width: 300px; }
-.footer-column h3 { color: white; font-family: var(--font-serif); font-weight: 600; border-bottom: 1px solid var(--accent-color); padding-bottom: 10px; }
-.footer-column p, .footer-column li { font-size: 0.9rem; line-height: 1.8; }
-.footer-column ul { list-style: none; padding: 0; }
-.footer-column a { color: rgba(255, 255, 255, 0.8); text-decoration: none; transition: color 0.3s ease; }
-.footer-column a:hover { color: white; text-decoration: underline; }
-.footer-bottom { background: rgba(0, 0, 0, 0.1); padding: 1rem; text-align: center; font-size: 0.85rem; }
-.footer-bottom p { margin: 0; }
-
-.slide.is-scroll::before {
-    background-size: cover;
-}
-
-/* 1. 重置幻灯片内容容器 */
-#slideshow-content {
-    position: relative;
-    min-height: 200px; /* 防止在加载时折叠 */
-}
-
-/* 2. 覆盖首页 .slide 的 'position: absolute' 和 'opacity: 0' */
-#slideshow-content .slide {
-    position: relative; /* 覆盖 'absolute' */
-    height: auto;       /* 覆盖 'height: 100%'，允许其包裹内容 */
-    width: 100%;        /* 保持 100% 宽度 */
-    opacity: 1;         /* 覆盖 'opacity: 0' */
-
-    /* [V7.5 关键] 切换为 display 布局，而不是 opacity */
-    display: none;
-}
-
-/* 3. 覆盖首页 .slide.active 的 'opacity: 1' */
-#slideshow-content .slide.active {
-    display: block; /* 使用 block 显示，而不是 opacity */
-    animation: result-fade-in 0.5s ease; /* 复用现有的淡入动画 */
+/* 底部 */
+footer {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 25px 30px;
+    text-align: center;
+    color: var(--secondary-color);
+    font-size: 0.9rem;
+    background: none;
+    box-shadow: none;
+    border-top: 1px solid var(--border-color);
 }
