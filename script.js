@@ -19,7 +19,7 @@ const navLinks = globalNav.querySelector('.nav-links');
 const allNavButtons = globalNav.querySelectorAll('.nav-btn');
 const homeLogoButton = document.getElementById('home-logo-btn');
 const homeContentOverlay = homeView.querySelector('.home-content-overlay');
-const featureCards = document.querySelectorAll('.feature-card'); // [V7 修改] 它现在位于 homeFeaturesSection 中
+const featureCards = document.querySelectorAll('.feature-card');
 const heroSlider = document.querySelector('.slider-container');
 const sliderDotsContainer = document.querySelector('.slider-dots');
 let heroSlides = [];
@@ -27,35 +27,63 @@ let currentHeroSlide = 0;
 let slideInterval;
 const featurePanels = document.querySelectorAll('.feature-panel');
 const footerGuide = document.getElementById('footer-guide');
-// ... (功能1-4 DOM元素不变) ...
-const themeInput = document.getElementById('theme-input');
-const difficultySelect = document.getElementById('difficulty-select');
-const generateStepsBtn = document.getElementById('generate-steps-btn');
-const stepsLoader = document.getElementById('steps-loader');
-const stepsError = document.getElementById('steps-error');
-const stepsResult = document.getElementById('steps-result');
-const slideshowContent = document.getElementById('slideshow-content');
-const prevStepBtn = document.getElementById('prev-step');
-const nextStepBtn = document.getElementById('next-step');
-const stepCounter = document.getElementById('step-counter');
-let currentSlideIndex = 0;
-let slides = [];
+
+// [新增] 功能一：AI智能上色
+const coloringFileInput = document.getElementById('coloring-file-input');
+const coloringPreview = document.getElementById('coloring-preview');
+const coloringPromptInput = document.getElementById('coloring-prompt-input');
+const generateColoringBtn = document.getElementById('generate-coloring-btn');
+const coloringLoader = document.getElementById('coloring-loader');
+const coloringError = document.getElementById('coloring-error');
+const coloringResult = document.getElementById('coloring-result');
+
+// [修改] 功能二：创意风格工坊
 const styleSelect = document.getElementById('style-select');
+const styleFileInput = document.getElementById('style-file-input');
+const stylePreview = document.getElementById('style-preview');
 const styleContentInput = document.getElementById('style-content-input');
 const generateStyleBtn = document.getElementById('generate-style-btn');
 const styleLoader = document.getElementById('style-loader');
 const styleError = document.getElementById('style-error');
 const styleResult = document.getElementById('style-result');
+
+// [新增] 功能三：AI自画像
+const portraitFileInput = document.getElementById('portrait-file-input');
+const portraitPreview = document.getElementById('portrait-preview');
+const portraitStyleInput = document.getElementById('portrait-style-input');
+const generatePortraitBtn = document.getElementById('generate-portrait-btn');
+const portraitLoader = document.getElementById('portrait-loader');
+const portraitError = document.getElementById('portrait-error');
+const portraitResult = document.getElementById('portrait-result');
+
+// [新增] 功能四：艺术融合
+const fusionContentInput = document.getElementById('fusion-content-input');
+const fusionContentPreview = document.getElementById('fusion-content-preview');
+const fusionStyleInput = document.getElementById('fusion-style-input');
+const fusionStylePreview = document.getElementById('fusion-style-preview');
+const generateFusionBtn = document.getElementById('generate-fusion-btn');
+const fusionLoader = document.getElementById('fusion-loader');
+const fusionError = document.getElementById('fusion-error');
+const fusionResult = document.getElementById('fusion-result');
+
+// [保留] 功能五：艺术问答
 const qaInput = document.getElementById('qa-input');
 const askQaBtn = document.getElementById('ask-qa-btn');
 const qaLoader = document.getElementById('qa-loader');
 const qaError = document.getElementById('qa-error');
 const qaResult = document.getElementById('qa-result');
+
+// [保留] 功能六：创意灵感
 const ideaThemeInput = document.getElementById('idea-theme-input');
 const generateIdeasBtn = document.getElementById('generate-ideas-btn');
 const ideasLoader = document.getElementById('ideas-loader');
 const ideasError = document.getElementById('ideas-error');
 const ideasResult = document.getElementById('ideas-result');
+
+// [移除] 旧的分步绘画DOM
+// const themeInput = document.getElementById('theme-input');
+// ... (等)
+
 
 // ==========================================================
 // 初始化
@@ -64,97 +92,80 @@ document.addEventListener('DOMContentLoaded', () => {
     initApiKeyManager();
     initHeroSlider();
     initNavigation();
-    initStepGenerator();
-    initStyleWorkshop();
-    initArtQA();
-    initIdeaGenerator();
+
+    // [修改] 初始化所有新功能
+    initColoring();       // (新)
+    initStyleWorkshop();  // (修改)
+    initSelfPortrait();   // (新)
+    initArtFusion();      // (新)
+    initArtQA();          // (保留)
+    initIdeaGenerator();  // (保留)
+
+    // [新增] 为所有文件输入框绑定预览
+    setupImagePreview(coloringFileInput, coloringPreview);
+    setupImagePreview(styleFileInput, stylePreview);
+    setupImagePreview(portraitFileInput, portraitPreview);
+    setupImagePreview(fusionContentInput, fusionContentPreview);
+    setupImagePreview(fusionStyleInput, fusionStylePreview);
 });
 
 // ==========================================================
 // 核心模块 1: API 密钥管理 (不变)
 // ==========================================================
 
-/**
- * [新增] 辅助函数：调用后端检查 session 状态
- */
 async function checkKeyValidity() {
     try {
         const response = await fetch(`${BACKEND_URL}/api/check_key`, {
             method: 'GET',
-            credentials: 'include' // [关键] 必须发送 cookie 才能检查 session
+            credentials: 'include'
         });
-
-        // 如果 response.ok 是 false (例如 401)，
-        // response.ok 会是 false，fetch 不会抛出错误，但 !response.ok 是 true
         if (!response.ok) {
             throw new Error('Session key not valid');
         }
-
-        // 如果服务器返回 200 OK，则 session 有效
         return true;
-
     } catch (error) {
-        // 网络错误或 401 错误都会导致验证失败
         console.warn("Key validity check failed:", error.message);
         throw error;
     }
 }
 
-
 function initApiKeyManager() {
-
-    // 1. [不变] 绑定保存按钮事件
     saveKeyBtn.addEventListener('click', async () => {
         const key = apiKeyInput.value.trim();
         if (!key) {
             apiError.textContent = 'API KEY 不能为空';
             return;
         }
-
         try {
-            // [不变] 将 Key 发送到后端安全存储
             const response = await fetch(`${BACKEND_URL}/api/set_key`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ api_key: key }),
-                credentials: 'include' // [关键] 必须发送 cookie 才能使用 session
+                credentials: 'include'
             });
-
             if (!response.ok) {
                 const err = await response.json();
                 throw new Error(err.error || '设置Key失败');
             }
-
-            // [不变] 成功后，在本地设置一个“标志”
-            localStorage.setItem(MODEL_SCOPE_TOKEN_KEY, 'true'); // 只存一个标志
+            localStorage.setItem(MODEL_SCOPE_TOKEN_KEY, 'true');
             showMainContent();
             apiError.textContent = '';
-
         } catch (error) {
             apiError.textContent = `错误: ${error.message}`;
         }
     });
 
-    // 2. [修改] 使用 IIFE (立即执行的异步函数) 来处理页面加载时的严谨验证
     (async () => {
         const storedKeyFlag = localStorage.getItem(MODEL_SCOPE_TOKEN_KEY);
-
         if (storedKeyFlag) {
-            // 标志存在，我们必须验证它
             try {
-                // [关键] 调用后端验证
                 await checkKeyValidity();
-
-                // 验证成功 (没有抛出错误)，显示主内容
                 showMainContent();
-
             } catch (error) {
-                // 验证失败 (session 过期等)，显示模态框
                 console.warn("Session expired or invalid. Please re-enter key.");
-                showApiKeyModal(); // 调用我们修改后的 showApiKeyModal
+                showApiKeyModal();
             }
         } else {
-            // 标志不存在，直接显示模态框
             showApiKeyModal();
         }
     })();
@@ -162,7 +173,7 @@ function initApiKeyManager() {
 function showMainContent() {
     apiKeyModal.classList.add('hidden');
     footerGuide.classList.remove('hidden');
-    navigateTo('home-view'); // 默认显示首页
+    navigateTo('home-view');
 }
 function showApiKeyModal() {
     apiKeyModal.classList.remove('hidden');
@@ -171,7 +182,7 @@ function showApiKeyModal() {
 }
 
 // ==========================================================
-// 核心模块 1.5: 头部画廊滑块
+// 核心模块 1.5: 头部画廊滑块 (不变)
 // ==========================================================
 function initHeroSlider() {
     heroSlides = heroSlider.querySelectorAll('.slide');
@@ -191,26 +202,25 @@ function startSlideShow() { showHeroSlide(0); clearInterval(slideInterval); slid
 
 
 // ==========================================================
-// [V7 修复] 核心模块 2: 主导航逻辑
+// 核心模块 2: 主导航逻辑 (不变)
 // ==========================================================
 function initNavigation() {
     navLinks.addEventListener('click', (e) => { if (e.target.tagName === 'BUTTON') { const targetId = e.target.dataset.target; navigateTo(targetId); } });
     homeLogoButton.addEventListener('click', (e) => { e.preventDefault(); navigateTo('home-view'); });
-    featureCards.forEach(card => { card.addEventListener('click', () => { const targetId = card.dataset.target; navigateTo(targetId); }); });
+    // [修改] 确保首页卡片导航正确
+    featureCards.forEach(card => {
+        card.addEventListener('click', () => {
+            const targetId = card.dataset.target;
+            if(targetId) { // 检查 data-target 是否存在
+                navigateTo(targetId);
+            }
+        });
+    });
 }
-
-/**
- * 核心导航函数
- * @param {string} targetId - 要导航到的视图/面板的ID
- */
 function navigateTo(targetId) {
-
-    // 1. 更新导航栏按钮 'active' 状态
     allNavButtons.forEach(btn => {
         btn.classList.toggle('active', btn.dataset.target === targetId);
     });
-
-    // 2. 更新 body 类以控制背景
     const isHomePage = (targetId === 'home-view');
     if (isHomePage) {
         document.body.classList.add('showing-home');
@@ -219,13 +229,9 @@ function navigateTo(targetId) {
         document.body.classList.add('showing-tools');
         document.body.classList.remove('showing-home');
     }
-
-    // 3. [V7 核心修复] 切换首页和工具区
-    homeView.style.display = isHomePage ? 'flex' : 'none'; // 首页画廊
-    homeFeaturesSection.style.display = isHomePage ? 'block' : 'none'; // 首页功能区
-    toolContent.style.display = isHomePage ? 'none' : 'block'; // 工具区
-
-    // 4. 如果进入工具区，切换内部面板
+    homeView.style.display = isHomePage ? 'flex' : 'none';
+    homeFeaturesSection.style.display = isHomePage ? 'block' : 'none';
+    toolContent.style.display = isHomePage ? 'none' : 'block';
     if (!isHomePage) {
         let panelFound = false;
         featurePanels.forEach(panel => {
@@ -235,69 +241,79 @@ function navigateTo(targetId) {
             if(shouldShow) panelFound = true;
         });
         if (!panelFound) {
-             console.warn(`Panel with id "${targetId}" not found. Hiding tool content.`);
-             // 如果找不到面板，也隐藏工具区
+             console.warn(`Panel with id "${targetId}" not found.`);
              toolContent.style.display = 'none';
         }
     } else {
-         // 回到首页时，确保所有工具面板都隐藏
          featurePanels.forEach(panel => {
             panel.classList.add('hidden');
             panel.classList.remove('active');
         });
     }
-
     window.scrollTo(0, 0);
 }
 
 
 // ==========================================================
-// 核心模块 3-6: 工具功能
+// 核心模块 3-8: 工具功能 (重构)
 // ==========================================================
-// 模块 3: 分步绘画
-function initStepGenerator() {
-    generateStepsBtn.addEventListener('click', async () => {
-        const theme = themeInput.value.trim();
-        const difficulty = difficultySelect.value;
-        if (!theme) {
-            stepsError.textContent = '请输入绘画主题';
+
+// 模块 3: [新增] AI智能上色
+function initColoring() {
+    generateColoringBtn.addEventListener('click', async () => {
+        const file = coloringFileInput.files[0];
+        const prompt = coloringPromptInput.value.trim();
+
+        if (!file) {
+            coloringError.textContent = '请上传一张线稿图片';
             return;
         }
-        toggleUIState(generateStepsBtn, stepsLoader, stepsError, true);
-        stepsResult.classList.add('hidden');
+        if (!prompt) {
+            coloringError.textContent = '请输入上色风格';
+            return;
+        }
+
+        toggleUIState(generateColoringBtn, coloringLoader, coloringError, true);
+        coloringResult.classList.add('hidden');
+
         try {
-            // [修复] 移除 modelScopeToken 参数
-            const results = await generatePaintingSteps(theme, difficulty);
-            if (!results || results.length === 0) {
-                throw new Error("未能生成绘画步骤。");
-            }
-            displayPaintingSteps(results);
+            const base64_image = await fileToBase64(file);
+            const result = await generateColoring(base64_image, prompt);
+            displaySingleImageResult(coloringResult, result.imageUrl, "AI上色作品");
         } catch (error) {
-            stepsError.textContent = `生成失败: ${error.message}`;
+            coloringError.textContent = `生成失败: ${error.message}`;
             console.error(error);
         } finally {
-            toggleUIState(generateStepsBtn, stepsLoader, stepsError, false);
+            toggleUIState(generateColoringBtn, coloringLoader, coloringError, false);
         }
     });
-    prevStepBtn.addEventListener('click', () => { currentSlideIndex = (currentSlideIndex - 1 + slides.length) % slides.length; showSlide(currentSlideIndex); });
-    nextStepBtn.addEventListener('click', () => { currentSlideIndex = (currentSlideIndex + 1) % slides.length; showSlide(currentSlideIndex); });
-}function displayPaintingSteps(steps) { slideshowContent.innerHTML = ''; slides = []; steps.forEach((step) => { const slide = document.createElement('div'); slide.className = 'slide'; const img = document.createElement('img'); img.src = step.imageUrl; img.alt = `步骤 ${step.step}: ${step.description}`; const desc = document.createElement('p'); desc.textContent = `第 ${step.step} 步：${step.description}`; slide.appendChild(img); slide.appendChild(desc); slideshowContent.appendChild(slide); slides.push(slide); }); currentSlideIndex = 0; showSlide(currentSlideIndex); stepsResult.classList.remove('hidden'); }
-function showSlide(index) { slides.forEach((slide, i) => slide.classList.toggle('active', i === index)); stepCounter.textContent = `步骤 ${index + 1} / ${slides.length}`; }
-// 模块 4: 风格工坊
+}
+
+// 模块 4: [修改] 创意风格工坊
 function initStyleWorkshop() {
     generateStyleBtn.addEventListener('click', async () => {
         const style = styleSelect.value;
         const content = styleContentInput.value.trim();
-        if (!content) {
-            styleError.textContent = '请输入绘制内容';
+        const file = styleFileInput.files[0];
+
+        // 至少需要一个输入
+        if (!content && !file) {
+            styleError.textContent = '请输入绘制内容或上传一张草图';
             return;
         }
+
         toggleUIState(generateStyleBtn, styleLoader, styleError, true);
         styleResult.classList.add('hidden');
+
         try {
-            // [修复] 移除 modelScopeToken 参数
-            const result = await generateArtStyle(content, style);
-            displayArtStyle(result);
+            // [关键] 动态处理 Base64
+            let base64_image = null;
+            if (file) {
+                base64_image = await fileToBase64(file);
+            }
+
+            const result = await generateArtStyle(content, style, base64_image);
+            displayArtStyle(result); // 复用旧的显示函数
         } catch (error) {
             styleError.textContent = `生成失败: ${error.message}`;
             console.error(error);
@@ -305,8 +321,85 @@ function initStyleWorkshop() {
             toggleUIState(generateStyleBtn, styleLoader, styleError, false);
         }
     });
-}function displayArtStyle(result) { styleResult.innerHTML = ''; const img = document.createElement('img'); img.src = result.imageUrl; img.alt = `风格画作: ${styleContentInput.value.trim()}`; const desc = document.createElement('p'); desc.className = 'style-desc'; desc.textContent = result.styleDescription; styleResult.appendChild(img); styleResult.appendChild(desc); styleResult.classList.remove('hidden'); }
-// 模块 5: 艺术问答
+}
+// (复用)
+function displayArtStyle(result) {
+    styleResult.innerHTML = '';
+    const img = document.createElement('img');
+    img.src = result.imageUrl;
+    img.alt = `风格画作`;
+    const desc = document.createElement('p');
+    desc.className = 'style-desc';
+    desc.textContent = result.styleDescription;
+    styleResult.appendChild(img);
+    styleResult.appendChild(desc);
+    styleResult.classList.remove('hidden');
+}
+
+// 模块 5: [新增] AI自画像
+function initSelfPortrait() {
+    generatePortraitBtn.addEventListener('click', async () => {
+        const file = portraitFileInput.files[0];
+        const style_prompt = portraitStyleInput.value.trim();
+
+        if (!file) {
+            portraitError.textContent = '请上传一张你的照片';
+            return;
+        }
+        if (!style_prompt) {
+            portraitError.textContent = '请输入你想要的风格';
+            return;
+        }
+
+        toggleUIState(generatePortraitBtn, portraitLoader, portraitError, true);
+        portraitResult.classList.add('hidden');
+
+        try {
+            const base64_image = await fileToBase64(file);
+            const result = await generateSelfPortrait(base64_image, style_prompt);
+            displaySingleImageResult(portraitResult, result.imageUrl, "AI自画像");
+        } catch (error) {
+            portraitError.textContent = `生成失败: ${error.message}`;
+            console.error(error);
+        } finally {
+            toggleUIState(generatePortraitBtn, portraitLoader, portraitError, false);
+        }
+    });
+}
+
+// 模块 6: [新增] 艺术融合
+function initArtFusion() {
+    generateFusionBtn.addEventListener('click', async () => {
+        const contentFile = fusionContentInput.files[0];
+        const styleFile = fusionStyleInput.files[0];
+
+        if (!contentFile) {
+            fusionError.textContent = '请上传内容图片';
+            return;
+        }
+        if (!styleFile) {
+            fusionError.textContent = '请上传风格图片';
+            return;
+        }
+
+        toggleUIState(generateFusionBtn, fusionLoader, fusionError, true);
+        fusionResult.classList.add('hidden');
+
+        try {
+            const content_image = await fileToBase64(contentFile);
+            const style_image = await fileToBase64(styleFile);
+            const result = await generateArtFusion(content_image, style_image);
+            displaySingleImageResult(fusionResult, result.imageUrl, "艺术融合作品");
+        } catch (error) {
+            fusionError.textContent = `生成失败: ${error.message}`;
+            console.error(error);
+        } finally {
+            toggleUIState(generateFusionBtn, fusionLoader, fusionError, false);
+        }
+    });
+}
+
+// 模块 7: [保留] 艺术问答
 function initArtQA() {
     askQaBtn.addEventListener('click', async () => {
         const question = qaInput.value.trim();
@@ -317,7 +410,7 @@ function initArtQA() {
         toggleUIState(askQaBtn, qaLoader, qaError, true);
         qaResult.classList.add('hidden');
         try {
-            // [修复] 移除 modelScopeToken 参数
+            // [修复] 移除 modelScopeToken
             const result = await askArtQuestion(question);
             if (result.choices && result.choices[0] && result.choices[0].message) {
                 displayQAResult(result.choices[0].message.content);
@@ -333,8 +426,10 @@ function initArtQA() {
             toggleUIState(askQaBtn, qaLoader, qaError, false);
         }
     });
-}function displayQAResult(answer) { qaResult.textContent = answer; qaResult.classList.remove('hidden'); }
-// 模块 6: 创意灵感
+}
+function displayQAResult(answer) { qaResult.textContent = answer; qaResult.classList.remove('hidden'); }
+
+// 模块 8: [保留] 创意灵感
 function initIdeaGenerator() {
     generateIdeasBtn.addEventListener('click', async () => {
         const theme = ideaThemeInput.value.trim();
@@ -345,7 +440,7 @@ function initIdeaGenerator() {
         toggleUIState(generateIdeasBtn, ideasLoader, ideasError, true);
         ideasResult.classList.add('hidden');
         try {
-            // [修复] 移除 modelScopeToken 参数
+            // [修复] 移除 modelScopeToken
             const ideas = await generateArtIdeas(theme);
             displayArtIdeas(ideas);
         } catch (error) {
@@ -355,19 +450,74 @@ function initIdeaGenerator() {
             toggleUIState(generateIdeasBtn, ideasLoader, ideasError, false);
         }
     });
-}function displayArtIdeas(ideas) { ideasResult.innerHTML = ''; if (!ideas || ideas.length === 0) { ideasError.textContent = '未能解析创意。'; return; } ideas.forEach(idea => { const card = document.createElement('div'); card.className = 'idea-card'; const img = document.createElement('img'); img.src = idea.exampleImage || 'https://via.placeholder.com/256x256?text=Image'; img.alt = idea.name; const title = document.createElement('h3'); title.textContent = idea.name; const desc = document.createElement('p'); desc.textContent = idea.description; const elements = document.createElement('small'); elements.textContent = `关键元素: ${idea.elements}`; card.appendChild(img); card.appendChild(title); card.appendChild(desc); card.appendChild(elements); ideasResult.appendChild(card); }); ideasResult.classList.remove('hidden'); }
+}
+function displayArtIdeas(ideas) { ideasResult.innerHTML = ''; if (!ideas || ideas.length === 0) { ideasError.textContent = '未能解析创意。'; return; } ideas.forEach(idea => { const card = document.createElement('div'); card.className = 'idea-card'; const img = document.createElement('img'); img.src = idea.exampleImage || 'https://via.placeholder.com/256x256?text=Image'; img.alt = idea.name; const title = document.createElement('h3'); title.textContent = idea.name; const desc = document.createElement('p'); desc.textContent = idea.description; const elements = document.createElement('small'); elements.textContent = `关键元素: ${idea.elements}`; card.appendChild(img); card.appendChild(title); card.appendChild(desc); card.appendChild(elements); ideasResult.appendChild(card); }); ideasResult.classList.remove('hidden'); }
+
+
+// [移除] 旧的 initStepGenerator 和 displayPaintingSteps
+// function initStepGenerator() { ... }
+// function displayPaintingSteps(steps) { ... }
+// function showSlide(index) { ... }
 
 
 // ==========================================================
-// 辅助函数 (不变)
+// 辅助函数
 // ==========================================================
 function toggleUIState(button, loader, errorEl, isLoading) { if (isLoading) { button.disabled = true; loader.classList.remove('hidden'); errorEl.textContent = ''; } else { button.disabled = false; loader.classList.add('hidden'); } }
 
+/**
+ * [新增] 辅助函数：将文件转为 Base64 Data URL
+ */
+function fileToBase64(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => resolve(reader.result); // e.g., "data:image/png;base64,..."
+        reader.onerror = error => reject(error);
+    });
+}
+
+/**
+ * [新增] 辅助函数：设置图片上传预览
+ */
+function setupImagePreview(fileInput, previewElement) {
+    fileInput.addEventListener('change', (event) => {
+        const file = event.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                previewElement.src = e.target.result;
+                previewElement.style.display = 'block';
+            }
+            reader.readAsDataURL(file);
+        } else {
+            previewElement.src = '';
+            previewElement.style.display = 'none';
+        }
+    });
+}
+
+/**
+ * [新增] 辅助函数：用于显示单张图片的通用函数
+ */
+function displaySingleImageResult(resultContainer, imageUrl, altText) {
+    resultContainer.innerHTML = ''; // 清空旧结果
+    const img = document.createElement('img');
+    img.src = imageUrl;
+    img.alt = altText;
+    img.style.maxWidth = '100%';
+    img.style.maxHeight = '512px';
+    img.style.borderRadius = '8px';
+    resultContainer.appendChild(img);
+    resultContainer.classList.remove('hidden');
+}
+
+
 // ==========================================================
-// AI 调用函数
+// AI 调用函数 (重构)
 // ==========================================================
 
-// 辅助函数：处理所有到后端的 fetch 请求
+// (不变) 辅助函数：处理所有到后端的 fetch 请求
 async function fetchFromBackend(endpoint, body) {
     const response = await fetch(`${BACKEND_URL}${endpoint}`, {
         method: 'POST',
@@ -375,7 +525,7 @@ async function fetchFromBackend(endpoint, body) {
             'Content-Type': 'application/json'
         },
         body: JSON.stringify(body),
-        credentials: 'include' // [关键] 必须发送 cookie 才能使用 session
+        credentials: 'include'
     });
 
     if (!response.ok) {
@@ -386,21 +536,34 @@ async function fetchFromBackend(endpoint, body) {
     return response.json();
 }
 
-
-async function generatePaintingSteps(theme, difficulty) {
-    const data = await fetchFromBackend('/api/generate-steps', { theme, difficulty });
-    return data.steps; // 后端直接返回了 {steps: [...]}
+// [新增] 调用 "AI智能上色"
+async function generateColoring(base64_image, prompt) {
+    return fetchFromBackend('/api/colorize-lineart', { base64_image, prompt });
 }
 
-async function generateArtStyle(content, style) {
-    return fetchFromBackend('/api/generate-style', { content, style });
+// [修改] 调用 "创意风格工坊"
+async function generateArtStyle(content, style, base64_image) {
+    return fetchFromBackend('/api/generate-style', { content, style, base64_image });
 }
 
+// [新增] 调用 "AI自画像"
+async function generateSelfPortrait(base64_image, style_prompt) {
+    return fetchFromBackend('/api/self-portrait', { base64_image, style_prompt });
+}
 
+// [新增] 调用 "艺术融合"
+async function generateArtFusion(content_image, style_image) {
+    return fetchFromBackend('/api/art-fusion', { content_image, style_image });
+}
+
+// [保留] 调用 "艺术问答"
 async function askArtQuestion(question) {
     return fetchFromBackend('/api/ask-question', { question });
 }
 
+// [保留] 调用 "创意灵感"
 async function generateArtIdeas(theme) {
     return fetchFromBackend('/api/generate-ideas', { theme });
 }
+
+// [移除] generatePaintingSteps
