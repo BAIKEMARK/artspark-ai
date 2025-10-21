@@ -32,6 +32,10 @@ body {
     padding-top: var(--nav-height); /* 为导航栏留出空间 */
     overflow-x: hidden;
     transition: background-color 0.5s ease; /* 背景切换动画 */
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh; /* 确保 body 至少撑满视口高度 */
+    box-sizing: border-box; /* 确保 padding-top 包含在内 */
 
 }
 /* [V6.1 新] 当显示工具页时，强制使用标准浅背景 */
@@ -183,6 +187,8 @@ h2 {
     display: flex;
     align-items: center;
     justify-content: center;
+    flex-grow: 1;
+
 }
 /* 首页画廊背景 (V5方案) */
 .hero-gallery {
@@ -286,6 +292,9 @@ body.showing-home #home-view .hero-gallery {
     border-radius: 12px;
     box-shadow: var(--card-shadow);
     overflow: hidden;
+    flex-grow: 1;
+    /*width: 100%; !* 配合 max-width 和 margin auto 居中 *!*/
+    /*box-sizing: border-box; !* 确保 width 100% 正确 *!*/
 }
 .feature-panel {
     padding: 25px 30px;
