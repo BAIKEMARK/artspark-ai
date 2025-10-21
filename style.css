@@ -32,6 +32,7 @@ body {
     padding-top: var(--nav-height); /* 为导航栏留出空间 */
     overflow-x: hidden;
     transition: background-color 0.5s ease; /* 背景切换动画 */
+
 }
 /* [V6.1 新] 当显示工具页时，强制使用标准浅背景 */
 body.showing-tools {
@@ -104,17 +105,17 @@ h2 {
     top: 0;
     left: 0;
     border-bottom: 3px solid var(--accent-color);
+    padding: 0 20px;
+    box-sizing: border-box;
 }
 .nav-content {
-    max-width: 1000px;
+    width: 100%;
     height: 100%;
     margin: 0 auto;
-    padding: 0 20px; /* 保持左右间距，防止内容贴边 */
+    padding: 0 20px;
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    box-sizing: border-box;
-    width: 100%;
+    position: relative;
 }
 .nav-logo {
     font-family: var(--font-serif);
@@ -130,8 +131,11 @@ h2 {
 }
 .nav-links {
     display: flex;
-    flex-grow: 1; /* 占据剩余空间 */
-    justify-content: center; /* 将内部按钮居中 */
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    height: 100%; /* 确保高度撑满，用于垂直对齐 */
 }
 .nav-btn {
     padding: 0 16px;
@@ -145,6 +149,7 @@ h2 {
     color: rgba(255, 255, 255, 0.7);
     border-bottom: 4px solid transparent;
     transition: all 0.3s ease;
+    white-space: nowrap;
 }
 .nav-btn:hover {
     background-color: rgba(255, 255, 255, 0.05);
