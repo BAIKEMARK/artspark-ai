@@ -206,11 +206,263 @@ function displayArtIdeas(ideas) { ideasResult.innerHTML = ''; if (!ideas || idea
 function toggleUIState(button, loader, errorEl, isLoading) { if (isLoading) { button.disabled = true; loader.classList.remove('hidden'); errorEl.textContent = ''; } else { button.disabled = false; loader.classList.add('hidden'); } }
 
 // ==========================================================
-// AI 调用函数 (不变)
+// AI 调用函数 (修改)
 // ==========================================================
-async function generateEnglishPrompt(token, chinesePrompt, contextDescription) { /* ... */ const systemPrompt = `You are a professional AI painting prompt engineer... Context: ${contextDescription}`; const userPrompt = `Chinese Description: "${chinesePrompt}"`; const response = await fetch("https://api-inference.modelscope.cn/v1/chat/completions", { method: "POST", headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token }, body: JSON.stringify({ model: "Qwen/Qwen2.5-72B-Instruct", messages: [ { role: "system", content: systemPrompt }, { role: "user", content: userPrompt } ], max_tokens: 200, temperature: 0.5 }) }); if (!response.ok) { throw new Error(`LLM prompt generation failed: ${response.status}`); } const data = await response.json(); if (data.choices && data.choices[0] && data.choices[0].message) { const englishPrompt = data.choices[0].message.content.replace(/"/g, '').trim(); console.log(`[Prompt Enhanced] Chinese: ${chinesePrompt} -> English: ${englishPrompt}`); return englishPrompt; } else { throw new Error("LLM returned invalid data for prompt generation."); } }
-async function generatePaintingSteps(token, theme, difficulty) { /* ... */ const stepConfigs = { '初级': [ '第一步轮廓...', '...', '...', '...' ], '中级': [ '第一步构图...', '...', '...', '...', '...' ], '高级': [ '第一步构思...', '...', '...', '...', '...', '...' ] }; const steps = stepConfigs[difficulty]; const results = []; for (let i = 0; i < steps.length; i++) { const chineseStepPrompt = `绘画教学步骤图，主题：${theme}，${steps[i]}...`; const englishPrompt = await generateEnglishPrompt(token, chineseStepPrompt, `This is step ${i + 1}/${steps.length}...`); const response = await fetch("https://api-inference.modelscope.cn/v1/images/generations", { method: "POST", headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token }, body: JSON.stringify({ model: "black-forest-labs/FLUX.1-Krea-dev", prompt: englishPrompt, size: "1024x1024" }) }); if (!response.ok) { throw new Error(`HTTP error! status: ${response.status} - 步骤 ${i+1}`); } const result = await response.json(); if (result.images && result.images[0] && result.images[0].url) { results.push({ step: i + 1, description: steps[i].split('：')[1] || steps[i], imageUrl: result.images[0].url }); } else { throw new Error(`API返回无效数据 - 步骤 ${i+1}`); } } return results; }
-async function generateArtStyle(token, content, style) { /* ... */ const stylePrompts = { '梵高': `梵高风格...`, '毕加索': `毕加索...`, '水墨画': `中国传统...`, '剪纸风格': `中国剪纸...`, '水彩画': `水彩画...` }; const chinesePrompt = stylePrompts[style] || `${style}风格，${content}`; const englishPrompt = await generateEnglishPrompt(token, chinesePrompt, `A beautiful artwork...`); const response = await fetch("https://api-inference.modelscope.cn/v1/images/generations", { method: "POST", headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token }, body: JSON.stringify({ model: "black-forest-labs/FLUX.1-Krea-dev", prompt: englishPrompt, size: "1024x1024" }) }); if (!response.ok) { throw new Error(`HTTP error! status: ${response.status}`); } const result = await response.json(); if (!result.images || !result.images[0] || !result.images[0].url) { throw new Error("API返回无效图像数据"); } return { imageUrl: result.images[0].url, styleDescription: getStyleDescription(style) }; }
-function getStyleDescription(style) { /* ... */ const descriptions = { '梵高': '...', '毕加索': '...', '水墨画': '...', '剪纸风格': '...', '水彩画': '...' }; return descriptions[style] || '这是一种独特的艺术风格'; }
-function askArtQuestion(token, question) { /* ... */ return fetch("https://api-inference.modelscope.cn/v1/chat/completions", { method: "POST", headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token }, body: JSON.stringify({ model: "Qwen/Qwen2.5-72B-Instruct", messages: [{ role: "user", content: `请用小学生能理解...：${question}。...` }], max_tokens: 500, temperature: 0.7 }) }).then(r => r.json()); }
-async function generateArtIdeas(token, theme) { /* ... */ const textResponse = await fetch("https://api-inference.modelscope.cn/v1/chat/completions", { method: "POST", headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token }, body: JSON.stringify({ model: "Qwen/Qwen2.5-72B-Instruct", messages: [{ role: "user", content: `为主题"${theme}"生成3个...JSON格式返回：...` }], max_tokens: 500, temperature: 0.8 }) }); if (!textResponse.ok) { throw new Error(`获取创意文本失败`); } const ideasData = await textResponse.json(); let ideas; try { const content = ideasData.choices[0].message.content; const jsonString = content.replace(/```json\n|```/g, '').trim(); ideas = JSON.parse(jsonString).ideas; } catch (e) { throw new Error("模型返回的创意方案格式错误。"); } const imagePromises = ideas.map(async (idea) => { const chinesePrompt = `绘画创意示例...`; const englishPrompt = await generateEnglishPrompt(token, chinesePrompt, `A simple, colorful...`); try { const imageResponse = await fetch("https://api-inference.modelscope.cn/v1/images/generations", { method: "POST", headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token }, body: JSON.stringify({ model: "black-forest-labs/FLUX.1-Krea-dev", prompt: englishPrompt, size: "1024x1024" }) }); if (!imageResponse.ok) { throw new Error(`Image generation HTTP error`); } const result = await imageResponse.json(); idea.exampleImage = (result.images && result.images[0] && result.images[0].url) ? result.images[0].url : null; } catch (err) { console.error(`为 "${idea.name}" 生成图片失败:`, err); idea.exampleImage = null; } return idea; }); return await Promise.all(imagePromises); }
+
+/**
+ * [修改] 优化了系统提示词
+ */
+async function generateEnglishPrompt(token, chinesePrompt, contextDescription) {
+    // [关键] 修改 systemPrompt，强制要求只返回提示词
+    const systemPrompt = `You are a professional AI painting prompt engineer. Your task is to translate the user's Chinese description into a concise, effective English prompt for an image generation model (like FLUX).
+ONLY return the English prompt itself, without any conversational text, markdown, greetings, or explanations.
+Context: ${contextDescription}`;
+
+    const userPrompt = `Chinese Description: "${chinesePrompt}"`;
+
+    const response = await fetch("https://api-inference.modelscope.cn/v1/chat/completions", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + token
+        },
+        body: JSON.stringify({
+            model: "Qwen/Qwen2.5-72B-Instruct",
+            messages: [
+                { role: "system", content: systemPrompt },
+                { role: "user", content: userPrompt }
+            ],
+            max_tokens: 200,
+            temperature: 0.5
+        })
+    });
+
+    if (!response.ok) {
+        throw new Error(`LLM prompt generation failed: ${response.status}`);
+    }
+    const data = await response.json();
+    if (data.choices && data.choices[0] && data.choices[0].message) {
+        const englishPrompt = data.choices[0].message.content.replace(/"/g, '').trim();
+        console.log(`[Prompt Enhanced] Chinese: ${chinesePrompt} -> English: ${englishPrompt}`);
+        return englishPrompt;
+    } else {
+        throw new Error("LLM returned invalid data for prompt generation.");
+    }
+}
+
+
+async function generatePaintingSteps(token, theme, difficulty) {
+    const stepConfigs = {
+        '初级': ['第一步：画一个简单的轮廓', '第二步：添加五官', '第三步：画上身体', '第四步：涂上颜色'],
+        '中级': ['第一步：构思草图', '第二步：明确主体轮廓', '第三步：添加背景元素', '第四步：细化阴影', '第五步：上色和高光'],
+        '高级': ['第一步：基础构图', '第二步：主体轮廓', '第三步：添加主要细节', '第四步：深入刻画（例如：阴影）', '第五步：添加背景和环境', '第六步：最终上色和高光']
+    };
+
+    const steps = stepConfigs[difficulty];
+    const results = [];
+
+    // 1. [关键] 在循环外定义一个固定的Seed
+    const constantSeed = Math.floor(Math.random() * 2**31 - 1);
+
+    let previousImageUrl = null; // 用于存储上一步的图像URL
+
+    // 2. [关键] 使用 'for...of' 循环来确保串行（等待）
+    for (let i = 0; i < steps.length; i++) {
+
+        const chineseStepPrompt = `绘画教学步骤图，主题：${theme}，${steps[i]}`;
+        const englishPrompt = await generateEnglishPrompt(token, chineseStepPrompt, `This is step ${i + 1}/${steps.length} of a drawing tutorial.`);
+
+        // 3. 构建请求体
+        const requestBody = {
+            model: "black-forest-labs/FLUX.1-Krea-dev",
+            prompt: englishPrompt,
+            seed: constantSeed, // [关键] 每次都使用同一个Seed
+            size: "1024x1024" // 注意：FLUX文档说最大1024x1024
+            // 可以在这里添加 negative_prompt, steps, guidance 等
+        };
+
+        // 4. [关键] 从第二步开始，传入上一步的图像
+        if (previousImageUrl) {
+            requestBody.image_url = previousImageUrl;
+        }
+
+        try {
+            // 5. [关键] 直接调用同步API (像 generateArtStyle 一样)
+            const response = await fetch("https://api-inference.modelscope.cn/v1/images/generations", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": "Bearer " + token
+                },
+                body: JSON.stringify(requestBody)
+            });
+
+            if (!response.ok) {
+                let errorMsg = `HTTP error! status: ${response.status}`;
+                try {
+                    const errData = await response.json();
+                    errorMsg = errData.message || JSON.stringify(errData);
+                } catch(e) {}
+                throw new Error(errorMsg);
+            }
+
+            const result = await response.json();
+
+            // 6. [关键] 从同步响应中获取图像URL (注意: 字段是 'images')
+            if (!result.images || !result.images[0] || !result.images[0].url) {
+                throw new Error("API返回无效图像数据");
+            }
+
+            const imageUrl = result.images[0].url;
+
+            results.push({
+                step: i + 1,
+                description: steps[i].split('：')[1] || steps[i],
+                imageUrl: imageUrl
+            });
+            previousImageUrl = imageUrl; // [关键] 保存当前URL，供下一步使用
+
+        } catch (error) {
+            // 如果一步失败，整个链条都失败
+            console.error(error);
+            throw new Error(`在步骤 ${i+1} ("${steps[i]}") 生成时失败: ${error.message}`);
+        }
+    }
+
+    return results; // 返回完整的、一致的步骤数组
+}
+
+// [不变] generateArtStyle 已在使用同步模式
+async function generateArtStyle(token, content, style) {
+    /* ... */
+    const stylePrompts = {
+        '梵高': `梵高风格，充满活力的笔触，厚涂颜料，主题：${content}`,
+        '毕加索': `毕加索立体主义风格，破碎的视角，几何形状，主题：${content}`,
+        '水墨画': `中国传统水墨画风格，黑白，留白，意境，主题：${content}`,
+        '剪纸风格': `中国剪纸风格，鲜艳的红色，镂空，对称，主题：${content}`,
+        '水彩画': `水彩画风格，透明的颜色，湿画法，主题：${content}`
+    };
+    const chinesePrompt = stylePrompts[style] || `${style}风格，${content}`;
+    const englishPrompt = await generateEnglishPrompt(token, chinesePrompt, `A beautiful artwork in the style of ${style}.`);
+
+    const response = await fetch("https://api-inference.modelscope.cn/v1/images/generations", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + token
+        },
+        body: JSON.stringify({
+            model: "black-forest-labs/FLUX.1-Krea-dev",
+            prompt: englishPrompt,
+            size: "1024x1024"
+        })
+    });
+
+    if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    const result = await response.json();
+    if (!result.images || !result.images[0] || !result.images[0].url) {
+        throw new Error("API返回无效图像数据");
+    }
+    return {
+        imageUrl: result.images[0].url,
+        styleDescription: getStyleDescription(style)
+    };
+}
+
+function getStyleDescription(style) {
+    const descriptions = {
+        '梵高': '梵高：使用旋转、充满活力的笔触和厚重的颜料来表达情感。',
+        '毕加SO': '毕加索：通过将物体分解成几何形状来从多个角度展示它们。',
+        '水墨画': '水墨画：利用墨色的浓淡变化和笔触的力度来传达意境。',
+        '剪纸风格': '剪纸风格：中国传统的民间艺术，通常使用红色纸张和镂空图案。',
+        '水彩画': '水彩画：一种使用透明颜料和水在纸上作画的技法。'
+    };
+    return descriptions[style] || '这是一种独特的艺术风格';
+}
+
+// [不变] askArtQuestion
+function askArtQuestion(token, question) {
+    /* ... */
+    return fetch("https://api-inference.modelscope.cn/v1/chat/completions", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + token
+        },
+        body: JSON.stringify({
+            model: "Qwen/Qwen2.5-72B-Instruct",
+            messages: [{
+                role: "user",
+                content: `你是一位友好的艺术老师。请用小学生能轻松理解的、简洁的语言（大约100-150字）回答以下问题：${question}。不要使用复杂的专业术语。`
+            }],
+            max_tokens: 500,
+            temperature: 0.7
+        })
+    }).then(r => r.json());
+}
+
+// [不变] generateArtIdeas
+async function generateArtIdeas(token, theme) {
+    /* ... */
+    const textResponse = await fetch("https://api-inference.modelscope.cn/v1/chat/completions", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + token
+        },
+        body: JSON.stringify({
+            model: "Qwen/Qwen2.5-72B-Instruct",
+            messages: [{
+                role: "user",
+                content: `为主题"${theme}"生成3个绘画创意灵感，适合小学生。请使用严格的JSON格式返回，包含一个 'ideas' 数组，每个对象有 'name' (创意名称), 'description' (一句话描述), 'elements' (3个关键词，用逗号分隔)。
+                例如: {"ideas": [{"name": "...", "description": "...", "elements": "..."}]}`
+            }],
+            max_tokens: 500,
+            temperature: 0.8
+        })
+    });
+    if (!textResponse.ok) {
+        throw new Error(`获取创意文本失败`);
+    }
+    const ideasData = await textResponse.json();
+    let ideas;
+    try {
+        const content = ideasData.choices[0].message.content;
+        const jsonString = content.replace(/```json\n|```/g, '').trim();
+        ideas = JSON.parse(jsonString).ideas;
+    } catch (e) {
+        throw new Error("模型返回的创意方案格式错误。");
+    }
+
+    // [不变] 创意灵感的图片生成 (已在使用同步模式)
+    const imagePromises = ideas.map(async (idea) => {
+        const chinesePrompt = `绘画创意示例：${idea.name}，${idea.description}，包含元素：${idea.elements}`;
+        const englishPrompt = await generateEnglishPrompt(token, chinesePrompt, `A simple, colorful illustration for a child, based on an art idea.`);
+        try {
+            const imageResponse = await fetch("https://api-inference.modelscope.cn/v1/images/generations", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": "Bearer " + token
+                },
+                body: JSON.stringify({
+                    model: "black-forest-labs/FLUX.1-Krea-dev",
+                    prompt: englishPrompt,
+                    size: "1024x1024" // 注意: 创意灵感卡片是 1:1 比例
+                })
+            });
+            if (!imageResponse.ok) {
+                throw new Error(`Image generation HTTP error`);
+            }
+            const result = await imageResponse.json();
+            idea.exampleImage = (result.images && result.images[0] && result.images[0].url) ? result.images[0].url : null;
+        } catch (err) {
+            console.error(`为 "${idea.name}" 生成图片失败:`, err);
+            idea.exampleImage = null;
+        }
+        return idea;
+    });
+    return await Promise.all(imagePromises);
+}

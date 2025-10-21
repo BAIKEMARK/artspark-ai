@@ -394,3 +394,26 @@ footer { width: 100%; background: var(--secondary-color); color: rgba(255, 255, 
 .slide.is-scroll::before {
     background-size: cover;
 }
+
+/* 1. 重置幻灯片内容容器 */
+#slideshow-content {
+    position: relative;
+    min-height: 200px; /* 防止在加载时折叠 */
+}
+
+/* 2. 覆盖首页 .slide 的 'position: absolute' 和 'opacity: 0' */
+#slideshow-content .slide {
+    position: relative; /* 覆盖 'absolute' */
+    height: auto;       /* 覆盖 'height: 100%'，允许其包裹内容 */
+    width: 100%;        /* 保持 100% 宽度 */
+    opacity: 1;         /* 覆盖 'opacity: 0' */
+
+    /* [V7.5 关键] 切换为 display 布局，而不是 opacity */
+    display: none;
+}
+
+/* 3. 覆盖首页 .slide.active 的 'opacity: 1' */
+#slideshow-content .slide.active {
+    display: block; /* 使用 block 显示，而不是 opacity */
+    animation: result-fade-in 0.5s ease; /* 复用现有的淡入动画 */
+}
