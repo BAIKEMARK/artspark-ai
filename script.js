@@ -10,12 +10,14 @@ const saveKeyBtn = document.getElementById('save-key-btn');
 const apiError = document.getElementById('api-error');
 const homeView = document.getElementById('home-view');
 const toolContent = document.getElementById('tool-content');
+// 首页功能区
+const homeFeaturesSection = document.getElementById('home-features-section');
 const globalNav = document.getElementById('global-nav');
 const navLinks = globalNav.querySelector('.nav-links');
 const allNavButtons = globalNav.querySelectorAll('.nav-btn');
 const homeLogoButton = document.getElementById('home-logo-btn');
 const homeContentOverlay = homeView.querySelector('.home-content-overlay');
-const featureCards = homeView.querySelectorAll('.feature-card');
+const featureCards = document.querySelectorAll('.feature-card'); // [V7 修改] 它现在位于 homeFeaturesSection 中
 const heroSlider = document.querySelector('.slider-container');
 const sliderDotsContainer = document.querySelector('.slider-dots');
 let heroSlides = [];
@@ -120,7 +122,7 @@ function startSlideShow() { showHeroSlide(0); clearInterval(slideInterval); slid
 
 
 // ==========================================================
-// [V6.5 修复] 核心模块 2: 主导航逻辑
+// [V7 修复] 核心模块 2: 主导航逻辑
 // ==========================================================
 function initNavigation() {
     navLinks.addEventListener('click', (e) => { if (e.target.tagName === 'BUTTON') { const targetId = e.target.dataset.target; navigateTo(targetId); } });
@@ -129,7 +131,7 @@ function initNavigation() {
 }
 
 /**
- * [V6.5 修复] 核心导航函数
+ * [V7 修复] 核心导航函数
  * @param {string} targetId - 要导航到的视图/面板的ID
  */
 function navigateTo(targetId) {
@@ -149,9 +151,10 @@ function navigateTo(targetId) {
         document.body.classList.remove('showing-home');
     }
 
-    // 3. [!!!] V6.5 核心修复：直接设置 display 样式 [!!!]
-    homeView.style.display = isHomePage ? 'flex' : 'none'; // 首页用 flex 布局
-    toolContent.style.display = isHomePage ? 'none' : 'block'; // 工具区用 block 布局
+    // 3. [V7 核心修复] 切换首页和工具区
+    homeView.style.display = isHomePage ? 'flex' : 'none'; // 首页画廊
+    homeFeaturesSection.style.display = isHomePage ? 'block' : 'none'; // 首页功能区
+    toolContent.style.display = isHomePage ? 'none' : 'block'; // 工具区
 
     // 4. 如果进入工具区，切换内部面板
     if (!isHomePage) {
@@ -168,7 +171,7 @@ function navigateTo(targetId) {
              toolContent.style.display = 'none';
         }
     } else {
-         // 回到首页时，确保所有工具面板都隐藏（冗余但无害）
+         // 回到首页时，确保所有工具面板都隐藏
          featurePanels.forEach(panel => {
             panel.classList.add('hidden');
             panel.classList.remove('active');
