@@ -21,5 +21,5 @@ license: Apache License 2.0
 ---
 #### Clone with HTTP
 ```bash
- git clone https://www.modelscope.cn/studios/MarkBai/AI_assistant.git
+ git clone https://www.modelscope.cn/studios/Datawhale/AI_assistant_Demo.git
 ```
