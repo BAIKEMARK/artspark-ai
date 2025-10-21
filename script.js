@@ -28,7 +28,7 @@ let slideInterval;
 const featurePanels = document.querySelectorAll('.feature-panel');
 const footerGuide = document.getElementById('footer-guide');
 
-// [新增] 功能一：AI智能上色
+// 功能一：AI智能上色
 const coloringFileInput = document.getElementById('coloring-file-input');
 const coloringPreview = document.getElementById('coloring-preview');
 const coloringPromptInput = document.getElementById('coloring-prompt-input');
@@ -37,7 +37,7 @@ const coloringLoader = document.getElementById('coloring-loader');
 const coloringError = document.getElementById('coloring-error');
 const coloringResult = document.getElementById('coloring-result');
 
-// [修改] 功能二：创意风格工坊
+// 功能二：创意风格工坊
 const styleSelect = document.getElementById('style-select');
 const styleFileInput = document.getElementById('style-file-input');
 const stylePreview = document.getElementById('style-preview');
@@ -47,7 +47,7 @@ const styleLoader = document.getElementById('style-loader');
 const styleError = document.getElementById('style-error');
 const styleResult = document.getElementById('style-result');
 
-// [新增] 功能三：AI自画像
+// 功能三：AI自画像
 const portraitFileInput = document.getElementById('portrait-file-input');
 const portraitPreview = document.getElementById('portrait-preview');
 const portraitStyleInput = document.getElementById('portrait-style-input');
@@ -56,7 +56,7 @@ const portraitLoader = document.getElementById('portrait-loader');
 const portraitError = document.getElementById('portrait-error');
 const portraitResult = document.getElementById('portrait-result');
 
-// [新增] 功能四：艺术融合
+// 功能四：艺术融合
 const fusionContentInput = document.getElementById('fusion-content-input');
 const fusionContentPreview = document.getElementById('fusion-content-preview');
 const fusionStyleInput = document.getElementById('fusion-style-input');
@@ -66,14 +66,14 @@ const fusionLoader = document.getElementById('fusion-loader');
 const fusionError = document.getElementById('fusion-error');
 const fusionResult = document.getElementById('fusion-result');
 
-// [保留] 功能五：艺术问答
+// 功能五：艺术问答
 const qaInput = document.getElementById('qa-input');
 const askQaBtn = document.getElementById('ask-qa-btn');
 const qaLoader = document.getElementById('qa-loader');
 const qaError = document.getElementById('qa-error');
 const qaResult = document.getElementById('qa-result');
 
-// [保留] 功能六：创意灵感
+// 功能六：创意灵感
 const ideaThemeInput = document.getElementById('idea-theme-input');
 const generateIdeasBtn = document.getElementById('generate-ideas-btn');
 const ideasLoader = document.getElementById('ideas-loader');
@@ -93,7 +93,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initHeroSlider();
     initNavigation();
 
-    // [修改] 初始化所有新功能
+    // 初始化所有新功能
     initColoring();       // (新)
     initStyleWorkshop();  // (修改)
     initSelfPortrait();   // (新)
@@ -101,7 +101,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initArtQA();          // (保留)
     initIdeaGenerator();  // (保留)
 
-    // [新增] 为所有文件输入框绑定预览
+    // 为所有文件输入框绑定预览
     setupImagePreview(coloringFileInput, coloringPreview);
     setupImagePreview(styleFileInput, stylePreview);
     setupImagePreview(portraitFileInput, portraitPreview);
@@ -207,7 +207,7 @@ function startSlideShow() { showHeroSlide(0); clearInterval(slideInterval); slid
 function initNavigation() {
     navLinks.addEventListener('click', (e) => { if (e.target.tagName === 'BUTTON') { const targetId = e.target.dataset.target; navigateTo(targetId); } });
     homeLogoButton.addEventListener('click', (e) => { e.preventDefault(); navigateTo('home-view'); });
-    // [修改] 确保首页卡片导航正确
+    // 确保首页卡片导航正确
     featureCards.forEach(card => {
         card.addEventListener('click', () => {
             const targetId = card.dataset.target;
@@ -258,7 +258,7 @@ function navigateTo(targetId) {
 // 核心模块 3-8: 工具功能 (重构)
 // ==========================================================
 
-// 模块 3: [新增] AI智能上色
+// 模块 3: AI智能上色
 function initColoring() {
     generateColoringBtn.addEventListener('click', async () => {
         const file = coloringFileInput.files[0];
@@ -289,7 +289,7 @@ function initColoring() {
     });
 }
 
-// 模块 4: [修改] 创意风格工坊
+// 模块 4: 创意风格工坊
 function initStyleWorkshop() {
     generateStyleBtn.addEventListener('click', async () => {
         const style = styleSelect.value;
@@ -336,7 +336,7 @@ function displayArtStyle(result) {
     styleResult.classList.remove('hidden');
 }
 
-// 模块 5: [新增] AI自画像
+// 模块 5: AI自画像
 function initSelfPortrait() {
     generatePortraitBtn.addEventListener('click', async () => {
         const file = portraitFileInput.files[0];
@@ -367,7 +367,7 @@ function initSelfPortrait() {
     });
 }
 
-// 模块 6: [新增] 艺术融合
+// 模块 6: 艺术融合
 function initArtFusion() {
     generateFusionBtn.addEventListener('click', async () => {
         const contentFile = fusionContentInput.files[0];
@@ -399,7 +399,7 @@ function initArtFusion() {
     });
 }
 
-// 模块 7: [保留] 艺术问答
+// 模块 7: 艺术问答
 function initArtQA() {
     askQaBtn.addEventListener('click', async () => {
         const question = qaInput.value.trim();
@@ -410,7 +410,6 @@ function initArtQA() {
         toggleUIState(askQaBtn, qaLoader, qaError, true);
         qaResult.classList.add('hidden');
         try {
-            // [修复] 移除 modelScopeToken
             const result = await askArtQuestion(question);
             if (result.choices && result.choices[0] && result.choices[0].message) {
                 displayQAResult(result.choices[0].message.content);
@@ -429,7 +428,7 @@ function initArtQA() {
 }
 function displayQAResult(answer) { qaResult.textContent = answer; qaResult.classList.remove('hidden'); }
 
-// 模块 8: [保留] 创意灵感
+// 模块 8: 创意灵感
 function initIdeaGenerator() {
     generateIdeasBtn.addEventListener('click', async () => {
         const theme = ideaThemeInput.value.trim();
@@ -440,7 +439,6 @@ function initIdeaGenerator() {
         toggleUIState(generateIdeasBtn, ideasLoader, ideasError, true);
         ideasResult.classList.add('hidden');
         try {
-            // [修复] 移除 modelScopeToken
             const ideas = await generateArtIdeas(theme);
             displayArtIdeas(ideas);
         } catch (error) {
@@ -453,20 +451,13 @@ function initIdeaGenerator() {
 }
 function displayArtIdeas(ideas) { ideasResult.innerHTML = ''; if (!ideas || ideas.length === 0) { ideasError.textContent = '未能解析创意。'; return; } ideas.forEach(idea => { const card = document.createElement('div'); card.className = 'idea-card'; const img = document.createElement('img'); img.src = idea.exampleImage || 'https://via.placeholder.com/256x256?text=Image'; img.alt = idea.name; const title = document.createElement('h3'); title.textContent = idea.name; const desc = document.createElement('p'); desc.textContent = idea.description; const elements = document.createElement('small'); elements.textContent = `关键元素: ${idea.elements}`; card.appendChild(img); card.appendChild(title); card.appendChild(desc); card.appendChild(elements); ideasResult.appendChild(card); }); ideasResult.classList.remove('hidden'); }
 
-
-// [移除] 旧的 initStepGenerator 和 displayPaintingSteps
-// function initStepGenerator() { ... }
-// function displayPaintingSteps(steps) { ... }
-// function showSlide(index) { ... }
-
-
 // ==========================================================
 // 辅助函数
 // ==========================================================
 function toggleUIState(button, loader, errorEl, isLoading) { if (isLoading) { button.disabled = true; loader.classList.remove('hidden'); errorEl.textContent = ''; } else { button.disabled = false; loader.classList.add('hidden'); } }
 
 /**
- * [新增] 辅助函数：将文件转为 Base64 Data URL
+ * 辅助函数：将文件转为 Base64 Data URL
  */
 function fileToBase64(file) {
     return new Promise((resolve, reject) => {
@@ -478,7 +469,7 @@ function fileToBase64(file) {
 }
 
 /**
- * [新增] 辅助函数：设置图片上传预览
+ * 辅助函数：设置图片上传预览
  */
 function setupImagePreview(fileInput, previewElement) {
     fileInput.addEventListener('change', (event) => {
@@ -498,7 +489,7 @@ function setupImagePreview(fileInput, previewElement) {
 }
 
 /**
- * [新增] 辅助函数：用于显示单张图片的通用函数
+ * 辅助函数：用于显示单张图片的通用函数
  */
 function displaySingleImageResult(resultContainer, imageUrl, altText) {
     resultContainer.innerHTML = ''; // 清空旧结果
@@ -517,7 +508,7 @@ function displaySingleImageResult(resultContainer, imageUrl, altText) {
 // AI 调用函数 (重构)
 // ==========================================================
 
-// (不变) 辅助函数：处理所有到后端的 fetch 请求
+// 辅助函数：处理所有到后端的 fetch 请求
 async function fetchFromBackend(endpoint, body) {
     const response = await fetch(`${BACKEND_URL}${endpoint}`, {
         method: 'POST',
@@ -536,32 +527,32 @@ async function fetchFromBackend(endpoint, body) {
     return response.json();
 }
 
-// [新增] 调用 "AI智能上色"
+// 调用 "AI智能上色"
 async function generateColoring(base64_image, prompt) {
     return fetchFromBackend('/api/colorize-lineart', { base64_image, prompt });
 }
 
-// [修改] 调用 "创意风格工坊"
+// 调用 "创意风格工坊"
 async function generateArtStyle(content, style, base64_image) {
     return fetchFromBackend('/api/generate-style', { content, style, base64_image });
 }
 
-// [新增] 调用 "AI自画像"
+// 调用 "AI自画像"
 async function generateSelfPortrait(base64_image, style_prompt) {
     return fetchFromBackend('/api/self-portrait', { base64_image, style_prompt });
 }
 
-// [新增] 调用 "艺术融合"
+// 调用 "艺术融合"
 async function generateArtFusion(content_image, style_image) {
     return fetchFromBackend('/api/art-fusion', { content_image, style_image });
 }
 
-// [保留] 调用 "艺术问答"
+// 调用 "艺术问答"
 async function askArtQuestion(question) {
     return fetchFromBackend('/api/ask-question', { question });
 }
 
-// [保留] 调用 "创意灵感"
+// 调用 "创意灵感"
 async function generateArtIdeas(theme) {
     return fetchFromBackend('/api/generate-ideas', { theme });
 }
