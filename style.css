@@ -1,5 +1,5 @@
 /* * "艺启智AI - 乡村美术助教"
- * 视觉优化方案 (V6 - 门户画廊架构)
+ * 视觉优化方案 (V7 - 画廊/门户分离架构)
  */
 
 /* 1. 引入字体 */
@@ -53,7 +53,7 @@ h2 {
     font-weight: 600;
 }
 
-/* 4. API 密钥模态框 (不变) */
+/* 4. API 密钥模态框 */
 .modal-overlay {
     position: fixed;
     top: 0;
@@ -87,7 +87,6 @@ h2 {
     from { transform: translateY(-20px) scale(0.98); opacity: 0; }
     to { transform: translateY(0) scale(1); opacity: 1; }
 }
-/* ... (模态框内部样式不变) ... */
 .modal-content h2 { font-family: var(--font-serif); color: var(--secondary-color); margin-top: 0; }
 .modal-content p { margin-bottom: 1.5rem; }
 #api-key-section input[type="password"] { width: 70%; padding: 10px; border: 2px solid var(--border-color); border-radius: 8px; transition: all 0.3s ease; }
@@ -165,7 +164,7 @@ h2 {
     border-bottom-color: white;
 }
 
-/* 6. [V6 新] 视图面板 (首页和工具区) */
+/* 6. 视图面板 (首页和工具区) */
 .view-panel {
     width: 100%;
     animation: panel-fade-in 0.5s ease;
@@ -178,7 +177,7 @@ h2 {
     to { opacity: 1; }
 }
 
-/* 7. [V6 新] 首页视图 */
+/* 7. 首页视图 */
 #home-view {
     position: relative;
     width: 100%;
@@ -187,10 +186,8 @@ h2 {
     display: flex;
     align-items: center;
     justify-content: center;
-    flex-grow: 1;
-
 }
-/* 首页画廊背景 (V5方案) */
+/* 首页画廊背景 */
 .hero-gallery {
     position: absolute;
     top: 0;
@@ -217,7 +214,7 @@ body.showing-home #home-view .hero-gallery {
     background-position: center;
     opacity: 0;
     transition: opacity 1.5s ease-in-out;
-    filter: blur(20px) brightness(0.7) scale(1.1);
+    filter: blur(35px) brightness(0.2) scale(1.1);
     animation: ken-burns 20s infinite;
 }
 .slide::before {
@@ -270,20 +267,49 @@ body.showing-home #home-view .hero-gallery {
     font-size: 1.25rem;
     font-weight: 400;
     text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
-    margin-bottom: 3rem;
+    margin-bottom: 0;
     max-width: 600px;
     margin-left: auto;
     margin-right: auto;
 }
 
-/* 首页“特性卡片” */
-.feature-cards-container { display: flex; justify-content: center; gap: 20px; flex-wrap: wrap; }
-.feature-card { background: rgba(255, 255, 255, 0.9); color: var(--dark-text); padding: 1.5rem 2rem; border-radius: 12px; width: 250px; text-align: left; box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.2); transition: all 0.3s ease; cursor: pointer; }
-.feature-card:hover { transform: translateY(-10px); box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15); }
+/* 首页功能区 */
+#home-features-section {
+    background-color: var(--light-bg);
+    padding: 3rem 1.5rem; /* 上下 3rem, 左右 1.5rem */
+    border-top: 1px solid var(--border-color); /* 与画廊的细微分割 */
+}
+/* 确保卡片容器在 section 内正确居中且宽度一致 */
+.feature-cards-container {
+    max-width: 900px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+/* 首页“特性卡片”*/
+.feature-card {
+    background: #ffffff; /* [V7 新增] 纯白背景 */
+    color: var(--dark-text);
+    padding: 1.5rem 2rem;
+    border-radius: 12px;
+    width: 250px;
+    text-align: left;
+    box-shadow: var(--card-shadow); /* [V7 新增] 使用标准卡片阴影 */
+    border: 1px solid var(--border-color); /* [V7 新增] 标准边框 */
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+.feature-card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 12px 40px rgba(44, 62, 80, 0.12);
+}
 .feature-card h3 { font-family: var(--font-serif); color: var(--accent-color); margin-top: 0; font-size: 1.3rem; }
 .feature-card p { font-size: 0.95rem; color: var(--secondary-color); line-height: 1.6; margin-bottom: 0; }
 
-/* 8. [V6 重构] 工具区主内容 */
+/* 8. 工具区主内容 */
 #tool-content {
     max-width: 900px;
     margin: 20px auto;
@@ -293,8 +319,6 @@ body.showing-home #home-view .hero-gallery {
     box-shadow: var(--card-shadow);
     overflow: hidden;
     flex-grow: 1;
-    /*width: 100%; !* 配合 max-width 和 margin auto 居中 *!*/
-    /*box-sizing: border-box; !* 确保 width 100% 正确 *!*/
 }
 .feature-panel {
     padding: 25px 30px;
@@ -304,7 +328,7 @@ body.showing-home #home-view .hero-gallery {
 }
 
 
-/* 9. 表单样式 (不变) */
+/* 9. 表单样式 */
 .form-group { margin-bottom: 20px; }
 .form-group label { display: block; margin-bottom: 8px; font-weight: 500; color: var(--secondary-color); font-family: var(--font-serif); font-size: 1.1rem; }
 .form-group input[type="text"],
@@ -312,12 +336,12 @@ body.showing-home #home-view .hero-gallery {
 .form-group input[type="text"]:focus,
 .form-group select:focus { border-color: var(--primary-color); box-shadow: 0 0 8px rgba(52, 73, 94, 0.1); outline: none; background-color: #fff; }
 
-/* 10. 主按钮 (不变) */
+/* 10. 主按钮 */
 .cta-btn { padding: 10px 20px; background-color: var(--accent-color); color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 1rem; font-weight: 500; transition: all 0.3s ease; box-shadow: 0 4px 12px rgba(184, 134, 11, 0.2); }
 .cta-btn:hover { background-color: #CF970E; transform: translateY(-2px); box-shadow: 0 6px 16px rgba(184, 134, 11, 0.3); }
 .cta-btn:disabled { background-color: #BDBDBD; box-shadow: none; transform: none; cursor: not-allowed; }
 
-/* 11. 结果区 (不变) */
+/* 11. 结果区 */
 .result-container { margin-top: 25px; padding: 20px; border: 2px dashed var(--border-color); border-radius: 8px; background: var(--light-bg); min-height: 100px; }
 .loader { border: 4px solid #f3f3f3; border-top: 4px solid var(--accent-color); border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 20px auto; }
 @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
@@ -325,7 +349,7 @@ body.showing-home #home-view .hero-gallery {
 #slideshow-container, #style-result img, .idea-card, #qa-result { animation: result-fade-in 0.5s ease; }
 @keyframes result-fade-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-/* 12. 幻灯片 (不变) */
+/* 12. 幻灯片 */
 #slideshow-container { position: relative; max-width: 512px; margin: auto; text-align: center; }
 #slideshow-content img { max-width: 100%; height: auto; border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05); }
 #slideshow-content p { font-weight: 500; color: var(--secondary-color); font-size: 1rem; margin-top: 15px; }
@@ -333,14 +357,14 @@ body.showing-home #home-view .hero-gallery {
 .slide-nav-btn:hover { background-color: var(--secondary-color); }
 #step-counter { font-weight: 500; color: var(--secondary-color); }
 
-/* 13. 风格工坊 (不变) */
+/* 13. 风格工坊 */
 #style-result img { max-width: 100%; max-height: 512px; display: block; margin: 0 auto; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05); }
 .style-desc { text-align: center; margin-top: 15px; font-style: italic; color: var(--secondary-color); }
 
-/* 14. 问答结果 (不变) */
+/* 14. 问答结果 */
 #qa-result { white-space: pre-wrap; line-height: 1.8; font-size: 1.05rem; color: var(--dark-text); }
 
-/* 15. 创意灵感卡片 (不变) */
+/* 15. 创意灵感卡片 */
 #ideas-result { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; }
 .idea-card { border: 1px solid var(--border-color); border-radius: 12px; padding: 0; box-shadow: 0 2px 8px rgba(0,0,0,0.02); text-align: center; background: #fff; transition: transform 0.3s ease, box-shadow 0.3s ease; overflow: hidden; }
 .idea-card:hover { transform: translateY(-5px); box-shadow: var(--card-shadow); }
@@ -355,7 +379,7 @@ body.showing-home #home-view .hero-gallery {
     display: none;
 }
 
-/* 16. 全宽策展人页脚 (不变) */
+/* 16. 全宽策展人页脚 */
 footer { width: 100%; background: var(--secondary-color); color: rgba(255, 255, 255, 0.7); padding: 0; margin-top: 40px; }
 .footer-content { max-width: 900px; margin: 0 auto; padding: 2.5rem 1.5rem; display: flex; flex-wrap: wrap; gap: 20px; }
 .footer-column { flex: 1; min-width: 300px; }
@@ -366,3 +390,7 @@ footer { width: 100%; background: var(--secondary-color); color: rgba(255, 255, 
 .footer-column a:hover { color: white; text-decoration: underline; }
 .footer-bottom { background: rgba(0, 0, 0, 0.1); padding: 1rem; text-align: center; font-size: 0.85rem; }
 .footer-bottom p { margin: 0; }
+
+.slide.is-scroll::before {
+    background-size: cover;
+}
