@@ -5,7 +5,8 @@
 let modelScopeToken = '';
 const MODEL_SCOPE_TOKEN_KEY = 'modelscope_api_key';
 
-// API 密钥区
+// [!!!] 修改：API 密钥区指向模态框
+const apiKeyModal = document.getElementById('api-key-modal');
 const apiKeySection = document.getElementById('api-key-section');
 const apiKeyInput = document.getElementById('api-key-input');
 const saveKeyBtn = document.getElementById('save-key-btn');
@@ -17,6 +18,14 @@ const footerGuide = document.getElementById('footer-guide');
 const mainNav = document.getElementById('main-nav');
 const featurePanels = document.querySelectorAll('.feature-panel');
 
+// [!!!] 新：Hero 滑块元素
+const heroSlider = document.querySelector('.slider-container');
+const sliderDotsContainer = document.querySelector('.slider-dots');
+let heroSlides = [];
+let currentHeroSlide = 0;
+let slideInterval;
+
+// (功能1-4的DOM元素保持不变)
 // 功能1: 分步绘画
 const themeInput = document.getElementById('theme-input');
 const difficultySelect = document.getElementById('difficulty-select');
@@ -59,7 +68,8 @@ const ideasResult = document.getElementById('ideas-result');
 // ==========================================================
 
 document.addEventListener('DOMContentLoaded', () => {
-    initApiKeyManager();
+    initApiKeyManager(); // [!] 修改：现在控制模态框
+    initHeroSlider(); // [!] 新：启动头部画廊
     initNavigation();
     initStepGenerator();
     initStyleWorkshop();
@@ -68,16 +78,16 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ==========================================================
-// 核心模块 1: API 密钥管理
+// 核心模块 1: API 密钥管理 (重写为模态框)
 // ==========================================================
 
 function initApiKeyManager() {
     const storedKey = localStorage.getItem(MODEL_SCOPE_TOKEN_KEY);
     if (storedKey) {
         modelScopeToken = storedKey;
-        showMainContent();
+        showMainContent(); // 直接显示内容
     } else {
-        showApiKeySection();
+        showApiKeyModal(); // 显示模态框
     }
 
     saveKeyBtn.addEventListener('click', () => {
@@ -85,7 +95,7 @@ function initApiKeyManager() {
         if (key) {
             modelScopeToken = key;
             localStorage.setItem(MODEL_SCOPE_TOKEN_KEY, key);
-            showMainContent();
+            showMainContent(); // 隐藏模态框并显示内容
             apiError.textContent = '';
         } else {
             apiError.textContent = 'API KEY 不能为空';
@@ -94,19 +104,66 @@ function initApiKeyManager() {
 }
 
 function showMainContent() {
-    apiKeySection.classList.add('hidden');
+    apiKeyModal.classList.add('hidden'); // 隐藏模态框
     mainContent.classList.remove('hidden');
     footerGuide.classList.remove('hidden');
 }
 
-function showApiKeySection() {
-    apiKeySection.classList.remove('hidden');
+function showApiKeyModal() {
+    apiKeyModal.classList.remove('hidden'); // 显示模态框
     mainContent.classList.add('hidden');
     footerGuide.classList.add('hidden');
 }
 
 // ==========================================================
-// 核心模块 2: 主导航切换
+// [!!!] 核心模块 1.5: 头部画廊滑块 (新)
+// ==========================================================
+
+function initHeroSlider() {
+    heroSlides = heroSlider.querySelectorAll('.slide');
+    if (heroSlides.length === 0) return;
+
+    // 创建导航点
+    heroSlides.forEach((_, index) => {
+        const dot = document.createElement('div');
+        dot.classList.add('dot');
+        if (index === 0) dot.classList.add('active');
+        dot.addEventListener('click', () => showHeroSlide(index));
+        sliderDotsContainer.appendChild(dot);
+    });
+
+    // 启动自动播放
+    startSlideShow();
+}
+
+function showHeroSlide(index) {
+    // 更新图片
+    heroSlides.forEach((slide, i) => {
+        slide.classList.toggle('active', i === index);
+    });
+    // 更新导航点
+    sliderDotsContainer.querySelectorAll('.dot').forEach((dot, i) => {
+        dot.classList.toggle('active', i === index);
+    });
+    currentHeroSlide = index;
+}
+
+function nextHeroSlide() {
+    const nextIndex = (currentHeroSlide + 1) % heroSlides.length;
+    showHeroSlide(nextIndex);
+}
+
+function startSlideShow() {
+    // 立即显示第一张
+    showHeroSlide(0);
+    // 每5秒切换
+    clearInterval(slideInterval); // 清除旧的
+    slideInterval = setInterval(nextHeroSlide, 5000);
+}
+
+
+// ==========================================================
+// 核心模块 2: 主导航切换 (不变)
 // ==========================================================
 
 function initNavigation() {
@@ -132,7 +189,7 @@ function initNavigation() {
 }
 
 // ==========================================================
-// 核心模块 3: 分步绘画指导 (功能1)
+// 核心模块 3: 分步绘画指导 (功能1) (不变)
 // ==========================================================
 
 function initStepGenerator() {
@@ -149,7 +206,6 @@ function initStepGenerator() {
         stepsResult.classList.add('hidden');
 
         try {
-            // [!!!] 注意：这里现在会调用LLM进行提示词生成，会比以前慢
             const results = await generatePaintingSteps(modelScopeToken, theme, difficulty);
             if (!results || results.length === 0) {
                 throw new Error("未能生成绘画步骤，请检查API KEY或网络。");
@@ -208,7 +264,7 @@ function showSlide(index) {
 }
 
 // ==========================================================
-// 核心模块 4: 名画风格体验 (功能2)
+// 核心模块 4: 名画风格体验 (功能2) (不变)
 // ==========================================================
 
 function initStyleWorkshop() {
@@ -253,7 +309,7 @@ function displayArtStyle(result) {
 }
 
 // ==========================================================
-// 核心模块 5: 艺术知识问答 (功能3)
+// 核心模块 5: 艺术知识问答 (功能3) (不变)
 // ==========================================================
 
 function initArtQA() {
@@ -270,9 +326,8 @@ function initArtQA() {
         try {
             const result = await askArtQuestion(modelScopeToken, question);
             if (result.choices && result.choices[0] && result.choices[0].message) {
-                displayQARSult(result.choices[0].message.content);
+                displayQAResult(result.choices[0].message.content); // [!] 修复了一个小拼写错误
             } else if (result.message) {
-                // 兼容某些API可能直接返回message
                 throw new Error(result.message);
             }
             else {
@@ -293,7 +348,7 @@ function displayQAResult(answer) {
 }
 
 // ==========================================================
-// 核心模块 6: 创意灵感生成 (功能4)
+// 核心模块 6: 创意灵感生成 (功能4) (不变)
 // ==========================================================
 
 function initIdeaGenerator() {
@@ -356,12 +411,9 @@ function displayArtIdeas(ideas) {
 
 
 // ==========================================================
-// 辅助函数
+// 辅助函数 (不变)
 // ==========================================================
 
-/**
- * 切换按钮、加载器和错误消息的UI状态
- */
 function toggleUIState(button, loader, errorEl, isLoading) {
     if (isLoading) {
         button.disabled = true;
@@ -375,7 +427,7 @@ function toggleUIState(button, loader, errorEl, isLoading) {
 
 
 // ==========================================================
-// AI 调用函数
+// AI 调用函数 (不变, 沿用V3的LLM提示词优化)
 // ==========================================================
 
 /**
@@ -427,7 +479,7 @@ async function generateEnglishPrompt(token, chinesePrompt, contextDescription) {
 
 
 /**
- * 功能1: 文生图模型调用 - 分步绘画指导 (已修改)
+ * 功能1: 文生图模型调用 - 分步绘画指导 (不变)
  */
 async function generatePaintingSteps(token, theme, difficulty) {
     const stepConfigs = {
@@ -458,7 +510,6 @@ async function generatePaintingSteps(token, theme, difficulty) {
     const results = [];
 
     for (let i = 0; i < steps.length; i++) {
-        // [!!!] 修改点 1: 先生成英文提示词
         const chineseStepPrompt = `绘画教学步骤图，主题：${theme}，${steps[i]}，教学示意图，清晰易懂，白色背景，适合小学生学习`;
         const englishPrompt = await generateEnglishPrompt(
             token,
@@ -466,7 +517,6 @@ async function generatePaintingSteps(token, theme, difficulty) {
             `This is step ${i + 1} of ${steps.length} in a drawing tutorial for kids. It must be a clear, simple instructional diagram with a white background.`
         );
 
-        // [!!!] 修改点 2: 使用英文提示词调用生图模型
         const response = await fetch("https://api-inference.modelscope.cn/v1/images/generations", {
             method: "POST",
             headers: {
@@ -475,8 +525,8 @@ async function generatePaintingSteps(token, theme, difficulty) {
             },
             body: JSON.stringify({
                 model: "black-forest-labs/FLUX.1-Krea-dev",
-                prompt: englishPrompt, // 使用优化后的英文提示词
-                size: "1024x1024" // 保持你设置的尺寸
+                prompt: englishPrompt,
+                size: "1024x1024"
             })
         });
 
@@ -489,7 +539,7 @@ async function generatePaintingSteps(token, theme, difficulty) {
         if (result.images && result.images[0] && result.images[0].url) {
             results.push({
                 step: i + 1,
-                description: steps[i].split('：')[1], // 描述部分仍然用中文
+                description: steps[i].split('：')[1],
                 imageUrl: result.images[0].url
             });
         } else {
@@ -500,7 +550,7 @@ async function generatePaintingSteps(token, theme, difficulty) {
 }
 
 /**
- * 功能2: 文生图模型调用 - 名画风格生成 (已修改)
+ * 功能2: 文生图模型调用 - 名画风格生成 (不变)
  */
 async function generateArtStyle(token, content, style) {
     const stylePrompts = {
@@ -513,14 +563,12 @@ async function generateArtStyle(token, content, style) {
 
     const chinesePrompt = stylePrompts[style] || `${style}风格，${content}`;
 
-    // [!!!] 修改点 1: 生成英文提示词
     const englishPrompt = await generateEnglishPrompt(
         token,
         chinesePrompt,
         `A beautiful artwork depicting '${content}' in the distinct style of '${style}'.`
     );
 
-    // [!!!] 修改点 2: 使用英文提示词
     const response = await fetch("https://api-inference.modelscope.cn/v1/images/generations", {
         method: "POST",
         headers: {
@@ -529,7 +577,7 @@ async function generateArtStyle(token, content, style) {
         },
         body: JSON.stringify({
             model: "black-forest-labs/FLUX.1-Krea-dev",
-            prompt: englishPrompt, // 使用优化后的英文提示词
+            prompt: englishPrompt,
             size: "1024x1024"
         })
     });
@@ -546,12 +594,12 @@ async function generateArtStyle(token, content, style) {
 
     return {
         imageUrl: result.images[0].url,
-        styleDescription: getStyleDescription(style) // 描述仍然用中文
+        styleDescription: getStyleDescription(style)
     };
 }
 
 /**
- * 功能2: 名画风格 - 辅助函数
+ * 功能2: 名画风格 - 辅助函数 (不变)
  */
 function getStyleDescription(style) {
     const descriptions = {
@@ -561,12 +609,11 @@ function getStyleDescription(style) {
         '剪纸风格': '剪纸是中国民间艺术，用剪刀在纸上剪出花纹图案',
         '水彩画': '水彩画用水调和颜料作画，色彩透明，层次丰富'
     };
-    // 修复你代码里的一个小拼写错误 '毕加SO' -> '毕加索'
     return descriptions[style] || '这是一种独特的艺术风格';
 }
 
 /**
- * 功能3: 多模态大模型调用 - 艺术知识问答 (不变)
+ * 功能3. 艺术知识问答 (不变)
  */
 function askArtQuestion(token, question) {
     return fetch("https://api-inference.modelscope.cn/v1/chat/completions", {
@@ -588,10 +635,10 @@ function askArtQuestion(token, question) {
 }
 
 /**
- * 功能4: 创意灵感生成 (文本 + 图像) (已修改)
+ * 功能4: 创意灵感生成 (不变)
  */
 async function generateArtIdeas(token, theme) {
-    // 首先获取创意方案文本 (这部分不变)
+    // 1. 获取创意文本
     const textResponse = await fetch("https://api-inference.modelscope.cn/v1/chat/completions", {
         method: "POST",
         headers: {
@@ -625,6 +672,7 @@ async function generateArtIdeas(token, theme) {
         throw new Error("模型返回的创意方案格式错误。");
     }
 
+    // 2. 为创意生成图片
     const imagePromises = ideas.map(async (idea) => {
         const chinesePrompt = `绘画创意示例，${idea.description}，关键元素：${idea.elements}，简洁明了，彩色，适合小学生参考`;
         const englishPrompt = await generateEnglishPrompt(
@@ -642,8 +690,8 @@ async function generateArtIdeas(token, theme) {
                 },
                 body: JSON.stringify({
                     model: "black-forest-labs/FLUX.1-Krea-dev",
-                    prompt: englishPrompt, // 使用优化后的英文提示词
-                    size: "1024x1024" // 保持你设置的尺寸
+                    prompt: englishPrompt,
+                    size: "1024x1024"
                 })
             });
 
@@ -655,16 +703,15 @@ async function generateArtIdeas(token, theme) {
             if (result.images && result.images[0] && result.images[0].url) {
                 idea.exampleImage = result.images[0].url;
             } else {
-                idea.exampleImage = null; // 生成失败
+                idea.exampleImage = null;
             }
         } catch (err) {
             console.error(`为 "${idea.name}" 生成图片失败:`, err);
-            idea.exampleImage = null; // 出错
+            idea.exampleImage = null;
         }
         return idea;
     });
 
-    // 等待所有图片生成请求完成
     const completedIdeas = await Promise.all(imagePromises);
 
     return completedIdeas;

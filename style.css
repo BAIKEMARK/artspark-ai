@@ -1,28 +1,20 @@
 /* * "艺启智AI - 乡村美术助教"
- * 视觉优化方案 (V3 - 经典美术馆主题)
+ * 视觉优化方案 (V5 - 沉浸式美术馆 - 已修复)
  */
 
-/* 1. 引入衬线字体 (用于标题) 和无衬线字体 (用于正文) */
+/* 1. 引入字体 */
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500&family=Noto+Serif+SC:wght@600;700&display=swap');
 
-/* 2. 建立“博物馆”色板 */
+/* 2. “博物馆”色板 */
 :root {
-    /* 主色：沉稳、专业的深空灰蓝 */
-    --primary-color: #34495E;
-    /* 辅色：用于标题和文字的深灰色 */
-    --secondary-color: #2C3E50;
-    /* 点缀色：优雅的暗金色，用于按钮和高光 */
-    --accent-color: #B8860B; /* DarkGoldenrod */
-    /* 浅背景：画廊白/画布白 */
-    --light-bg: #F8F9FA;
-    /* 深文字：基础文字颜色 */
+    --primary-color: #34495E; /* 深空灰蓝 */
+    --secondary-color: #2C3E50; /* 更深的灰蓝 */
+    --accent-color: #B8860B; /* 暗金色 */
+    --light-bg: #F8F9FA; /* 画廊白 */
     --dark-text: #333333;
-    /* 边框/分割线 */
     --border-color: #EAECEE;
-    /* 阴影：更柔和、更细腻 */
     --card-shadow: 0 4px 25px rgba(44, 62, 80, 0.08);
 
-    /* 字体 */
     --font-serif: 'Noto Serif SC', 'Source Serif Pro', serif;
     --font-sans: 'Noto Sans SC', -apple-system, sans-serif;
 }
@@ -35,59 +27,62 @@ body {
     color: var(--dark-text);
     margin: 0;
     padding: 0;
-}
-
-/* 4. Header：引入名画背景*/
-header {
-    background-image: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)),
-                      url('https://file.nbfox.com/wp-content/uploads/2020/03/11/20200311190149-5e69359d4d3e5.jpg');
-
-    /* 默认使用深色背景 */
-    background-color: var(--secondary-color);
-    background-size: cover;
-    background-position: center;
-
-    color: white;
-    padding: 4rem 1.5rem; /* 增加高度 */
-    text-align: center;
-    margin-bottom: 0;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-h1 {
-    color: white;
-    font-family: var(--font-serif); /* 应用衬线字体 */
-    font-weight: 700;
-    font-size: 2.5rem;
-    margin-bottom: 2rem;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+    overflow-x: hidden; /* 防止横向滚动 */
 }
 
 h2 {
-    font-family: var(--font-serif); /* 应用衬线字体 */
-    border-bottom: 2px solid var(--accent-color); /* 黄金点缀 */
+    font-family: var(--font-serif);
+    border-bottom: 2px solid var(--accent-color);
     padding-bottom: 10px;
     margin-bottom: 25px;
     color: var(--secondary-color);
     font-weight: 600;
 }
 
-/* 5. 优化API密钥区：使其成为一个优雅的“门槛” */
-#api-key-section {
-    max-width: 500px;
-    margin: 0 auto;
-    background: rgba(255, 255, 255, 0.95); /* 半透明 */
-    padding: 20px 25px;
-    border-radius: 12px;
-    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
-    backdrop-filter: blur(5px); /* 毛玻璃效果 (如果背景是图片) */
+/* 4. [新] API 密钥模态框 */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(5px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    opacity: 1;
+    transition: opacity 0.3s ease;
 }
-#api-key-section label {
+.modal-overlay.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+.modal-content {
+    background: white;
+    padding: 2.5rem;
+    border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+    max-width: 500px;
+    width: 90%;
+    text-align: center;
+    animation: modal-fade-in 0.3s ease-out;
+}
+@keyframes modal-fade-in {
+    from { transform: translateY(-20px) scale(0.98); opacity: 0; }
+    to { transform: translateY(0) scale(1); opacity: 1; }
+}
+.modal-content h2 {
+    font-family: var(--font-serif);
     color: var(--secondary-color);
-    font-weight: 500;
+    margin-top: 0;
+}
+.modal-content p {
+    margin-bottom: 1.5rem;
 }
 #api-key-section input[type="password"] {
-    width: 65%;
+    width: 70%;
     padding: 10px;
     border: 2px solid var(--border-color);
     border-radius: 8px;
@@ -100,7 +95,7 @@ h2 {
 }
 #api-key-section button {
     padding: 10px 15px;
-    background-color: var(--primary-color);
+    background-color: var(--accent-color);
     color: white;
     border: none;
     border-radius: 8px;
@@ -109,41 +104,146 @@ h2 {
     transition: background-color 0.3s ease;
 }
 #api-key-section button:hover {
-    background-color: var(--secondary-color);
+    background-color: #CF970E;
 }
-#api-key-section small {
+.modal-content small {
     display: block;
     margin-top: 15px;
-    color: var(--secondary-color);
+    color: #777;
 }
-#api-key-section small a {
+.modal-content small a {
     color: var(--accent-color);
     font-weight: 500;
 }
 
-/* 6. 优化主体布局：打造一个“浮动”的内容面板 */
-main {
-    max-width: 900px;
-    margin: -30px auto 20px auto; /* [!!!] 关键：让面板上移，覆盖在Header底部 */
-    position: relative; /* 确保在Header上层 */
-    padding: 0;
-    background: transparent;
-    border-radius: 12px;
-    box-shadow: var(--card-shadow);
-    border: none;
+
+/* 5. [新 V5] 沉浸式画廊头部 (解决黑边问题) */
+header.hero-gallery {
+    position: relative;
+    width: 100vw;
+    height: 50vh; /* 视口高度的一半 */
+    min-height: 300px;
+    max-height: 450px;
+    overflow: hidden;
+    background: #2C3E50; /* 深色画廊墙壁底色 */
+}
+.slider-container {
+    width: 100%;
+    height: 100%;
 }
 
-/* 7. 优化导航：经典的“博物馆标签页” */
+/* * [!!!] V5 核心修改
+ * 我们使用 ::before 伪元素来创建两个图层
+ */
+.slide {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+
+    /* 图层 1 (父级): 模糊的、放大的背景层 */
+    background-size: cover; /* 覆盖并裁切 */
+    background-position: center;
+    opacity: 0;
+    transition: opacity 1.5s ease-in-out;
+
+    /* 施加滤镜：模糊、压暗、放大以隐藏边缘 */
+    filter: blur(20px) brightness(0.7) scale(1.1);
+
+    animation: ken-burns 20s infinite;
+}
+
+/* 图层 2 (::before): 清晰的、完整的前景层 */
+.slide::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+
+    background-image: inherit; /* 继承父级的背景图 */
+
+    background-size: contain; /* 完整显示画作 */
+    background-position: center;
+    background-repeat: no-repeat;
+
+    filter: none; /* 确保前景不受父级滤镜的影响 */
+}
+
+.slide.active {
+    opacity: 1;
+}
+
+@keyframes ken-burns {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+}
+
+.hero-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.1)); /* 极淡的遮罩 */
+    z-index: 1;
+}
+.hero-content {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    text-align: center;
+}
+header h1 {
+    color: white;
+    font-family: var(--font-serif);
+    font-weight: 700;
+    font-size: 2.5rem;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.7);
+}
+.slider-dots {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 3;
+    display: flex;
+}
+.slider-dots .dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.5);
+    margin: 0 5px;
+    cursor: pointer;
+    transition: background 0.3s ease;
+}
+.slider-dots .dot.active {
+    background: white;
+}
+
+/* 6. [新] 全宽导航栏 */
 #main-nav {
+    width: 100%;
+    background-color: var(--secondary-color); /* 深色墙体 */
+    padding: 0;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    z-index: 10;
+    position: relative;
+    border-bottom: 3px solid var(--accent-color); /* 黄金分割线 */
+}
+.nav-content {
+    max-width: 900px;
+    margin: 0 auto;
     display: flex;
     justify-content: center;
     flex-wrap: wrap;
-    margin-bottom: 0;
-    border-bottom: 2px solid var(--border-color);
-    border-radius: 12px 12px 0 0; /* 顶部圆角 */
-    overflow: hidden;
-    background: #ffffff;
-    padding: 0 20px;
 }
 .nav-btn {
     padding: 14px 24px;
@@ -152,30 +252,45 @@ main {
     cursor: pointer;
     font-size: 1rem;
     font-weight: 500;
-    color: var(--secondary-color);
+    color: rgba(255, 255, 255, 0.7); /* 柔和白 */
     border-bottom: 4px solid transparent;
-    margin-bottom: -2px;
     transition: all 0.3s ease;
 }
 .nav-btn:hover {
-    background-color: #FDFEFE;
-    color: var(--accent-color);
+    background-color: rgba(255, 255, 255, 0.05);
+    color: white;
 }
 .nav-btn.active {
-    color: var(--primary-color);
+    color: white;
     font-weight: 500;
-    border-bottom-color: var(--primary-color);
+    border-bottom-color: white;
 }
 
-/* 8. 优化功能卡片 */
+/* 7. 居中主内容区 */
+main {
+    max-width: 900px;
+    margin: 20px auto; /* 恢复标准文档流 */
+    padding: 0;
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: var(--card-shadow);
+    overflow: hidden; /* 保证内部圆角 */
+}
+
+/* 8. 功能卡片 */
 .feature-panel {
     padding: 25px 30px;
-    border: none;
-    border-radius: 0 0 12px 12px; /* 底部圆角 */
-    background: #ffffff;
+}
+.feature-panel.active {
+    animation: panel-fade-in 0.5s ease;
+}
+@keyframes panel-fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
 }
 
-/* 9. 优化表单：经典、简洁 */
+
+/* 9. 表单 (继承V3) */
 .form-group {
     margin-bottom: 20px;
 }
@@ -206,13 +321,13 @@ main {
     background-color: #fff;
 }
 
-/* 10. 优化主按钮：使用“点缀金” */
+/* 10. 主按钮 (继承V3) */
 .cta-btn {
     padding: 10px 20px;
     background-color: var(--accent-color);
     color: white;
     border: none;
-    border-radius: 8px; /* 经典矩形 */
+    border-radius: 8px;
     cursor: pointer;
     font-size: 1rem;
     font-weight: 500;
@@ -220,7 +335,7 @@ main {
     box-shadow: 0 4px 12px rgba(184, 134, 11, 0.2);
 }
 .cta-btn:hover {
-    background-color: #CF970E; /* 悬停更亮 */
+    background-color: #CF970E;
     transform: translateY(-2px);
     box-shadow: 0 6px 16px rgba(184, 134, 11, 0.3);
 }
@@ -231,7 +346,7 @@ main {
     cursor: not-allowed;
 }
 
-/* 11. 优化结果区 */
+/* 11. 结果区 (继承V3) */
 .result-container {
     margin-top: 25px;
     padding: 20px;
@@ -240,10 +355,9 @@ main {
     background: var(--light-bg);
     min-height: 100px;
 }
-
 .loader {
     border: 4px solid #f3f3f3;
-    border-top: 4px solid var(--accent-color); /* 匹配点缀色 */
+    border-top: 4px solid var(--accent-color);
     border-radius: 50%;
     width: 30px;
     height: 30px;
@@ -254,14 +368,21 @@ main {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
 }
-
 .error-message {
-    color: #C0392B; /* 经典红色 */
+    color: #C0392B;
     margin-top: 10px;
     font-weight: 500;
 }
+#slideshow-container, #style-result img, .idea-card, #qa-result {
+    /* 统一结果区的淡入动画 */
+    animation: result-fade-in 0.5s ease;
+}
+@keyframes result-fade-in {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
 
-/* 12. 优化幻灯片 */
+/* 12. 幻灯片 (继承V3) */
 #slideshow-container {
     position: relative;
     max-width: 512px;
@@ -271,7 +392,7 @@ main {
 #slideshow-content img {
     max-width: 100%;
     height: auto;
-    border: 1px solid var(--border-color); /* 保留细边框 */
+    border: 1px solid var(--border-color);
     border-radius: 8px;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
 }
@@ -300,7 +421,7 @@ main {
     color: var(--secondary-color);
 }
 
-/* 13. 优化风格工坊结果 */
+/* 13. 风格工坊 (继承V3) */
 #style-result img {
     max-width: 100%;
     max-height: 512px;
@@ -317,7 +438,7 @@ main {
     color: var(--secondary-color);
 }
 
-/* 14. 优化问答结果 */
+/* 14. 问答结果 (继承V3) */
 #qa-result {
     white-space: pre-wrap;
     line-height: 1.8;
@@ -325,7 +446,7 @@ main {
     color: var(--dark-text);
 }
 
-/* 15. 优化创意灵感卡片 */
+/* 15. 创意灵感卡片 (继承V3) */
 #ideas-result {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
@@ -335,7 +456,7 @@ main {
     border: 1px solid var(--border-color);
     border-radius: 12px;
     padding: 0;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.02); /* 非常轻的阴影 */
+    box-shadow: 0 2px 8px rgba(0,0,0,0.02);
     text-align: center;
     background: #fff;
     transition: transform 0.3s ease, box-shadow 0.3s ease;
@@ -343,7 +464,7 @@ main {
 }
 .idea-card:hover {
     transform: translateY(-5px);
-    box-shadow: var(--card-shadow); /* 悬停时阴影变重 */
+    box-shadow: var(--card-shadow);
 }
 .idea-card img {
     width: 100%;
@@ -361,7 +482,7 @@ main {
 }
 .idea-card h3 {
     font-size: 1.2rem;
-    color: var(--accent-color); /* 标题用金色 */
+    color: var(--accent-color);
     margin: 15px 0 10px 0;
     font-family: var(--font-serif);
 }
@@ -377,21 +498,61 @@ main {
     margin-bottom: 15px;
 }
 
-
 /* 辅助类 */
 .hidden {
     display: none;
 }
 
-/* 底部 */
+/* 16. [新] 全宽策展人页脚 */
 footer {
+    width: 100%;
+    background: var(--secondary-color);
+    color: rgba(255, 255, 255, 0.7);
+    padding: 0;
+    margin-top: 40px;
+}
+.footer-content {
     max-width: 900px;
     margin: 0 auto;
-    padding: 25px 30px;
-    text-align: center;
-    color: var(--secondary-color);
+    padding: 2.5rem 1.5rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+.footer-column {
+    flex: 1;
+    min-width: 300px;
+}
+.footer-column h3 {
+    color: white;
+    font-family: var(--font-serif);
+    font-weight: 600;
+    border-bottom: 1px solid var(--accent-color);
+    padding-bottom: 10px;
+}
+.footer-column p, .footer-column li {
     font-size: 0.9rem;
-    background: none;
-    box-shadow: none;
-    border-top: 1px solid var(--border-color);
+    line-height: 1.8;
+}
+.footer-column ul {
+    list-style: none;
+    padding: 0;
+}
+.footer-column a {
+    color: rgba(255, 255, 255, 0.8);
+    text-decoration: none;
+    transition: color 0.3s ease;
+}
+.footer-column a:hover {
+    color: white;
+    text-decoration: underline;
+}
+.footer-bottom {
+    background: rgba(0, 0, 0, 0.1);
+    padding: 1rem;
+    text-align: center;
+    font-size: 0.85rem;
+}
+.footer-bottom p {
+    margin: 0;
 }

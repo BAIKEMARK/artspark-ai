@@ -7,27 +7,44 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <header>
-        <h1>🎨 艺启智AI - 乡村美术助教</h1>
-        <div id="api-key-section">
-            <label for="api-key-input">请输入ModelScope API KEY:</label>
-            <input type="password" id="api-key-input" placeholder="在此输入您的访问令牌">
-            <button id="save-key-btn">保存并进入</button>
-            <p>
-                <small>可访问 <a href="https://www.modelscope.cn/my/myaccesstoken" target="_blank">获取访问令牌</a>。密钥将保存在本地浏览器中。</small>
-            </p>
-            <p id="api-error" class="error-message"></p>
+
+    <div id="api-key-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h2>欢迎来到 艺启智AI</h2>
+            <p>请输入您的ModelScope API KEY以激活助教功能。</p>
+            <div id="api-key-section">
+                <input type="password" id="api-key-input" placeholder="在此输入您的访问令牌">
+                <button id="save-key-btn">进入美术馆</button>
+                <p id="api-error" class="error-message"></p>
+            </div>
+            <small>可访问 <a href="https://www.modelscope.cn/my/myaccesstoken" target="_blank">获取访问令牌</a>。密钥将安全保存在本地浏览器中。</small>
         </div>
+    </div>
+
+    <header class="hero-gallery">
+        <div class="slider-container">
+            <div class="slide active" style="background-image: url('https://file.nbfox.com/wp-content/uploads/2020/03/11/20200311190149-5e69359d4d3e5.jpg');"></div>
+            <div class="slide" style="background-image: url('https://img.dpm.org.cn/Uploads/Picture/2017/04/01/s58defb9d45b7f.jpg');"></div>
+            <div class="slide" style="background-image: url('img/Мона Лиза.jpg');"></div>
+        </div>
+        <div class="hero-overlay"></div>
+        <div class="hero-content">
+            <h1>🎨 艺启智AI - 乡村美术助教</h1>
+        </div>
+        <div class="slider-dots">
+            </div>
     </header>
 
-    <main id="main-content" class="hidden">
-        <nav id="main-nav">
+    <nav id="main-nav">
+        <div class="nav-content">
             <button data-target="step-generator" class="nav-btn active">分步绘画指导</button>
             <button data-target="style-workshop" class="nav-btn">名画风格体验</button>
             <button data-target="art-qa" class="nav-btn">艺术知识问答</button>
             <button data-target="idea-generator" class="nav-btn">创意灵感生成</button>
-        </nav>
+        </div>
+    </nav>
 
+    <main id="main-content" class="hidden">
         <div id="feature-panels">
             <section id="step-generator" class="feature-panel active">
                 <h2>分步绘画指导生成器</h2>
@@ -44,14 +61,11 @@
                     </select>
                 </div>
                 <button id="generate-steps-btn" class="cta-btn">开始生成</button>
-                
                 <div id="steps-loader" class="loader hidden"></div>
                 <p id="steps-error" class="error-message"></p>
-                
                 <div id="steps-result" class="result-container hidden">
                     <div id="slideshow-container">
-                        <div id="slideshow-content">
-                            </div>
+                        <div id="slideshow-content"></div>
                         <button id="prev-step" class="slide-nav-btn">&lt; 上一步</button>
                         <button id="next-step" class="slide-nav-btn">下一步 &gt;</button>
                         <p id="step-counter"></p>
@@ -76,11 +90,9 @@
                     <input type="text" id="style-content-input" placeholder="例如：一只猫, 一座房子">
                 </div>
                 <button id="generate-style-btn" class="cta-btn">体验风格</button>
-                
                 <div id="style-loader" class="loader hidden"></div>
                 <p id="style-error" class="error-message"></p>
-                <div id="style-result" class="result-container hidden">
-                    </div>
+                <div id="style-result" class="result-container hidden"></div>
             </section>
 
             <section id="art-qa" class="feature-panel hidden">
@@ -90,11 +102,9 @@
                     <input type="text" id="qa-input" placeholder="例如：什么是水墨画？">
                 </div>
                 <button id="ask-qa-btn" class="cta-btn">提问</button>
-                
                 <div id="qa-loader" class="loader hidden"></div>
                 <p id="qa-error" class="error-message"></p>
-                <div id="qa-result" class="result-container hidden">
-                    </div>
+                <div id="qa-result" class="result-container hidden"></div>
             </section>
 
             <section id="idea-generator" class="feature-panel hidden">
@@ -104,20 +114,34 @@
                     <input type="text" id="idea-theme-input" placeholder="例如：春天, 节日">
                 </div>
                 <button id="generate-ideas-btn" class="cta-btn">生成灵感</button>
-                
                 <div id="ideas-loader" class="loader hidden"></div>
                 <p id="ideas-error" class="error-message"></p>
-                <div id="ideas-result" class="result-container hidden">
-                    </div>
+                <div id="ideas-result" class="result-container hidden"></div>
             </section>
         </div>
     </main>
 
     <footer id="footer-guide" class="hidden">
-        <h3>使用指南和教学建议</h3>
-        <p>
-            <strong>教师指南：</strong> 非专业教师可使用“分步绘画指导”带领学生完成课堂练习。使用“名画风格体验”拓展学生视野。“艺术知识问答”可作为课堂小百科使用。
-        </p>
+        <div class="footer-content">
+            <div class="footer-column">
+                <h3>使用指南和教学建议</h3>
+                <p>
+                    <strong>教师指南：</strong> 非专业教师可使用“分步绘画指导”带领学生完成课堂练习。使用“名画风格体验”拓展学生视野。“艺术知识问答”可作为课堂小百科使用。
+                </p>
+            </div>
+            <div class="footer-column">
+                <h3>艺术资源</h3>
+                <ul>
+                    <li><a href="https://www.dpm.org.cn/lights/index.html" target="_blank">故宫博物院</a></li>
+                    <li><a href="https://www.metmuseum.org/art/collection" target="_blank">大都会艺术博物馆</a></li>
+                    <li><a href="https://www.louvre.fr/en/collections" target="_blank">卢浮宫</a></li>
+                    <li><a href="https://www.moma.org/collection/" target="_blank">纽约现代艺术博物馆 (MoMA)</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>© 2025 艺启智AI - 乡村美术助教项目</p>
+        </div>
     </footer>
 
     <script src="script.js"></script>
