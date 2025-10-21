@@ -26,8 +26,10 @@
             <a href="#" id="home-logo-btn" class="nav-logo">🎨 艺启智AI</a>
             <div class="nav-links">
                 <button data-target="home-view" class="nav-btn active">首页</button>
-                <button data-target="step-generator" class="nav-btn">分步绘画指导</button>
-                <button data-target="style-workshop" class="nav-btn">名画风格体验</button>
+                <button data-target="line-coloring" class="nav-btn">AI智能上色</button>
+                <button data-target="style-workshop" class="nav-btn">创意风格工坊</button>
+                <button data-target="self-portrait" class="nav-btn">AI自画像</button>
+                <button data-target="art-fusion" class="nav-btn">艺术融合</button>
                 <button data-target="art-qa" class="nav-btn">艺术知识问答</button>
                 <button data-target="idea-generator" class="nav-btn">创意灵感生成</button>
             </div>
@@ -46,62 +48,56 @@
             </div>
             <div class="slider-dots"></div>
         </div>
-
         <div class="home-content-overlay">
             <h1>欢迎来到乡村美术助教</h1>
             <p>为乡村教师提供零门槛、专业化的美术教学支持。</p>
-
-            </div>
+        </div>
     </header>
 
     <section id="home-features-section" class="view-panel active">
         <div class="feature-cards-container">
-            <div class="feature-card" data-target="step-generator">
-                <h3>分步绘画指导</h3>
-                <p>AI 助教手把手教孩子画画</p>
+            <div class="feature-card" data-target="line-coloring">
+                <h3>AI智能上色</h3>
+                <p>上传线稿，一键变为专业彩绘</p>
             </div>
             <div class="feature-card" data-target="style-workshop">
-                <h3>名画风格体验</h3>
-                <p>用梵高、毕加索的风格作画</p>
+                <h3>创意风格工坊</h3>
+                <p>用名画风格重绘你的草图</p>
             </div>
-            <div class="feature-card" data-target="art-qa">
-                <h3>艺术知识问答</h3>
-                <p>你的随身艺术百科全书</p>
+            <div class="feature-card" data-target="self-portrait">
+                <h3>AI自画像</h3>
+                <p>上传照片，生成你的卡通肖像</p>
+            </div>
+             <div class="feature-card" data-target="art-fusion">
+                <h3>艺术融合</h3>
+                <p>将任意风格“刷”到你的照片上</p>
             </div>
         </div>
-    </section>
+        </section>
 
     <main id="tool-content" class="view-panel hidden">
         <div id="feature-panels">
-            <section id="step-generator" class="feature-panel hidden">
-                <h2>分步绘画指导生成器</h2>
+
+            <section id="line-coloring" class="feature-panel hidden">
+                <h2>AI智能上色</h2>
                 <div class="form-group">
-                    <label for="theme-input">绘画主题:</label>
-                    <input type="text" id="theme-input" placeholder="例如：荷花, 小狗">
+                    <label for="coloring-file-input">上传线稿/简笔画:</label>
+                    <input type="file" id="coloring-file-input" accept="image/*">
+                    <img id="coloring-preview" class="image-preview" alt="线稿预览"/>
                 </div>
                 <div class="form-group">
-                    <label for="difficulty-select">选择难度:</label>
-                    <select id="difficulty-select">
-                        <option value="初级">初级 (4步简笔画)</option>
-                        <option value="中级">中级 (5步基础绘画)</option>
-                        <option value="高级">高级 (6步细节绘画)</option>
-                    </select>
+                    <label for="coloring-prompt-input">上色风格:</label>
+                    <input type="text" id="coloring-prompt-input" placeholder="例如：水彩画, 明亮的颜色">
                 </div>
-                <button id="generate-steps-btn" class="cta-btn">开始生成</button>
-                <div id="steps-loader" class="loader hidden"></div>
-                <p id="steps-error" class="error-message"></p>
-                <div id="steps-result" class="result-container hidden">
-                    <div id="slideshow-container">
-                        <div id="slideshow-content"></div>
-                        <button id="prev-step" class="slide-nav-btn">&lt; 上一步</button>
-                        <button id="next-step" class="slide-nav-btn">下一步 &gt;</button>
-                        <p id="step-counter"></p>
+                <button id="generate-coloring-btn" class="cta-btn">开始上色</button>
+                <div id="coloring-loader" class="loader hidden"></div>
+                <p id="coloring-error" class="error-message"></p>
+                <div id="coloring-result" class="result-container hidden">
                     </div>
-                </div>
             </section>
 
             <section id="style-workshop" class="feature-panel hidden">
-                <h2>名画风格体验工坊</h2>
+                <h2>创意风格工坊</h2>
                 <div class="form-group">
                     <label for="style-select">艺术风格:</label>
                     <select id="style-select">
@@ -113,13 +109,56 @@
                     </select>
                 </div>
                 <div class="form-group">
-                    <label for="style-content-input">绘制内容:</label>
-                    <input type="text" id="style-content-input" placeholder="例如：一只猫, 一座房子">
+                    <label for="style-file-input">上传草图/图片 (可选):</label>
+                    <input type="file" id="style-file-input" accept="image/*">
+                    <img id="style-preview" class="image-preview" alt="草图预览"/>
                 </div>
-                <button id="generate-style-btn" class="cta-btn">体验风格</button>
+                <div class="form-group">
+                    <label for="style-content-input">内容补充描述 (可选):</label>
+                    <input type="text" id="style-content-input" placeholder="例如：一只戴帽子的狗">
+                </div>
+                <button id="generate-style-btn" class="cta-btn">开始创作</button>
                 <div id="style-loader" class="loader hidden"></div>
                 <p id="style-error" class="error-message"></p>
-                <div id="style-result" class="result-container hidden"></div>
+                <div id="style-result" class="result-container hidden">
+                    </div>
+            </section>
+
+            <section id="self-portrait" class="feature-panel hidden">
+                <h2>AI自画像</h2>
+                <div class="form-group">
+                    <label for="portrait-file-input">上传你的照片:</label>
+                    <input type="file" id="portrait-file-input" accept="image/*">
+                    <img id="portrait-preview" class="image-preview" alt="照片预览"/>
+                </div>
+                <div class="form-group">
+                    <label for="portrait-style-input">选择/输入风格:</label>
+                    <input type="text" id="portrait-style-input" placeholder="例如：迪士尼卡通, 超级英雄, 像素风">
+                </div>
+                <button id="generate-portrait-btn" class="cta-btn">开始变身</button>
+                <div id="portrait-loader" class="loader hidden"></div>
+                <p id="portrait-error" class="error-message"></p>
+                <div id="portrait-result" class="result-container hidden">
+                    </div>
+            </section>
+
+            <section id="art-fusion" class="feature-panel hidden">
+                <h2>艺术融合</h2>
+                <div class="form-group">
+                    <label for="fusion-content-input">上传内容图片 (例如：你的宠物):</label>
+                    <input type="file" id="fusion-content-input" accept="image/*">
+                    <img id="fusion-content-preview" class="image-preview" alt="内容预览"/>
+                </div>
+                <div class="form-group">
+                    <label for="fusion-style-input">上传风格图片 (例如：一张星空图):</label>
+                    <input type="file" id="fusion-style-input" accept="image/*">
+                    <img id="fusion-style-preview" class="image-preview" alt="风格预览"/>
+                </div>
+                <button id="generate-fusion-btn" class="cta-btn">开始融合</button>
+                <div id="fusion-loader" class="loader hidden"></div>
+                <p id="fusion-error" class="error-message"></p>
+                <div id="fusion-result" class="result-container hidden">
+                    </div>
             </section>
 
             <section id="art-qa" class="feature-panel hidden">
@@ -145,7 +184,8 @@
                 <p id="ideas-error" class="error-message"></p>
                 <div id="ideas-result" class="result-container hidden"></div>
             </section>
-        </div>
+
+            </div>
     </main>
 
     <footer id="footer-guide" class="hidden">
@@ -153,7 +193,7 @@
             <div class="footer-column">
                 <h3>使用指南和教学建议</h3>
                 <p>
-                    <strong>教师指南：</strong> 非专业教师可使用“分步绘画指导”带领学生完成课堂练习。使用“名画风格体验”拓展学生视野。“艺术知识问答”可作为课堂小百科使用。
+                    <strong>教师指南：</strong> 可使用“AI智能上色”让学生练习色彩搭配。使用“创意风格工坊”和“AI自画像”激发学生的创造力和想象力。“艺术知识问答”可作为课堂小百科使用。
                 </p>
             </div>
             <div class="footer-column">
@@ -170,6 +210,18 @@
             <p>© 2025 艺启智AI - 乡村美术助教项目</p>
         </div>
     </footer>
+
+    <style>
+        .image-preview {
+            display: none; /* 默认隐藏 */
+            max-width: 200px;
+            max-height: 200px;
+            margin-top: 10px;
+            border: 2px dashed var(--border-color);
+            padding: 5px;
+            border-radius: 8px;
+        }
+    </style>
 
     <script src="script.js"></script>
 </body>
