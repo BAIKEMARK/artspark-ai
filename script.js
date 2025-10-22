@@ -3,6 +3,7 @@
 // ==========================================================
 
 const BACKEND_URL = '';
+const AUTH_TOKEN_KEY = 'art_spark_auth_token'; // 用于 localStorage
 
 const MODEL_SCOPE_TOKEN_KEY = 'modelscope_api_key';
 const apiKeyModal = document.getElementById('api-key-modal');
@@ -200,16 +201,12 @@ document.addEventListener('DOMContentLoaded', () => {
     initApiKeyManager();
     initHeroSlider();
     initNavigation();
-
-    // 初始化所有新功能
-    initColoring();       // (新)
-    initStyleWorkshop();  // (修改)
-    initSelfPortrait();   // (新)
-    initArtFusion();      // (新)
-    initArtQA();          // (保留)
-    initIdeaGenerator();  // (保留)
-
-    // 为所有文件输入框绑定预览
+    initColoring();
+    initStyleWorkshop();
+    initSelfPortrait();
+    initArtFusion();
+    initArtQA();
+    initIdeaGenerator();
     setupImagePreview(coloringFileInput, coloringPreview);
     setupImagePreview(styleFileInput, stylePreview);
     setupImagePreview(portraitFileInput, portraitPreview);
@@ -218,24 +215,31 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ==========================================================
-// 核心模块 1: API 密钥管理 (不变)
+// 核心模块 1: API 密钥管理
 // ==========================================================
 
-async function checkKeyValidity() {
+// 检查 Token 是否存在且有效
+async function checkTokenValidity() {
+    const token = localStorage.getItem(AUTH_TOKEN_KEY);
+    if (!token) {
+        return false;
+    }
+
     try {
         const response = await fetch(`${BACKEND_URL}/api/check_key`, {
             method: 'GET',
-            credentials: 'include'
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
         });
-        // 只有 200 (OK) 才算有效
         if (response.ok) {
             return true;
+        } else {
+            localStorage.removeItem(AUTH_TOKEN_KEY);
+            return false;
         }
-        // 401 或其他错误都算无效
-        console.warn(`Key validity check failed with status: ${response.status}`);
-        return false;
     } catch (error) {
-        console.error("Error during key validity check:", error);
+        console.error("Error during token validity check:", error);
         return false;
     }
 }
@@ -252,27 +256,35 @@ function initApiKeyManager() {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ api_key: key }),
-                credentials: 'include'
             });
+
+            const result = await response.json();
+
             if (!response.ok) {
-                const err = await response.json();
-                throw new Error(err.error || '设置Key失败');
+                throw new Error(result.error || '设置Key失败');
             }
-            showMainContent();
-            apiError.textContent = '';
+
+            if (result.token) {
+                localStorage.setItem(AUTH_TOKEN_KEY, result.token);
+                showMainContent();
+                apiError.textContent = '';
+            } else {
+                throw new Error('未能从服务器获取 Token');
+            }
+
         } catch (error) {
             apiError.textContent = `错误: ${error.message}`;
         }
     });
 
     (async () => {
-        const hasValidSession = await checkKeyValidity();
+        const hasValidToken = await checkTokenValidity();
 
-        if (hasValidSession) {
-            console.log("Session valid, showing main content.");
+        if (hasValidToken) {
+            console.log("Token valid, showing main content.");
             showMainContent();
         } else {
-            console.log("Session invalid or check failed, showing API key modal.");
+            console.log("No valid token found, showing API key modal.");
             showApiKeyModal();
         }
     })();
@@ -289,6 +301,7 @@ function showMainContent() {
 function showApiKeyModal() {
     apiKeyModal.classList.remove('hidden');
     footerGuide.classList.add('hidden');
+    localStorage.removeItem(AUTH_TOKEN_KEY);
     homeView.style.display = 'none';
     homeFeaturesSection.style.display = 'none';
     toolContent.style.display = 'none';
@@ -707,25 +720,33 @@ function displaySingleImageResult(resultContainer, imageUrl, altText, filename) 
 
 // 辅助函数：处理所有到后端的 fetch 请求
 async function fetchFromBackend(endpoint, body) {
+    const token = localStorage.getItem(AUTH_TOKEN_KEY);
+    if (!token && endpoint !== '/api/set_key') {
+        showApiKeyModal();
+        throw new Error("您尚未登录。");
+    }
+
+    const headers = {
+        'Content-Type': 'application/json'
+    };
+    if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+    }
+
     const response = await fetch(`${BACKEND_URL}${endpoint}`, {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
+        headers: headers,
         body: JSON.stringify(body),
-        credentials: 'include'
     });
 
     if (!response.ok) {
         // [修改] 捕获 401 错误并弹出模态框
         if (response.status === 401) {
-            console.error("Authentication error (401). Showing API key modal.");
+            console.error("Authentication error (401). Token is invalid or expired.");
             showApiKeyModal();
             const err = await response.json();
             throw new Error(err.error || "API 密钥已失效，请重新输入");
         }
-
-        // [不变] 处理其他错误 (例如 500, 400)
         const err = await response.json();
         throw new Error(err.error || `请求失败: ${response.status}`);
     }
