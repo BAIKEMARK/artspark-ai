@@ -1,18 +1,20 @@
 /* * "艺启智AI - 乡村美术助教"
- * 视觉优化方案 (V7 - 画廊/门户分离架构)
+ * 视觉优化方案 (V9 - 现代创意画室 / 蓝橙版)
  */
 
 /* 1. 引入字体 */
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500&family=Noto+Serif+SC:wght@600;700&display=swap');
 
-/* 2. “博物馆”色板 */
+/* 2. [V9 已修改] “现代创意画室”色板 */
 :root {
     --primary-color: #34495E;
     --secondary-color: #2C3E50;
     --accent-color: #B8860B;
-    --light-bg: #F8F9FA; /* 标准浅背景 */
+    --accent-hover: #E8950F;      /* 橙色悬停 */
+    --light-bg: #F8F9FA;
     --dark-text: #333333;
     --border-color: #EAECEE;
+    /* 阴影颜色基于新的主色调 */
     --card-shadow: 0 4px 25px rgba(44, 62, 80, 0.08);
 
     --font-serif: 'Noto Serif SC', 'Source Serif Pro', serif;
@@ -38,7 +40,7 @@ body {
     box-sizing: border-box; /* 确保 padding-top 包含在内 */
 
 }
-/* [V6.1 新] 当显示工具页时，强制使用标准浅背景 */
+/* [V9 恢复] 当显示工具页时，强制使用标准浅背景 */
 body.showing-tools {
     background-color: var(--light-bg);
 }
@@ -51,6 +53,7 @@ h2 {
     margin-bottom: 25px;
     color: var(--secondary-color);
     font-weight: 600;
+    letter-spacing: 0.5px; /* [V8 新增] 增加标题字间距 */
 }
 
 /* 4. API 密钥模态框 */
@@ -90,14 +93,14 @@ h2 {
 .modal-content h2 { font-family: var(--font-serif); color: var(--secondary-color); margin-top: 0; }
 .modal-content p { margin-bottom: 1.5rem; }
 #api-key-section input[type="password"] { width: 70%; padding: 10px; border: 2px solid var(--border-color); border-radius: 8px; transition: all 0.3s ease; }
-#api-key-section input[type="password"]:focus { border-color: var(--accent-color); box-shadow: 0 0 8px rgba(184, 134, 11, 0.2); outline: none; }
+#api-key-section input[type="password"]:focus { border-color: var(--accent-color); box-shadow: 0 0 8px rgba(252, 163, 17, 0.2); outline: none; }
 #api-key-section button { padding: 10px 15px; background-color: var(--accent-color); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 500; transition: background-color 0.3s ease; }
-#api-key-section button:hover { background-color: #CF970E; }
+#api-key-section button:hover { background-color: var(--accent-hover); } /* [V9] 橙色悬停 */
 .modal-content small { display: block; margin-top: 15px; color: #777; }
 .modal-content small a { color: var(--accent-color); font-weight: 500; }
 
 
-/* 5. [V6 新] 全局置顶导航栏 */
+/* 5. [V9 修改] 全局置顶导航栏 */
 #global-nav {
     width: 100%;
     height: var(--nav-height);
@@ -143,7 +146,6 @@ h2 {
 .nav-btn {
     padding: 0 16px;
     height: var(--nav-height);
-    line-height: var(--nav-height);
     border: none;
     background: none;
     cursor: pointer;
@@ -153,6 +155,13 @@ h2 {
     border-bottom: 4px solid transparent;
     transition: all 0.3s ease;
     white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+.nav-btn .icon {
+    margin-right: 6px;
+    font-size: 1.1rem;
 }
 .nav-btn:hover {
     background-color: rgba(255, 255, 255, 0.05);
@@ -255,6 +264,9 @@ body.showing-home #home-view .hero-gallery {
     text-align: center;
     color: white;
     padding: 20px;
+    width: 100%;
+    max-width: 1100px; /* 容纳卡片 */
+    margin: auto;
 }
 .home-content-overlay h1 {
     font-family: var(--font-serif);
@@ -267,7 +279,7 @@ body.showing-home #home-view .hero-gallery {
     font-size: 1.25rem;
     font-weight: 400;
     text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
-    margin-bottom: 0;
+    margin-bottom: 2.5rem;
     max-width: 600px;
     margin-left: auto;
     margin-right: auto;
@@ -276,10 +288,10 @@ body.showing-home #home-view .hero-gallery {
 /* 首页功能区 */
 #home-features-section {
     background-color: var(--light-bg);
-    padding: 3rem 1.5rem; /* 上下 3rem, 左右 1.5rem */
+    padding: 0; /* 卡片已移走，移除内边距 */
     border-top: 1px solid var(--border-color); /* 与画廊的细微分割 */
 }
-/* 确保卡片容器在 section 内正确居中且宽度一致 */
+/* 卡片容器 (现在位于 .home-content-overlay 中) */
 .feature-cards-container {
     max-width: 900px;
     margin: 0 auto;
@@ -289,25 +301,45 @@ body.showing-home #home-view .hero-gallery {
     flex-wrap: wrap;
 }
 
-/* 首页“特性卡片”*/
+/* [V9 恢复] 首页“特性卡片” (毛玻璃效果) */
 .feature-card {
-    background: #ffffff; /* [V7 新增] 纯白背景 */
-    color: var(--dark-text);
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 4px 25px rgba(0, 0, 0, 0.2);
+    color: white;
+
     padding: 1.5rem 2rem;
     border-radius: 12px;
     width: 250px;
-    text-align: left;
-    box-shadow: var(--card-shadow); /* [V7 新增] 使用标准卡片阴影 */
-    border: 1px solid var(--border-color); /* [V7 新增] 标准边框 */
+    text-align: center; /* 配合图标，改为居中 */
     transition: all 0.3s ease;
     cursor: pointer;
 }
 .feature-card:hover {
     transform: translateY(-10px);
-    box-shadow: 0 12px 40px rgba(44, 62, 80, 0.12);
+    background: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.3);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
 }
-.feature-card h3 { font-family: var(--font-serif); color: var(--accent-color); margin-top: 0; font-size: 1.3rem; }
-.feature-card p { font-size: 0.95rem; color: var(--secondary-color); line-height: 1.6; margin-bottom: 0; }
+.feature-card .icon {
+    font-size: 2.5rem;
+    color: var(--accent-color); /* [V9] 使用新强调色 */
+    margin-bottom: 10px;
+    line-height: 1;
+}
+.feature-card h3 {
+    font-family: var(--font-serif);
+    color: white;
+    margin-top: 0.5rem;
+    font-size: 1.3rem;
+}
+.feature-card p {
+    font-size: 0.95rem;
+    color: rgba(255, 255, 255, 0.85);
+    line-height: 1.6;
+    margin-bottom: 0;
+}
 
 /* 8. 工具区主内容 */
 #tool-content {
@@ -321,7 +353,7 @@ body.showing-home #home-view .hero-gallery {
     flex-grow: 1;
 }
 .feature-panel {
-    padding: 25px 30px;
+    padding: 30px 40px; /* 增加内边距 */
 }
 .feature-panel.hidden {
     display: none; /* JS控制显隐 */
@@ -337,13 +369,13 @@ body.showing-home #home-view .hero-gallery {
 .form-group select:focus { border-color: var(--primary-color); box-shadow: 0 0 8px rgba(52, 73, 94, 0.1); outline: none; background-color: #fff; }
 
 /* 10. 主按钮 */
-.cta-btn { padding: 10px 20px; background-color: var(--accent-color); color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 1rem; font-weight: 500; transition: all 0.3s ease; box-shadow: 0 4px 12px rgba(184, 134, 11, 0.2); }
-.cta-btn:hover { background-color: #CF970E; transform: translateY(-2px); box-shadow: 0 6px 16px rgba(184, 134, 11, 0.3); }
+.cta-btn { padding: 10px 20px; background-color: var(--accent-color); color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 1rem; font-weight: 500; transition: all 0.3s ease; box-shadow: 0 4px 12px rgba(252, 163, 17, 0.2); } /* [V9] 阴影更新 */
+.cta-btn:hover { background-color: var(--accent-hover); transform: translateY(-2px); box-shadow: 0 6px 16px rgba(252, 163, 17, 0.3); } /* [V9] 阴影更新 */
 .cta-btn:disabled { background-color: #BDBDBD; box-shadow: none; transform: none; cursor: not-allowed; }
 
 /* 11. 结果区 */
 .result-container { margin-top: 25px; padding: 20px; border: 2px dashed var(--border-color); border-radius: 8px; background: var(--light-bg); min-height: 100px; }
-.loader { border: 4px solid #f3f3f3; border-top: 4px solid var(--accent-color); border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 20px auto; }
+.loader { border: 4px solid #f3f3ff; border-top: 4px solid var(--accent-color); border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 20px auto; }
 @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 .error-message { color: #C0392B; margin-top: 10px; font-weight: 500; }
 #slideshow-container, #style-result img, .idea-card, #qa-result { animation: result-fade-in 0.5s ease; }
@@ -395,24 +427,19 @@ footer { width: 100%; background: var(--secondary-color); color: rgba(255, 255, 
     background-size: cover;
 }
 
-/* 1. 重置幻灯片内容容器 */
 #slideshow-content {
     position: relative;
     min-height: 200px; /* 防止在加载时折叠 */
 }
 
-/* 2. 覆盖首页 .slide 的 'position: absolute' 和 'opacity: 0' */
 #slideshow-content .slide {
     position: relative; /* 覆盖 'absolute' */
     height: auto;       /* 覆盖 'height: 100%'，允许其包裹内容 */
     width: 100%;        /* 保持 100% 宽度 */
     opacity: 1;         /* 覆盖 'opacity: 0' */
-
-    /* [V7.5 关键] 切换为 display 布局，而不是 opacity */
     display: none;
 }
 
-/* 3. 覆盖首页 .slide.active 的 'opacity: 1' */
 #slideshow-content .slide.active {
     display: block; /* 使用 block 显示，而不是 opacity */
     animation: result-fade-in 0.5s ease; /* 复用现有的淡入动画 */

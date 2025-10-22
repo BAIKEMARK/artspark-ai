@@ -13,13 +13,14 @@ const apiError = document.getElementById('api-error');
 const homeView = document.getElementById('home-view');
 const toolContent = document.getElementById('tool-content');
 // 首页功能区
-const homeFeaturesSection = document.getElementById('home-features-section');
+const homeFeaturesSection = document.getElementById('home-features-section'); // [V9] 此元素现在是空的
 const globalNav = document.getElementById('global-nav');
 const navLinks = globalNav.querySelector('.nav-links');
 const allNavButtons = globalNav.querySelectorAll('.nav-btn');
 const homeLogoButton = document.getElementById('home-logo-btn');
 const homeContentOverlay = homeView.querySelector('.home-content-overlay');
-const featureCards = document.querySelectorAll('.feature-card');
+// [V9] 卡片现在位于 homeContentOverlay 内部
+const featureCards = homeContentOverlay.querySelectorAll('.feature-card');
 const heroSlider = document.querySelector('.slider-container');
 const sliderDotsContainer = document.querySelector('.slider-dots');
 let heroSlides = [];
@@ -202,12 +203,19 @@ function startSlideShow() { showHeroSlide(0); clearInterval(slideInterval); slid
 
 
 // ==========================================================
-// 核心模块 2: 主导航逻辑 (不变)
+// 核心模块 2: 主导航逻辑 (V9 恢复)
 // ==========================================================
 function initNavigation() {
-    navLinks.addEventListener('click', (e) => { if (e.target.tagName === 'BUTTON') { const targetId = e.target.dataset.target; navigateTo(targetId); } });
+    navLinks.addEventListener('click', (e) => {
+        // [V9] 适配图标点击
+        const button = e.target.closest('button.nav-btn');
+        if (button) {
+            const targetId = button.dataset.target;
+            navigateTo(targetId);
+        }
+    });
     homeLogoButton.addEventListener('click', (e) => { e.preventDefault(); navigateTo('home-view'); });
-    // 确保首页卡片导航正确
+    // [V9] 确保首页卡片导航正确 (现在卡片在 overlay 里)
     featureCards.forEach(card => {
         card.addEventListener('click', () => {
             const targetId = card.dataset.target;
@@ -230,7 +238,6 @@ function navigateTo(targetId) {
         document.body.classList.remove('showing-home');
     }
     homeView.style.display = isHomePage ? 'flex' : 'none';
-    homeFeaturesSection.style.display = isHomePage ? 'block' : 'none';
     toolContent.style.display = isHomePage ? 'none' : 'block';
     if (!isHomePage) {
         let panelFound = false;
@@ -255,7 +262,7 @@ function navigateTo(targetId) {
 
 
 // ==========================================================
-// 核心模块 3-8: 工具功能 (重构)
+// 核心模块 3-8: 工具功能 (不变)
 // ==========================================================
 
 // 模块 3: AI智能上色
@@ -452,7 +459,7 @@ function initIdeaGenerator() {
 function displayArtIdeas(ideas) { ideasResult.innerHTML = ''; if (!ideas || ideas.length === 0) { ideasError.textContent = '未能解析创意。'; return; } ideas.forEach(idea => { const card = document.createElement('div'); card.className = 'idea-card'; const img = document.createElement('img'); img.src = idea.exampleImage || 'https://via.placeholder.com/256x256?text=Image'; img.alt = idea.name; const title = document.createElement('h3'); title.textContent = idea.name; const desc = document.createElement('p'); desc.textContent = idea.description; const elements = document.createElement('small'); elements.textContent = `关键元素: ${idea.elements}`; card.appendChild(img); card.appendChild(title); card.appendChild(desc); card.appendChild(elements); ideasResult.appendChild(card); }); ideasResult.classList.remove('hidden'); }
 
 // ==========================================================
-// 辅助函数
+// 辅助函数 (不变)
 // ==========================================================
 function toggleUIState(button, loader, errorEl, isLoading) { if (isLoading) { button.disabled = true; loader.classList.remove('hidden'); errorEl.textContent = ''; } else { button.disabled = false; loader.classList.add('hidden'); } }
 
@@ -505,7 +512,7 @@ function displaySingleImageResult(resultContainer, imageUrl, altText) {
 
 
 // ==========================================================
-// AI 调用函数 (重构)
+// AI 调用函数 (不变)
 // ==========================================================
 
 // 辅助函数：处理所有到后端的 fetch 请求
@@ -556,5 +563,3 @@ async function askArtQuestion(question) {
 async function generateArtIdeas(theme) {
     return fetchFromBackend('/api/generate-ideas', { theme });
 }
-
-// [移除] generatePaintingSteps
