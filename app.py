@@ -19,6 +19,9 @@ load_dotenv()
 app = Flask(__name__)
 
 app.config["SECRET_KEY"] = "a_very_secret_random_string_for_your_app"
+app.config["SESSION_COOKIE_SAMESITE"] = "None"
+app.config["SESSION_COOKIE_SECURE"] = True
+
 
 MODEL_SCOPE_BASE_URL = "https://api-inference.modelscope.cn/"
 FLUX_MODEL_ID = "black-forest-labs/FLUX.1-Krea-dev"
@@ -69,22 +72,17 @@ def proxy_download():
         return jsonify({"error": "Image URL is required"}), 400
 
     try:
-        # 使用 requests 下载图片
         response = requests.get(image_url, stream=True)
-        response.raise_for_status() # 确保请求成功
+        response.raise_for_status()
 
-        # 将响应内容作为字节流
         image_data = BytesIO(response.content)
-
-        # 确定 mime-type (从响应头获取，如果失败则默认为 png)
         mime_type = response.headers.get('Content-Type', 'image/png')
 
-        # 使用 send_file 将图片流式传输回前端
         return send_file(
             image_data,
             mimetype=mime_type,
-            as_attachment=True, # 告诉浏览器这是一个附件
-            download_name='art-ai-image.png' # 默认文件名 (前端会覆盖)
+            as_attachment=True,
+            download_name='art-ai-image.png'
         )
 
     except requests.exceptions.RequestException as e:
@@ -626,4 +624,4 @@ def serve_image(filename):
 
 # --- 5. 启动服务器 ---
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=7860)
+    app.run(debug=False, host='0.0.0.0', port=7860)
