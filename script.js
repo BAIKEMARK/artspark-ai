@@ -227,11 +227,13 @@ async function checkKeyValidity() {
             method: 'GET',
             credentials: 'include'
         });
-        if (!response.ok) {
-            console.warn(`Key validity check failed with status: ${response.status}`);
-            return false;
+        // 只有 200 (OK) 才算有效
+        if (response.ok) {
+            return true;
         }
-        return true;
+        // 401 或其他错误都算无效
+        console.warn(`Key validity check failed with status: ${response.status}`);
+        return false;
     } catch (error) {
         console.error("Error during key validity check:", error);
         return false;
@@ -256,7 +258,6 @@ function initApiKeyManager() {
                 const err = await response.json();
                 throw new Error(err.error || '设置Key失败');
             }
-            localStorage.setItem(MODEL_SCOPE_TOKEN_KEY, 'true');
             showMainContent();
             apiError.textContent = '';
         } catch (error) {
@@ -288,7 +289,6 @@ function showMainContent() {
 function showApiKeyModal() {
     apiKeyModal.classList.remove('hidden');
     footerGuide.classList.add('hidden');
-    localStorage.removeItem(MODEL_SCOPE_TOKEN_KEY);
     homeView.style.display = 'none';
     homeFeaturesSection.style.display = 'none';
     toolContent.style.display = 'none';
@@ -717,6 +717,15 @@ async function fetchFromBackend(endpoint, body) {
     });
 
     if (!response.ok) {
+        // [修改] 捕获 401 错误并弹出模态框
+        if (response.status === 401) {
+            console.error("Authentication error (401). Showing API key modal.");
+            showApiKeyModal();
+            const err = await response.json();
+            throw new Error(err.error || "API 密钥已失效，请重新输入");
+        }
+
+        // [不变] 处理其他错误 (例如 500, 400)
         const err = await response.json();
         throw new Error(err.error || `请求失败: ${response.status}`);
     }
