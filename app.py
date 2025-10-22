@@ -6,9 +6,9 @@ import boto3
 import uuid
 import base64
 from io import BytesIO
-from flask import Flask, request, jsonify, session, send_file, send_from_directory
+from flask import Flask, request, jsonify, send_file, send_from_directory
 from dotenv import load_dotenv
-from werkzeug.middleware.proxy_fix import ProxyFix
+from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadTimeSignature
 
 class ApiKeyMissingError(Exception):
     """当 session 中缺少 API key 时引发"""
@@ -19,10 +19,8 @@ load_dotenv()
 
 app = Flask(__name__)
 
-app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 app.config["SECRET_KEY"] = "a_very_secret_random_string_for_your_app"
-app.config["SESSION_COOKIE_SAMESITE"] = "None"
-app.config["SESSION_COOKIE_SECURE"] = True
+ts = URLSafeTimedSerializer(app.config["SECRET_KEY"])
 
 MODEL_SCOPE_BASE_URL = "https://api-inference.modelscope.cn/"
 FLUX_MODEL_ID = "black-forest-labs/FLUX.1-Krea-dev"
@@ -53,16 +51,21 @@ def set_key():
     api_key = data.get("api_key")
     if not api_key:
         return jsonify({"error": "API key is required"}), 400
-    session["api_key"] = api_key
-    return jsonify({"message": "API key set successfully"}), 200
+    try:
+        token = ts.dumps(api_key, salt='api-key-salt') # 加密 API Key
+        return jsonify({"message": "API key set successfully", "token": token}), 200
+    except Exception as e:
+        print(f"Token generation error: {e}")
+        return jsonify({"error": "Failed to generate token"}), 500
 
 
 @app.route("/api/check_key", methods=["GET"])
 def check_key():
-    if session.get("api_key"):
+    try:
+        get_api_key() # 尝试解密
         return jsonify({"status": "ok"}), 200
-    else:
-        return jsonify({"error": "Session invalid or API key not set"}), 401
+    except Exception as e:
+        return jsonify({"error": str(e)}), 401
 
 
 # --- 路由：用于解决CORS的图片下载代理 ---
@@ -95,10 +98,27 @@ def proxy_download():
 
 
 def get_api_key():
-    api_key = session.get("api_key")
-    if not api_key:
-        raise ApiKeyMissingError("API key not set. Please set key in the modal.")
-    return api_key
+    auth_header = request.headers.get("Authorization")
+    if not auth_header:
+        raise ApiKeyMissingError("Authorization header is missing.")
+
+    parts = auth_header.split()
+    if parts[0].lower() != "bearer" or len(parts) != 2:
+        raise ApiKeyMissingError("Invalid Authorization header format. Expected 'Bearer <token>'.")
+
+    token = parts[1]
+
+    try:
+        # 解密 Token，设置有效期为 1 天 (86400 秒)
+        api_key = ts.loads(token, salt='api-key-salt', max_age=86400)
+        return api_key
+    except SignatureExpired:
+        raise ApiKeyMissingError("Token has expired. Please re-enter API Key.")
+    except BadTimeSignature:
+        raise ApiKeyMissingError("Invalid token. Please re-enter API Key.")
+    except Exception as e:
+        print(f"Token decryption error: {e}")
+        raise ApiKeyMissingError("Invalid token.")
 
 
 def get_headers(token):
