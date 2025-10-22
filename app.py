@@ -8,6 +8,7 @@ import base64
 from io import BytesIO
 from flask import Flask, request, jsonify, send_file, send_from_directory
 from dotenv import load_dotenv
+from flask_cors import CORS
 from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadTimeSignature
 
 class ApiKeyMissingError(Exception):
@@ -18,6 +19,12 @@ class ApiKeyMissingError(Exception):
 load_dotenv()
 
 app = Flask(__name__)
+
+CORS(
+    app,
+    supports_credentials=True,
+    resources={r"/api/*": {"origins": ["http://localhost:63342", "http://127.0.0.1:63342"]}}
+)
 
 app.config["SECRET_KEY"] = "a_very_secret_random_string_for_your_app"
 ts = URLSafeTimedSerializer(app.config["SECRET_KEY"])
@@ -135,7 +142,6 @@ def upload_to_r2(base64_string):
         mime_type = header.split(";")[0].split(":")[-1]
         extension = mime_type.split("/")[-1]
         file_name = f"uploads/{uuid.uuid4()}.{extension}"
-
         s3_client.upload_fileobj(
             BytesIO(data),
             R2_BUCKET_NAME,
@@ -147,7 +153,6 @@ def upload_to_r2(base64_string):
         )
         public_url = f"{R2_PUBLIC_URL_BASE}/{file_name}"
         return public_url
-
     except Exception as e:
         print(f"R2 Upload Error: {e}")
         raise Exception("Failed to upload image to R2 OSS.")
@@ -157,34 +162,27 @@ def generate_english_prompt(token, chinese_prompt, context_description):
     full_user_prompt = f"""
 <task>
 You are an expert AI art prompt translator and enhancer. Your job is to translate a Chinese description into a vivid, concise, and high-quality English prompt suitable for the FLUX image model.
-
 1.  Translate the core meaning of the Chinese description.
 2.  Enrich the prompt with 2-3 professional "quality modifier" keywords (e.g., 'masterpiece', 'best quality', 'vibrant colors', 'dynamic lighting', 'cinematic', 'detailed').
 3.  Keep the context in mind.
-
 **Rules:**
 -   **ONLY** output the final English prompt.
 -   **DO NOT** include any conversational text, markdown, or explanations.
 </task>
-
 <context>
 {context_description}
 </context>
-
 <chinese_description>
 {chinese_prompt}
 </chinese_description>
 """
     messages = [{"role": "user", "content": full_user_prompt}]
-
-    # 还原为原始的 payload 结构
     payload = {
         "model": QWEN_LLM_ID,
         "messages": messages,
         "max_tokens": 200,
         "temperature": 0.5,
     }
-
     response = requests.post(
         f"{MODEL_SCOPE_BASE_URL}v1/chat/completions",
         headers=get_headers(token),
@@ -624,22 +622,18 @@ def handle_generate_ideas():
 # --- 4.5. 静态文件服务 (为 Docker 部署新增) ---
 @app.route('/')
 def serve_index():
-    #
     return send_from_directory('.', 'index.html')
 
 @app.route('/style.css')
 def serve_css():
-    #
     return send_from_directory('.', 'style.css')
 
 @app.route('/script.js')
 def serve_js():
-    #
     return send_from_directory('.', 'script.js')
 
 @app.route('/img/<path:filename>')
 def serve_image(filename):
-    #
     return send_from_directory('img', filename)
 
 

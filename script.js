@@ -2,7 +2,11 @@
 // 全局变量和 DOM 元素
 // ==========================================================
 
-const BACKEND_URL = '';
+// 动态设置后端 URL 以适应本地和生产环境
+const isLocalDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+const BACKEND_URL = isLocalDev ? 'http://localhost:7860' : '';
+console.log(`[App] 运行在 ${isLocalDev ? '本地开发' : '生产'} 模式. API URL: '${BACKEND_URL || "(相对路径)"}'`);
+
 const AUTH_TOKEN_KEY = 'art_spark_auth_token'; // 用于 localStorage
 
 const MODEL_SCOPE_TOKEN_KEY = 'modelscope_api_key';
