@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>艺启智AI - 乡村美术助教</title>
     <link rel="stylesheet" href="style.css">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
 </head>
 <body>
 
@@ -25,13 +26,13 @@
         <div class="nav-content">
             <a href="#" id="home-logo-btn" class="nav-logo">🎨 艺启智AI</a>
             <div class="nav-links">
-                <button data-target="home-view" class="nav-btn active">首页</button>
-                <button data-target="line-coloring" class="nav-btn">AI智能上色</button>
-                <button data-target="style-workshop" class="nav-btn">创意风格工坊</button>
-                <button data-target="self-portrait" class="nav-btn">AI自画像</button>
-                <button data-target="art-fusion" class="nav-btn">艺术融合</button>
-                <button data-target="art-qa" class="nav-btn">艺术知识问答</button>
-                <button data-target="idea-generator" class="nav-btn">创意灵感生成</button>
+                <button data-target="home-view" class="nav-btn active"><i class="icon ph-bold ph-house"></i>首页</button>
+                <button data-target="line-coloring" class="nav-btn"><i class="icon ph-bold ph-paint-brush"></i>AI智能上色</button>
+                <button data-target="style-workshop" class="nav-btn"><i class="icon ph-bold ph-sparkle"></i>创意风格工坊</button>
+                <button data-target="self-portrait" class="nav-btn"><i class="icon ph-bold ph-user-square"></i>AI自画像</button>
+                <button data-target="art-fusion" class="nav-btn"><i class="icon ph-bold ph-paint-roller"></i>艺术融合</button>
+                <button data-target="art-qa" class="nav-btn"><i class="icon ph-bold ph-question"></i>艺术知识问答</button>
+                <button data-target="idea-generator" class="nav-btn"><i class="icon ph-bold ph-lightbulb"></i>创意灵感生成</button>
             </div>
         </div>
     </nav>
@@ -51,29 +52,34 @@
         <div class="home-content-overlay">
             <h1>欢迎来到乡村美术助教</h1>
             <p>为乡村教师提供零门槛、专业化的美术教学支持。</p>
+
+            <div class="feature-cards-container">
+                <div class="feature-card" data-target="line-coloring">
+                    <div class="icon"><i class="ph-bold ph-paint-brush"></i></div>
+                    <h3>AI智能上色</h3>
+                    <p>上传线稿，一键变为专业彩绘</p>
+                </div>
+                <div class="feature-card" data-target="style-workshop">
+                    <div class="icon"><i class="ph-bold ph-sparkle"></i></div>
+                    <h3>创意风格工坊</h3>
+                    <p>用名画风格重绘你的草图</p>
+                </div>
+                <div class="feature-card" data-target="self-portrait">
+                    <div class="icon"><i class="ph-bold ph-user-square"></i></div>
+                    <h3>AI自画像</h3>
+                    <p>上传照片，生成你的卡通肖像</p>
+                </div>
+                 <div class="feature-card" data-target="art-fusion">
+                    <div class="icon"><i class="ph-bold ph-paint-roller"></i></div>
+                    <h3>艺术融合</h3>
+                    <p>将任意风格“刷”到你的照片上</p>
+                </div>
+            </div>
         </div>
     </header>
 
     <section id="home-features-section" class="view-panel active">
-        <div class="feature-cards-container">
-            <div class="feature-card" data-target="line-coloring">
-                <h3>AI智能上色</h3>
-                <p>上传线稿，一键变为专业彩绘</p>
-            </div>
-            <div class="feature-card" data-target="style-workshop">
-                <h3>创意风格工坊</h3>
-                <p>用名画风格重绘你的草图</p>
-            </div>
-            <div class="feature-card" data-target="self-portrait">
-                <h3>AI自画像</h3>
-                <p>上传照片，生成你的卡通肖像</p>
-            </div>
-             <div class="feature-card" data-target="art-fusion">
-                <h3>艺术融合</h3>
-                <p>将任意风格“刷”到你的照片上</p>
-            </div>
-        </div>
-        </section>
+    </section>
 
     <main id="tool-content" class="view-panel hidden">
         <div id="feature-panels">
