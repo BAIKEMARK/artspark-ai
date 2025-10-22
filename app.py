@@ -8,6 +8,7 @@ import base64
 from io import BytesIO
 from flask import Flask, request, jsonify, session, send_file, send_from_directory
 from dotenv import load_dotenv
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 class ApiKeyMissingError(Exception):
     """当 session 中缺少 API key 时引发"""
@@ -18,10 +19,10 @@ load_dotenv()
 
 app = Flask(__name__)
 
+app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 app.config["SECRET_KEY"] = "a_very_secret_random_string_for_your_app"
 app.config["SESSION_COOKIE_SAMESITE"] = "None"
 app.config["SESSION_COOKIE_SECURE"] = True
-
 
 MODEL_SCOPE_BASE_URL = "https://api-inference.modelscope.cn/"
 FLUX_MODEL_ID = "black-forest-labs/FLUX.1-Krea-dev"
