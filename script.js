@@ -2,7 +2,7 @@
 // 全局变量和 DOM 元素
 // ==========================================================
 
-const BACKEND_URL = 'http://localhost:5000';
+const BACKEND_URL = '';
 
 const MODEL_SCOPE_TOKEN_KEY = 'modelscope_api_key';
 const apiKeyModal = document.getElementById('api-key-modal');

@@ -6,7 +6,7 @@ import boto3
 import uuid
 import base64
 from io import BytesIO
-from flask import Flask, request, jsonify, session, send_file
+from flask import Flask, request, jsonify, session, send_file, send_from_directory
 from flask_session import Session
 from flask_cors import CORS
 from dotenv import load_dotenv
@@ -607,6 +607,31 @@ def handle_generate_ideas():
         return jsonify({"error": str(e)}), 500
 
 
+# --- 4.5. 静态文件服务 (为 Docker 部署新增) ---
+# 确保API路由优先
+
+@app.route('/')
+def serve_index():
+    #
+    return send_from_directory('.', 'index.html')
+
+@app.route('/style.css')
+def serve_css():
+    #
+    return send_from_directory('.', 'style.css')
+
+@app.route('/script.js')
+def serve_js():
+    #
+    return send_from_directory('.', 'script.js')
+
+@app.route('/img/<path:filename>')
+def serve_image(filename):
+    #
+    return send_from_directory('img', filename)
+
+
 # --- 5. 启动服务器 ---
 if __name__ == '__main__':
-    app.run(debug=True, host='localhost', port=7860)
+    # [修改] 监听 0.0.0.0 以便 Docker 容器可以从外部访问，并关闭 debug 模式
+    app.run(debug=False, host='0.0.0.0', port=7860)
