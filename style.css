@@ -1,16 +1,14 @@
 /* * "艺启智AI - 乡村美术助教"
- * 视觉优化方案 (V9 - 现代创意画室 / 蓝橙版)
- */
 
 /* 1. 引入字体 */
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500&family=Noto+Serif+SC:wght@600;700&display=swap');
 
-/* 2. [V9 已修改] “现代创意画室”色板 */
+/* 2. “现代创意画室”色板 */
 :root {
-    --primary-color: #34495E;
-    --secondary-color: #2C3E50;
-    --accent-color: #B8860B;
-    --accent-hover: #E8950F;      /* 橙色悬停 */
+    --primary-color: #34495E;     /* 深石板蓝 (辅) */
+    --secondary-color: #2C3E50;   /* 深石板蓝 (主) - 用于导航/页脚 */
+    --accent-color: #B8860B;      /* 暗金 (Reverted) */
+    --accent-hover: #A0740A;      /* 暗金悬停 (Adjusted) */
     --light-bg: #F8F9FA;
     --dark-text: #333333;
     --border-color: #EAECEE;
@@ -40,9 +38,16 @@ body {
     box-sizing: border-box; /* 确保 padding-top 包含在内 */
 
 }
-/* [V9 恢复] 当显示工具页时，强制使用标准浅背景 */
+/* 当显示工具页时，强制使用标准浅背景 */
 body.showing-tools {
     background-color: var(--light-bg);
+}
+
+/* 粘性页脚的内容包裹器 */
+#main-content-wrapper {
+    flex-grow: 1; /* 关键：使其撑满可用空间，将页脚推到底部 */
+    display: flex; /* 保持 flex 布局以正确切换视图 */
+    flex-direction: column;
 }
 
 
@@ -93,9 +98,10 @@ h2 {
 .modal-content h2 { font-family: var(--font-serif); color: var(--secondary-color); margin-top: 0; }
 .modal-content p { margin-bottom: 1.5rem; }
 #api-key-section input[type="password"] { width: 70%; padding: 10px; border: 2px solid var(--border-color); border-radius: 8px; transition: all 0.3s ease; }
-#api-key-section input[type="password"]:focus { border-color: var(--accent-color); box-shadow: 0 0 8px rgba(252, 163, 17, 0.2); outline: none; }
+/* [修改] 焦点阴影颜色 */
+#api-key-section input[type="password"]:focus { border-color: var(--accent-color); box-shadow: 0 0 8px rgba(184, 134, 11, 0.2); outline: none; }
 #api-key-section button { padding: 10px 15px; background-color: var(--accent-color); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 500; transition: background-color 0.3s ease; }
-#api-key-section button:hover { background-color: var(--accent-hover); } /* [V9] 橙色悬停 */
+#api-key-section button:hover { background-color: var(--accent-hover); }
 .modal-content small { display: block; margin-top: 15px; color: #777; }
 .modal-content small a { color: var(--accent-color); font-weight: 500; }
 
@@ -190,11 +196,12 @@ h2 {
 #home-view {
     position: relative;
     width: 100%;
-    min-height: calc(100vh - var(--nav-height));
     overflow: hidden;
     display: flex;
     align-items: center;
     justify-content: center;
+    min-height: calc(100vh - var(--nav-height));
+    box-sizing: border-box; /* 确保 padding/border 包含在内 */
 }
 /* 首页画廊背景 */
 .hero-gallery {
@@ -212,7 +219,6 @@ h2 {
 body.showing-home #home-view .hero-gallery {
     opacity: 1;
     visibility: visible;
-    transition: opacity 0.5s ease, visibility 0s 0s;
 }
 
 .slider-container { width: 100%; height: 100%; }
@@ -265,7 +271,7 @@ body.showing-home #home-view .hero-gallery {
     color: white;
     padding: 20px;
     width: 100%;
-    max-width: 1100px; /* 容纳卡片 */
+    max-width: 1100px;
     margin: auto;
 }
 .home-content-overlay h1 {
@@ -288,8 +294,9 @@ body.showing-home #home-view .hero-gallery {
 /* 首页功能区 */
 #home-features-section {
     background-color: var(--light-bg);
-    padding: 0; /* 卡片已移走，移除内边距 */
-    border-top: 1px solid var(--border-color); /* 与画廊的细微分割 */
+    padding: 0;
+    border-top: 1px solid var(--border-color);
+    flex-grow: 0;
 }
 /* 卡片容器 (现在位于 .home-content-overlay 中) */
 .feature-cards-container {
@@ -324,7 +331,7 @@ body.showing-home #home-view .hero-gallery {
 }
 .feature-card .icon {
     font-size: 2.5rem;
-    color: var(--accent-color); /* [V9] 使用新强调色 */
+    color: var(--accent-color);
     margin-bottom: 10px;
     line-height: 1;
 }
@@ -341,16 +348,29 @@ body.showing-home #home-view .hero-gallery {
     margin-bottom: 0;
 }
 
-/* 8. 工具区主内容 */
+/* 8. [修改] 工具区主内容 (双栏布局) */
 #tool-content {
-    max-width: 900px;
+    /* [修改] max-width 放大，以容纳侧边栏 */
+    max-width: 1200px;
     margin: 20px auto;
     padding: 0;
+    /* [修改] 移除背景、阴影，变为透明容器 */
+    background: none;
+    box-shadow: none;
+    border-radius: 0;
+    overflow: visible; /* 允许粘性定位 */
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    flex-grow: 1;
+}
+#tool-panels-wrapper {
+    flex: 1;
+    max-width: 900px;
     background: #ffffff;
     border-radius: 12px;
     box-shadow: var(--card-shadow);
     overflow: hidden;
-    flex-grow: 1;
 }
 .feature-panel {
     padding: 30px 40px; /* 增加内边距 */
@@ -359,6 +379,76 @@ body.showing-home #home-view .hero-gallery {
     display: none; /* JS控制显隐 */
 }
 
+/* [新增] 辅助信息栏 */
+#contextual-sidebar {
+    width: 240px;
+    margin-left: 30px;
+    position: sticky; /* 粘性定位 */
+    top: 80px; /* 60px 导航 + 20px 间距 */
+    display: block; /* ？？默认显示 */
+}
+#contextual-sidebar.hidden {
+    display: none;
+}
+.sidebar-widget {
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: var(--card-shadow);
+    margin-bottom: 20px;
+    animation: result-fade-in 0.5s ease;
+}
+.sidebar-widget h3 {
+    font-family: var(--font-serif);
+    color: var(--secondary-color);
+    margin-top: 0;
+    font-size: 1.1rem;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 10px;
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+}
+.sidebar-widget h3 .icon {
+    font-size: 1.2rem;
+    margin-right: 8px;
+    color: var(--accent-color);
+}
+.sidebar-widget p, .sidebar-widget li {
+    font-size: 0.9rem;
+    color: #555;
+    margin-bottom: 10px;
+    line-height: 1.6;
+}
+/* 侧边栏列表 */
+.sidebar-widget ul {
+    padding-left: 20px;
+    margin-bottom: 10px;
+}
+.example-images {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+.example-images img {
+    width: 100%;
+    height: 80px;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+}
+/* 响应式：在小屏幕上隐藏侧边栏 */
+@media (max-width: 1200px) {
+    #contextual-sidebar {
+        display: none !important;
+    }
+    #tool-content {
+        justify-content: center;
+    }
+    #tool-panels-wrapper {
+        margin: 0 15px;
+    }
+}
 
 /* 9. 表单样式 */
 .form-group { margin-bottom: 20px; }
@@ -369,17 +459,63 @@ body.showing-home #home-view .hero-gallery {
 .form-group select:focus { border-color: var(--primary-color); box-shadow: 0 0 8px rgba(52, 73, 94, 0.1); outline: none; background-color: #fff; }
 
 /* 10. 主按钮 */
-.cta-btn { padding: 10px 20px; background-color: var(--accent-color); color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 1rem; font-weight: 500; transition: all 0.3s ease; box-shadow: 0 4px 12px rgba(252, 163, 17, 0.2); } /* [V9] 阴影更新 */
-.cta-btn:hover { background-color: var(--accent-hover); transform: translateY(-2px); box-shadow: 0 6px 16px rgba(252, 163, 17, 0.3); } /* [V9] 阴影更新 */
+.cta-btn { padding: 10px 20px; background-color: var(--accent-color); color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 1rem; font-weight: 500; transition: all 0.3s ease; box-shadow: 0 4px 12px rgba(184, 134, 11, 0.2); }
+.cta-btn:hover { background-color: var(--accent-hover); transform: translateY(-2px); box-shadow: 0 6px 16px rgba(184, 134, 11, 0.3); }
 .cta-btn:disabled { background-color: #BDBDBD; box-shadow: none; transform: none; cursor: not-allowed; }
 
 /* 11. 结果区 */
-.result-container { margin-top: 25px; padding: 20px; border: 2px dashed var(--border-color); border-radius: 8px; background: var(--light-bg); min-height: 100px; }
-.loader { border: 4px solid #f3f3ff; border-top: 4px solid var(--accent-color); border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 20px auto; }
+.result-container { margin-top: 25px; padding: 20px; border: 2px dashed var(--border-color); border-radius: 8px; background: var(--light-bg); min-height: 100px; text-align: center; }
+.loader { border: 4px solid #f3f3f3; border-top: 4px solid var(--accent-color); border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 20px auto; }
 @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 .error-message { color: #C0392B; margin-top: 10px; font-weight: 500; }
 #slideshow-container, #style-result img, .idea-card, #qa-result { animation: result-fade-in 0.5s ease; }
 @keyframes result-fade-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+/* [新增] 下载按钮样式 */
+.download-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 16px;
+    background-color: var(--secondary-color); /* 深蓝色 */
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 500;
+    text-decoration: none; /* 移除 a 标签下划线 */
+    margin-top: 15px;
+    transition: all 0.3s ease;
+}
+.download-btn:hover {
+    background-color: var(--primary-color); /* 浅一点的蓝色 */
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(44, 62, 80, 0.2);
+}
+/* 下载按钮加载中/禁用状态 */
+.download-btn[disabled] {
+    background-color: #BDBDBD;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+.download-btn[disabled] .ph-spinner {
+    animation: spin 1s linear infinite; /* 复用 keyframe */
+}
+
+.download-btn .icon {
+    font-size: 1rem;
+    margin-right: 8px;
+}
+/* 确保结果区内的图片表现正常 */
+.result-container img {
+    max-width: 100%;
+    max-height: 512px;
+    border-radius: 8px;
+    display: block; /* 确保按钮在图片下方 */
+    margin: 0 auto;
+}
 
 /* 12. 幻灯片 */
 #slideshow-container { position: relative; max-width: 512px; margin: auto; text-align: center; }
@@ -390,7 +526,8 @@ body.showing-home #home-view .hero-gallery {
 #step-counter { font-weight: 500; color: var(--secondary-color); }
 
 /* 13. 风格工坊 */
-#style-result img { max-width: 100%; max-height: 512px; display: block; margin: 0 auto; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05); }
+#style-result { text-align: center; } /* 辅助下载按钮居中 */
+#style-result img { display: inline-block; } /* 修正 */
 .style-desc { text-align: center; margin-top: 15px; font-style: italic; color: var(--secondary-color); }
 
 /* 14. 问答结果 */
@@ -405,6 +542,14 @@ body.showing-home #home-view .hero-gallery {
 .idea-card h3 { font-size: 1.2rem; color: var(--accent-color); margin: 15px 0 10px 0; font-family: var(--font-serif); }
 .idea-card p { font-size: 0.9rem; margin-bottom: 10px; min-height: 40px; }
 .idea-card small { color: var(--secondary-color); font-size: 0.8rem; display: block; margin-bottom: 15px; }
+/* 灵感卡片内的下载按钮 */
+.idea-card .download-btn {
+    font-size: 0.8rem;
+    padding: 6px 12px;
+    margin-top: 0;
+    margin-bottom: 15px;
+}
+
 
 /* 辅助类 */
 .hidden {
@@ -412,7 +557,14 @@ body.showing-home #home-view .hero-gallery {
 }
 
 /* 16. 全宽策展人页脚 */
-footer { width: 100%; background: var(--secondary-color); color: rgba(255, 255, 255, 0.7); padding: 0; margin-top: 40px; }
+footer {
+    width: 100%;
+    background: var(--secondary-color);
+    color: rgba(255, 255, 255, 0.7);
+    padding: 0;
+    margin-top: 40px;
+    flex-shrink: 0;
+}
 .footer-content { max-width: 900px; margin: 0 auto; padding: 2.5rem 1.5rem; display: flex; flex-wrap: wrap; gap: 20px; }
 .footer-column { flex: 1; min-width: 300px; }
 .footer-column h3 { color: white; font-family: var(--font-serif); font-weight: 600; border-bottom: 1px solid var(--accent-color); padding-bottom: 10px; }

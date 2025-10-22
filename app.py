@@ -6,7 +6,7 @@ import boto3
 import uuid
 import base64
 from io import BytesIO
-from flask import Flask, request, jsonify, session
+from flask import Flask, request, jsonify, session, send_file
 from flask_session import Session
 from flask_cors import CORS
 from dotenv import load_dotenv
@@ -65,6 +65,37 @@ def check_key():
         return jsonify({"status": "ok"}), 200
     else:
         return jsonify({"error": "Session invalid or API key not set"}), 401
+
+
+# --- 路由：用于解决CORS的图片下载代理 ---
+@app.route("/api/proxy-download")
+def proxy_download():
+    image_url = request.args.get("url")
+    if not image_url:
+        return jsonify({"error": "Image URL is required"}), 400
+
+    try:
+        # 使用 requests 下载图片
+        response = requests.get(image_url, stream=True)
+        response.raise_for_status() # 确保请求成功
+
+        # 将响应内容作为字节流
+        image_data = BytesIO(response.content)
+
+        # 确定 mime-type (从响应头获取，如果失败则默认为 png)
+        mime_type = response.headers.get('Content-Type', 'image/png')
+
+        # 使用 send_file 将图片流式传输回前端
+        return send_file(
+            image_data,
+            mimetype=mime_type,
+            as_attachment=True, # 告诉浏览器这是一个附件
+            download_name='art-ai-image.png' # 默认文件名 (前端会覆盖)
+        )
+
+    except requests.exceptions.RequestException as e:
+        print(f"Proxy download error: {e}")
+        return jsonify({"error": f"Failed to fetch image: {e}"}), 500
 
 
 # --- 3. 内部辅助函数 ---
