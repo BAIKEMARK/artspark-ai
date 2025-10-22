@@ -10,6 +10,7 @@ const apiKeySection = document.getElementById('api-key-section');
 const apiKeyInput = document.getElementById('api-key-input');
 const saveKeyBtn = document.getElementById('save-key-btn');
 const apiError = document.getElementById('api-error');
+const mainContentWrapper = document.getElementById('main-content-wrapper');
 const homeView = document.getElementById('home-view');
 const toolContent = document.getElementById('tool-content');
 // 首页功能区
@@ -27,7 +28,10 @@ let heroSlides = [];
 let currentHeroSlide = 0;
 let slideInterval;
 const featurePanels = document.querySelectorAll('.feature-panel');
-const footerGuide = document.getElementById('footer-guide');
+const toolPanelsWrapper = document.getElementById('tool-panels-wrapper');
+const contextualSidebar = document.getElementById('contextual-sidebar');
+const footerGuide = document.getElementById('footer-guide'); // Get footer
+
 
 // 功能一：AI智能上色
 const coloringFileInput = document.getElementById('coloring-file-input');
@@ -81,10 +85,113 @@ const ideasLoader = document.getElementById('ideas-loader');
 const ideasError = document.getElementById('ideas-error');
 const ideasResult = document.getElementById('ideas-result');
 
-// [移除] 旧的分步绘画DOM
-// const themeInput = document.getElementById('theme-input');
-// ... (等)
-
+// ==========================================================
+// [新增] 侧边栏内容数据库
+// ==========================================================
+const sidebarContentData = {
+    'default': {
+        tips: `
+            <h3><i class="icon ph-bold ph-lightbulb-filament"></i> 教学小贴士</h3>
+            <p>欢迎来到“艺启智AI”！从左侧导航栏选择一个工具，开始您的创意之旅。</p>
+            <p>您可以利用这些工具，帮助学生们理解色彩、风格和构图。</p>
+        `,
+        examples: `
+            <h3><i class="icon ph-bold ph-image"></i> 示例作品</h3>
+            <div class="example-images">
+                <img src="img/Starry Night.jpg" alt="示例1">
+                <img src="img/千里江山图.jpg" alt="示例2">
+            </div>
+        `
+    },
+    'line-coloring': {
+        tips: `
+            <h3><i class="icon ph-bold ph-paint-brush"></i> 上色小贴士</h3>
+            <ul>
+                <li><strong>风格多样：</strong> 尝试“水彩画”、“油画”、“动漫风格”或“赛博朋克”等关键词。</li>
+                <li><strong>色彩词：</strong> 使用“明亮的颜色”、“柔和的色调”或“复古色”来引导AI。</li>
+                <li><strong>教学应用：</strong> 让学生上传同一张线稿，但使用不同的风格提示词，比较结果。</li>
+            </ul>
+        `,
+        examples: `
+            <h3><i class="icon ph-bold ph-image"></i> 上色示例</h3>
+            <div class="example-images">
+                <img src="img/Starry Night.jpg" alt="上色示例1">
+                <img src="img/Starry Night.jpg" alt="上色示例2">
+            </div>
+        `
+    },
+    'style-workshop': {
+        tips: `
+            <h3><i class="icon ph-bold ph-sparkle"></i> 风格小贴士</h3>
+            <ul>
+                <li><strong>上传草图：</strong> 上传一张简单的草图（比如一只猫），再选择“梵高”风格，效果惊人。</li>
+                <li><strong>内容描述：</strong> 即使不上传草图，也可以只通过描述来创作，例如“一只戴帽子的狗”。</li>
+            </ul>
+        `,
+        examples: `
+            <h3><i class="icon ph-bold ph-image"></i> 风格示例</h3>
+            <div class="example-images">
+                <img src="img/Starry Night.jpg" alt="梵高">
+                <img src="img/千里江山图.jpg" alt="水墨画">
+            </div>
+        `
+    },
+    'self-portrait': {
+        tips: `
+            <h3><i class="icon ph-bold ph-user-square"></i> 自画像小贴士</h3>
+            <ul>
+                <li><strong>风格探索：</strong> 尝试“迪士尼卡通风格”、“像素风”、“超级英雄漫画”或“黏土动画”。</li>
+                <li><strong>清晰照片：</strong> 使用面部清晰、光线明亮的照片，AI更容易识别特征。</li>
+            </ul>
+        `,
+        examples: `
+            <h3><i class="icon ph-bold ph-image"></i> 风格示例</h3>
+            <div class="example-images">
+                <img src="img/Starry Night.jpg" alt="自画像1">
+                <img src="img/Starry Night.jpg" alt="自画像2">
+            </div>
+        `
+    },
+    'art-fusion': {
+        tips: `
+            <h3><i class="icon ph-bold ph-paint-roller"></i> 融合小贴士</h3>
+            <ul>
+                <li><strong>内容为王：</strong> “内容图片”决定了画面的主体结构（如人物、建筑）。</li>
+                <li><strong>风格至上：</strong> “风格图片”决定了颜色和笔触（如《星空》或一张火焰图片）。</li>
+                <li><strong>大胆尝试：</strong> 试试用一张电路板的图片作为“风格”来融合你的宠物照片！</li>
+            </ul>
+        `,
+        examples: `
+            <h3><i class="icon ph-bold ph-image"></i> 融合示例</h3>
+            <div class="example-images">
+                <img src="img/Starry Night.jpg" alt="融合1">
+                <img src="img/Starry Night.jpg" alt="融合2">
+            </div>
+        `
+    },
+    'art-qa': {
+        tips: `
+            <h3><i class="icon ph-bold ph-question"></i> 提问小贴士</h3>
+            <ul>
+                <li><strong>保持好奇：</strong> 你可以问任何关于艺术的问题，比如“什么是印象派？”</li>
+                <li><strong>艺术家：</strong> “文森特·梵高是谁？”</li>
+                <li><strong>技巧：</strong> “怎么画透视？”</li>
+            </ul>
+        `,
+        examples: ``
+    },
+    'idea-generator': {
+        tips: `
+            <h3><i class="icon ph-bold ph-lightbulb"></i> 灵感小贴士</h3>
+            <ul>
+                <li><strong>激发创意：</strong> 当你不知道画什么时，这是最好的起点。</li>
+                <li><strong>主题词：</strong> 尝试输入“节日”、“动物”、“太空”或“梦想”等主题。</li>
+                <li><strong>再创作：</strong> AI生成的示例图只是参考，鼓励学生在此基础上进行自己的创作！</li>
+            </ul>
+        `,
+        examples: ``
+    }
+};
 
 // ==========================================================
 // 初始化
@@ -121,12 +228,13 @@ async function checkKeyValidity() {
             credentials: 'include'
         });
         if (!response.ok) {
-            throw new Error('Session key not valid');
+            console.warn(`Key validity check failed with status: ${response.status}`);
+            return false;
         }
         return true;
     } catch (error) {
-        console.warn("Key validity check failed:", error.message);
-        throw error;
+        console.error("Error during key validity check:", error);
+        return false;
     }
 }
 
@@ -157,16 +265,13 @@ function initApiKeyManager() {
     });
 
     (async () => {
-        const storedKeyFlag = localStorage.getItem(MODEL_SCOPE_TOKEN_KEY);
-        if (storedKeyFlag) {
-            try {
-                await checkKeyValidity();
-                showMainContent();
-            } catch (error) {
-                console.warn("Session expired or invalid. Please re-enter key.");
-                showApiKeyModal();
-            }
+        const hasValidSession = await checkKeyValidity();
+
+        if (hasValidSession) {
+            console.log("Session valid, showing main content.");
+            showMainContent();
         } else {
+            console.log("Session invalid or check failed, showing API key modal.");
             showApiKeyModal();
         }
     })();
@@ -174,12 +279,20 @@ function initApiKeyManager() {
 function showMainContent() {
     apiKeyModal.classList.add('hidden');
     footerGuide.classList.remove('hidden');
-    navigateTo('home-view');
+    document.body.classList.add('showing-home');
+    document.body.classList.remove('showing-tools');
+    requestAnimationFrame(() => {
+        navigateTo('home-view');
+    });
 }
 function showApiKeyModal() {
     apiKeyModal.classList.remove('hidden');
     footerGuide.classList.add('hidden');
     localStorage.removeItem(MODEL_SCOPE_TOKEN_KEY);
+    homeView.style.display = 'none';
+    homeFeaturesSection.style.display = 'none';
+    toolContent.style.display = 'none';
+    contextualSidebar.classList.add('hidden');
 }
 
 // ==========================================================
@@ -207,7 +320,6 @@ function startSlideShow() { showHeroSlide(0); clearInterval(slideInterval); slid
 // ==========================================================
 function initNavigation() {
     navLinks.addEventListener('click', (e) => {
-        // [V9] 适配图标点击
         const button = e.target.closest('button.nav-btn');
         if (button) {
             const targetId = button.dataset.target;
@@ -215,7 +327,6 @@ function initNavigation() {
         }
     });
     homeLogoButton.addEventListener('click', (e) => { e.preventDefault(); navigateTo('home-view'); });
-    // [V9] 确保首页卡片导航正确 (现在卡片在 overlay 里)
     featureCards.forEach(card => {
         card.addEventListener('click', () => {
             const targetId = card.dataset.target;
@@ -237,9 +348,19 @@ function navigateTo(targetId) {
         document.body.classList.add('showing-tools');
         document.body.classList.remove('showing-home');
     }
+
     homeView.style.display = isHomePage ? 'flex' : 'none';
-    toolContent.style.display = isHomePage ? 'none' : 'block';
-    if (!isHomePage) {
+    homeFeaturesSection.style.display = isHomePage ? 'block' : 'none';
+    toolContent.style.display = isHomePage ? 'none' : 'flex';
+
+    if (isHomePage) {
+        contextualSidebar.classList.add('hidden');
+        featurePanels.forEach(panel => {
+           panel.classList.add('hidden');
+           panel.classList.remove('active');
+       });
+    } else {
+        contextualSidebar.classList.remove('hidden');
         let panelFound = false;
         featurePanels.forEach(panel => {
             const shouldShow = (panel.id === targetId);
@@ -250,16 +371,31 @@ function navigateTo(targetId) {
         if (!panelFound) {
              console.warn(`Panel with id "${targetId}" not found.`);
              toolContent.style.display = 'none';
+             contextualSidebar.classList.add('hidden');
+        } else {
+            // Update sidebar content only if a valid tool panel is shown
+            updateSidebarContent(targetId);
         }
-    } else {
-         featurePanels.forEach(panel => {
-            panel.classList.add('hidden');
-            panel.classList.remove('active');
-        });
     }
     window.scrollTo(0, 0);
 }
 
+// 动态更新侧边栏的函数
+function updateSidebarContent(targetId) {
+    const contentKey = sidebarContentData[targetId] ? targetId : 'default';
+    const content = sidebarContentData[contentKey];
+
+    let html = '';
+
+    if (content.tips) {
+        html += `<div class="sidebar-widget">${content.tips}</div>`;
+    }
+    if (content.examples) {
+        html += `<div class="sidebar-widget">${content.examples}</div>`;
+    }
+
+    contextualSidebar.innerHTML = html;
+}
 
 // ==========================================================
 // 核心模块 3-8: 工具功能 (不变)
@@ -286,7 +422,8 @@ function initColoring() {
         try {
             const base64_image = await fileToBase64(file);
             const result = await generateColoring(base64_image, prompt);
-            displaySingleImageResult(coloringResult, result.imageUrl, "AI上色作品");
+            // [修改] 传入下载文件名
+            displaySingleImageResult(coloringResult, result.imageUrl, "AI上色作品", "ai-coloring.png");
         } catch (error) {
             coloringError.textContent = `生成失败: ${error.message}`;
             console.error(error);
@@ -303,7 +440,6 @@ function initStyleWorkshop() {
         const content = styleContentInput.value.trim();
         const file = styleFileInput.files[0];
 
-        // 至少需要一个输入
         if (!content && !file) {
             styleError.textContent = '请输入绘制内容或上传一张草图';
             return;
@@ -313,14 +449,12 @@ function initStyleWorkshop() {
         styleResult.classList.add('hidden');
 
         try {
-            // [关键] 动态处理 Base64
             let base64_image = null;
             if (file) {
                 base64_image = await fileToBase64(file);
             }
-
             const result = await generateArtStyle(content, style, base64_image);
-            displayArtStyle(result); // 复用旧的显示函数
+            displayArtStyle(result);
         } catch (error) {
             styleError.textContent = `生成失败: ${error.message}`;
             console.error(error);
@@ -329,7 +463,6 @@ function initStyleWorkshop() {
         }
     });
 }
-// (复用)
 function displayArtStyle(result) {
     styleResult.innerHTML = '';
     const img = document.createElement('img');
@@ -338,8 +471,10 @@ function displayArtStyle(result) {
     const desc = document.createElement('p');
     desc.className = 'style-desc';
     desc.textContent = result.styleDescription;
+    const downloadBtn = createDownloadButton(result.imageUrl, "style-workshop.png");
     styleResult.appendChild(img);
     styleResult.appendChild(desc);
+    styleResult.appendChild(downloadBtn);
     styleResult.classList.remove('hidden');
 }
 
@@ -364,7 +499,7 @@ function initSelfPortrait() {
         try {
             const base64_image = await fileToBase64(file);
             const result = await generateSelfPortrait(base64_image, style_prompt);
-            displaySingleImageResult(portraitResult, result.imageUrl, "AI自画像");
+            displaySingleImageResult(portraitResult, result.imageUrl, "AI自画像", "ai-portrait.png");
         } catch (error) {
             portraitError.textContent = `生成失败: ${error.message}`;
             console.error(error);
@@ -396,7 +531,7 @@ function initArtFusion() {
             const content_image = await fileToBase64(contentFile);
             const style_image = await fileToBase64(styleFile);
             const result = await generateArtFusion(content_image, style_image);
-            displaySingleImageResult(fusionResult, result.imageUrl, "艺术融合作品");
+            displaySingleImageResult(fusionResult, result.imageUrl, "艺术融合作品", "art-fusion.png");
         } catch (error) {
             fusionError.textContent = `生成失败: ${error.message}`;
             console.error(error);
@@ -456,10 +591,44 @@ function initIdeaGenerator() {
         }
     });
 }
-function displayArtIdeas(ideas) { ideasResult.innerHTML = ''; if (!ideas || ideas.length === 0) { ideasError.textContent = '未能解析创意。'; return; } ideas.forEach(idea => { const card = document.createElement('div'); card.className = 'idea-card'; const img = document.createElement('img'); img.src = idea.exampleImage || 'https://via.placeholder.com/256x256?text=Image'; img.alt = idea.name; const title = document.createElement('h3'); title.textContent = idea.name; const desc = document.createElement('p'); desc.textContent = idea.description; const elements = document.createElement('small'); elements.textContent = `关键元素: ${idea.elements}`; card.appendChild(img); card.appendChild(title); card.appendChild(desc); card.appendChild(elements); ideasResult.appendChild(card); }); ideasResult.classList.remove('hidden'); }
+function displayArtIdeas(ideas) {
+    ideasResult.innerHTML = '';
+    if (!ideas || ideas.length === 0) {
+        ideasError.textContent = '未能解析创意。';
+        return;
+    }
+    ideas.forEach(idea => {
+        const card = document.createElement('div');
+        card.className = 'idea-card';
+        const img = document.createElement('img');
+        img.src = idea.exampleImage || 'https://via.placeholder.com/256x256?text=Image';
+        img.alt = idea.name;
+        const title = document.createElement('h3');
+        title.textContent = idea.name;
+        const desc = document.createElement('p');
+        desc.textContent = idea.description;
+        const elements = document.createElement('small');
+        elements.textContent = `关键元素: ${idea.elements}`;
+
+        let downloadBtn = null;
+        if(idea.exampleImage) {
+            downloadBtn = createDownloadButton(idea.exampleImage, `${idea.name.replace(/\s/g, '_')}.png`);
+        }
+
+        card.appendChild(img);
+        card.appendChild(title);
+        card.appendChild(desc);
+        card.appendChild(elements);
+        if (downloadBtn) {
+            card.appendChild(downloadBtn);
+        }
+        ideasResult.appendChild(card);
+    });
+    ideasResult.classList.remove('hidden');
+}
 
 // ==========================================================
-// 辅助函数 (不变)
+// 辅助函数
 // ==========================================================
 function toggleUIState(button, loader, errorEl, isLoading) { if (isLoading) { button.disabled = true; loader.classList.remove('hidden'); errorEl.textContent = ''; } else { button.disabled = false; loader.classList.add('hidden'); } }
 
@@ -496,17 +665,38 @@ function setupImagePreview(fileInput, previewElement) {
 }
 
 /**
- * 辅助函数：用于显示单张图片的通用函数
+ * 辅助函数：创建下载按钮 (使用后端代理)
  */
-function displaySingleImageResult(resultContainer, imageUrl, altText) {
+function createDownloadButton(imageUrl, filename) {
+    const button = document.createElement('a');
+    button.href = `${BACKEND_URL}/api/proxy-download?url=${encodeURIComponent(imageUrl)}`;
+    button.className = 'download-btn';
+    button.innerHTML = `<i class="icon ph-bold ph-download-simple"></i> 下载图片`;
+
+    button.download = filename || 'art-ai-image.png';
+    button.target = '_blank';
+    button.rel = 'noopener noreferrer';
+    return button;
+}
+
+
+/**
+ * [修改] 辅助函数：用于显示单张图片的通用函数 (增加下载按钮)
+ */
+function displaySingleImageResult(resultContainer, imageUrl, altText, filename) {
     resultContainer.innerHTML = ''; // 清空旧结果
+
+    // 1. 创建图片
     const img = document.createElement('img');
     img.src = imageUrl;
     img.alt = altText;
-    img.style.maxWidth = '100%';
-    img.style.maxHeight = '512px';
-    img.style.borderRadius = '8px';
+
+    // 2. 创建下载按钮
+    const downloadBtn = createDownloadButton(imageUrl, filename);
+
+    // 3. 添加到容器
     resultContainer.appendChild(img);
+    resultContainer.appendChild(downloadBtn);
     resultContainer.classList.remove('hidden');
 }
 
