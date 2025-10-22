@@ -7,24 +7,18 @@ import uuid
 import base64
 from io import BytesIO
 from flask import Flask, request, jsonify, session, send_file, send_from_directory
-from flask_session import Session
-from flask_cors import CORS
 from dotenv import load_dotenv
 
+class ApiKeyMissingError(Exception):
+    """当 session 中缺少 API key 时引发"""
+    pass
+
 # --- 1. 配置 ---
-load_dotenv() # 加载 .env 文件
+load_dotenv()
 
 app = Flask(__name__)
 
 app.config["SECRET_KEY"] = "a_very_secret_random_string_for_your_app"
-app.config["SESSION_TYPE"] = "filesystem"
-Session(app)
-
-CORS(
-    app,
-    supports_credentials=True,
-    origins=["http://localhost:63342", "http://127.0.0.1:63342"],
-)
 
 MODEL_SCOPE_BASE_URL = "https://api-inference.modelscope.cn/"
 FLUX_MODEL_ID = "black-forest-labs/FLUX.1-Krea-dev"
@@ -44,10 +38,10 @@ s3_client = boto3.client(
     endpoint_url=R2_ENDPOINT_URL,
     aws_access_key_id=R2_ACCESS_KEY_ID,
     aws_secret_access_key=R2_SECRET_ACCESS_KEY,
-    region_name='auto' # Cloudflare R2 通常使用 'auto'
+    region_name='auto'
 )
 
-# --- 2. 核心：API 密钥管理 (不变) ---
+# --- 2. 核心：API 密钥管理 ---
 
 @app.route("/api/set_key", methods=["POST"])
 def set_key():
@@ -104,7 +98,7 @@ def proxy_download():
 def get_api_key():
     api_key = session.get("api_key")
     if not api_key:
-        raise Exception("API key not set. Please set key in the modal.")
+        raise ApiKeyMissingError("API key not set. Please set key in the modal.")
     return api_key
 
 
@@ -116,33 +110,22 @@ def get_headers(token):
 
 # R2 上传辅助函数
 def upload_to_r2(base64_string):
-    """将 Base64 字符串解码并上传到 R2, 返回公网 URL"""
     try:
-        # 1. 解码 Base64
         header, encoded = base64_string.split(",", 1)
         data = base64.b64decode(encoded)
-
-        # 提取 mime-type (例如: "image/png")
         mime_type = header.split(";")[0].split(":")[-1]
-
-        # 提取文件扩展名 (例如: "png")
         extension = mime_type.split("/")[-1]
-
-        # 2. 生成唯一文件名
         file_name = f"uploads/{uuid.uuid4()}.{extension}"
 
-        # 3. 上传到 R2
         s3_client.upload_fileobj(
-            BytesIO(data),       # 文件字节流
-            R2_BUCKET_NAME,      # 存储桶
-            file_name,           # 文件在存储桶中的路径
+            BytesIO(data),
+            R2_BUCKET_NAME,
+            file_name,
             ExtraArgs={
                 'ContentType': mime_type,
-                'ACL': 'public-read' # [可选] 如果您的R2桶是私有的，这很有用
+                'ACL': 'public-read'
             }
         )
-
-        # 4. 返回公网 URL
         public_url = f"{R2_PUBLIC_URL_BASE}/{file_name}"
         return public_url
 
@@ -277,7 +260,7 @@ def poll_generation_result(token, task_id):
         time.sleep(3)
 
 
-# --- 4. 面向前端的 API 路由 (保留Img2Img修复) ---
+# --- 4. 面向前端的 API 路由  ---
 
 
 # 路由一：AI智能上色
@@ -313,6 +296,8 @@ def handle_colorize_lineart():
 
         return jsonify({"imageUrl": image_url})
 
+    except ApiKeyMissingError as e:
+        return jsonify({"error": str(e)}), 401
     except Exception as e:
         print(e)
         return jsonify({"error": str(e)}), 500
@@ -377,6 +362,8 @@ def handle_generate_style():
             }
         )
 
+    except ApiKeyMissingError as e:
+        return jsonify({"error": str(e)}), 401
     except Exception as e:
         print(e)
         return jsonify({"error": str(e)}), 500
@@ -416,6 +403,8 @@ def handle_self_portrait():
 
         return jsonify({"imageUrl": image_url})
 
+    except ApiKeyMissingError as e:
+        return jsonify({"error": str(e)}), 401
     except Exception as e:
         print(e)
         return jsonify({"error": str(e)}), 500
@@ -442,10 +431,10 @@ def handle_art_fusion():
         body = {
             "model": FLUX_MODEL_ID,
             "prompt": full_prompt,
-            "negative_prompt": "text, watermark, signature, blurry, ugly, deformed, disfigured, worst quality, low quality, bad anatomy", # (已优化)
+            "negative_prompt": "text, watermark, signature, blurry, ugly, deformed, disfigured, worst quality, low quality, bad anatomy",
             "image_url": content_url,
             "size": "1024x1024",
-            "strength": 0.6 # [新增] 艺术融合需要更高的 'strength' 来吸收风格
+            "strength": 0.6
         }
 
         task_id = submit_async_generation_task(api_key, body)
@@ -453,6 +442,8 @@ def handle_art_fusion():
 
         return jsonify({"imageUrl": image_url})
 
+    except ApiKeyMissingError as e:
+        return jsonify({"error": str(e)}), 401
     except Exception as e:
         print(e)
         return jsonify({"error": str(e)}), 500
@@ -506,6 +497,8 @@ def handle_ask_question():
 
         return jsonify(response.json())
 
+    except ApiKeyMissingError as e:
+        return jsonify({"error": str(e)}), 401
     except Exception as e:
         print(e)
         return jsonify({"error": str(e)}), 500
@@ -602,14 +595,14 @@ def handle_generate_ideas():
 
         return jsonify(processed_ideas)
 
+    except ApiKeyMissingError as e:
+        return jsonify({"error": str(e)}), 401
     except Exception as e:
         print(e)
         return jsonify({"error": str(e)}), 500
 
 
 # --- 4.5. 静态文件服务 (为 Docker 部署新增) ---
-# 确保API路由优先
-
 @app.route('/')
 def serve_index():
     #
@@ -633,5 +626,4 @@ def serve_image(filename):
 
 # --- 5. 启动服务器 ---
 if __name__ == '__main__':
-    # [修改] 监听 0.0.0.0 以便 Docker 容器可以从外部访问，并关闭 debug 模式
-    app.run(debug=False, host='0.0.0.0', port=7860)
+    app.run(debug=True, host='0.0.0.0', port=7860)
