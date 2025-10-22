@@ -578,4 +578,4 @@ def handle_generate_ideas():
 
 # --- 5. 启动服务器 ---
 if __name__ == '__main__':
-    app.run(debug=True, host='localhost', port=5000)
+    app.run(debug=True, host='localhost', port=7860)
