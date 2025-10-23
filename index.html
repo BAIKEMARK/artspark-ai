@@ -194,11 +194,49 @@
             </div>
 
             <aside id="contextual-sidebar">
-                </aside>
+
+                <div class="sidebar-widget">
+                    <h3><i class="icon ph-bold ph-gear"></i> AI模型设置</h3>
+                    <div class="form-group-sidebar">
+                        <label for="setting-chat-model">对话模型:</label>
+                        <select id="setting-chat-model">
+                            <option value="Qwen/Qwen3-30B-A3B-Instruct-2507" selected>Qwen3-30B (推荐)</option>
+                            <option value="Qwen/Qwen-plus-max-longcontext">Qwen-Max (长文)</option>
+                        </select>
+                    </div>
+                    <div class="form-group-sidebar">
+                        <label for="setting-vl-model">识图模型:</label>
+                        <select id="setting-vl-model">
+                            <option value="Qwen/Qwen3-VL-8B-Instruct" selected>Qwen-VL (推荐)</option>
+                            <option value="Qwen/Qwen-VL-Max">Qwen-VL-Max</option>
+                        </select>
+                    </div>
+                    <div class="form-group-sidebar">
+                        <label for="setting-image-model">绘图模型:</label>
+                        <select id="setting-image-model">
+                            <option value="black-forest-labs/FLUX.1-Krea-dev" selected>FLUX.1-Krea (推荐)</option>
+                            <option value="iic/Sense-FLUX-V1">Sense-FLUX-V1</option>
+                        </select>
+                    </div>
+                     <div class="form-group-sidebar">
+                        <label for="setting-age-range">学生年龄 (问答):</label>
+                        <select id="setting-age-range">
+                            <option value="6-8岁" selected>6-8岁 (低年级)</option>
+                            <option value="9-10岁">9-10岁 (中年级)</option>
+                            <option value="11-12岁">11-12岁 (高年级)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div id="dynamic-sidebar-content">
+                    </div>
+            </aside>
 
         </main>
 
-    </div> <footer id="footer-guide" class="hidden">
+    </div>
+
+    <footer id="footer-guide">
         <div class="footer-content">
             <div class="footer-column">
                 <h3>使用指南和教学建议</h3>

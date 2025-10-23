@@ -147,7 +147,6 @@ def proxy_download():
 
 # --- 3. 内部辅助函数 ---
 
-
 def get_api_key():
     # [V10 修改] 从 URL Query 参数中获取 token，以兼容创空间环境
     token = request.args.get("token")
@@ -168,7 +167,17 @@ def get_api_key():
         print(f"Token decryption error: {e}")
         raise ApiKeyMissingError("Invalid token.")
 
-# [V16 新增] 辅助函数：圆整到 64 的倍数
+def get_ai_config(data):
+    """从请求数据中提取 AI 配置，并提供默认值"""
+    config = {
+        "chat_model": data.get("config_chat_model", QWEN_LLM_ID),
+        "vl_model": data.get("config_vl_model", QWEN_VL_ID),
+        "image_model": data.get("config_image_model", FLUX_MODEL_ID),
+        "age_range": data.get("config_age_range", "6-8岁"), # 默认年龄
+    }
+    return config
+
+# [V16] 尺寸计算辅助函数
 def round_to_64(x):
     """将尺寸调整为 64 的最接近倍数，最小为 64"""
     return max(64, int(round(x / 64.0)) * 64)
@@ -254,13 +263,12 @@ def generate_english_prompt(token, chinese_prompt, context_description):
     return content.replace('"', "").strip()
 
 
-def get_style_prompt_from_image(token, base64_image_url):
-
+def get_style_prompt_from_image(token, base64_image_url, vl_model_id):
     system_prompt = PROMPTS["STYLE_ANALYSIS_SYSTEM"]
     user_text = PROMPTS["STYLE_ANALYSIS_USER"]
 
     payload = {
-        "model": QWEN_VL_ID,
+        "model": vl_model_id,
         "input": {
             "messages": [
                 {
@@ -353,6 +361,7 @@ def handle_colorize_lineart():
     try:
         api_key = get_api_key()
         data = request.json
+        config = get_ai_config(data)
         base64_image = data.get("base64_image")
         prompt = data.get("prompt")
 
@@ -367,7 +376,7 @@ def handle_colorize_lineart():
             api_key, full_prompt, "Coloring a lineart image."
         )
         body = {
-            "model": FLUX_MODEL_ID,
+            "model": config["image_model"], # [V17]
             "prompt": english_prompt,
             "negative_prompt": "text, watermark, signature, blurry, low quality, worst quality, deformed, ugly, grayscale, monochrome, sketch, unfinished, lineart",
             "image_url": public_url,
@@ -389,6 +398,7 @@ def handle_generate_style():
     try:
         api_key = get_api_key()
         data = request.json
+        config = get_ai_config(data) # [V17]
         style = data.get("style")
         content = data.get("content", "")
         base64_image = data.get("base64_image")
@@ -419,7 +429,7 @@ def handle_generate_style():
         )
 
         body = {
-            "model": FLUX_MODEL_ID,
+            "model": config["image_model"],
             "prompt": english_prompt,
             "negative_prompt": "text, watermark, signature, blurry, low quality, worst quality, deformed, ugly, bad anatomy",
         }
@@ -451,6 +461,7 @@ def handle_self_portrait():
     try:
         api_key = get_api_key()
         data = request.json
+        config = get_ai_config(data)
         base64_image = data.get("base64_image")
         style_prompt = data.get("style_prompt")
 
@@ -471,7 +482,7 @@ def handle_self_portrait():
         )
 
         body = {
-            "model": FLUX_MODEL_ID,
+            "model": config["image_model"],
             "prompt": english_prompt,
             "negative_prompt": "text, watermark, signature, blurry, ugly, deformed, disfigured, worst quality, low quality, multiple heads, bad anatomy, extra limbs, mutation, gender swap",
             "image_url": public_url,
@@ -492,6 +503,7 @@ def handle_art_fusion():
     try:
         api_key = get_api_key()
         data = request.json
+        config = get_ai_config(data)
         content_image_b64 = data.get("content_image")
         style_image_b64 = data.get("style_image")
 
@@ -501,13 +513,13 @@ def handle_art_fusion():
         content_url, w, h = upload_to_r2(content_image_b64)
         adaptive_size = calculate_adaptive_size(w, h)
 
-        # 风格图片仅用于分析
-        style_description = get_style_prompt_from_image(api_key, style_image_b64)
+        # 识图使用动态 VL 模型
+        style_description = get_style_prompt_from_image(api_key, style_image_b64, config["vl_model"])
 
         full_prompt = PROMPTS["ART_FUSION_PROMPT_EN"].format(style_description=style_description)
 
         body = {
-            "model": FLUX_MODEL_ID,
+            "model": config["image_model"], # [V17]
             "prompt": full_prompt,
             "negative_prompt": "text, watermark, signature, blurry, ugly, deformed, disfigured, worst quality, low quality, bad anatomy",
             "image_url": content_url,
@@ -530,12 +542,16 @@ def handle_ask_question():
     try:
         api_key = get_api_key()
         data = request.json
+        config = get_ai_config(data) # [V17]
         question = data.get("question")
 
-        user_prompt = PROMPTS["ART_QA_USER"].format(question=question)
+        user_prompt = PROMPTS["ART_QA_USER"].format(
+            question=question,
+            age_range=config["age_range"]
+        )
 
         payload = {
-            "model": QWEN_LLM_ID,
+            "model": config["chat_model"], # [V17]
             "messages": [{"role": "user", "content": user_prompt}],
             "max_tokens": 500,
             "temperature": 0.7,
@@ -558,12 +574,14 @@ def handle_generate_ideas():
     try:
         api_key = get_api_key()
         data = request.json
+        config = get_ai_config(data) # [V17]
         theme = data.get("theme")
-
-        text_prompt = PROMPTS["IDEA_GENERATOR_USER"].format(theme=theme)
-
+        text_prompt = PROMPTS["IDEA_GENERATOR_USER"].format(
+            theme=theme,
+            age_range=config["age_range"]
+        )
         payload = {
-            "model": QWEN_LLM_ID,
+            "model": config["chat_model"], # [V17]
             "messages": [{"role": "user", "content": text_prompt}],
             "max_tokens": 800,
             "temperature": 0.8,
@@ -601,7 +619,7 @@ def handle_generate_ideas():
                     "A simple, colorful illustration for a child.",
                 )
                 img_body = {
-                    "model": FLUX_MODEL_ID,
+                    "model": config["image_model"],
                     "prompt": img_prompt_en,
                     "negative_prompt": "text, watermark, signature, blurry, low quality, ugly, deformed",
                     "size": "1024x1024",

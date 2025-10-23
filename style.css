@@ -385,7 +385,6 @@ body.showing-home #home-view .hero-gallery {
     margin-left: 30px;
     position: sticky; /* 粘性定位 */
     top: 80px; /* 60px 导航 + 20px 间距 */
-    display: block; /* ？？默认显示 */
 }
 #contextual-sidebar.hidden {
     display: none;
@@ -553,7 +552,7 @@ body.showing-home #home-view .hero-gallery {
 
 /* 辅助类 */
 .hidden {
-    display: none;
+    display: none
 }
 
 /* 16. 全宽策展人页脚 */
@@ -595,4 +594,30 @@ footer {
 #slideshow-content .slide.active {
     display: block; /* 使用 block 显示，而不是 opacity */
     animation: result-fade-in 0.5s ease; /* 复用现有的淡入动画 */
+}
+
+/* 侧边栏设置样式 */
+.form-group-sidebar {
+    margin-bottom: 12px;
+}
+.form-group-sidebar label {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--secondary-color);
+    margin-bottom: 4px;
+}
+.form-group-sidebar select {
+    width: 100%;
+    padding: 6px 8px;
+    border: 2px solid var(--border-color);
+    border-radius: 6px;
+    background-color: var(--light-bg);
+    font-size: 0.9rem;
+    font-family: var(--font-sans); /* 继承字体 */
+}
+.form-group-sidebar select:focus {
+    border-color: var(--primary-color);
+    outline: none;
+    background-color: #fff; /* 继承焦点背景色 */
 }
