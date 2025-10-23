@@ -36,14 +36,20 @@ let currentHeroSlide = 0;
 let slideInterval;
 const featurePanels = document.querySelectorAll('.feature-panel');
 const toolPanelsWrapper = document.getElementById('tool-panels-wrapper');
-const contextualSidebar = document.getElementById('contextual-sidebar');
-const footerGuide = document.getElementById('footer-guide'); // Get footer
+const contextualSidebar = document.getElementById('contextual-sidebar'); // 左侧侧边栏
+const footerGuide = document.getElementById('footer-guide');
 
-// [V17 新增] AI 设置的 DOM 元素
-const settingChatModel = document.getElementById('setting-chat-model');
-const settingVlModel = document.getElementById('setting-vl-model');
-const settingImageModel = document.getElementById('setting-image-model');
-const settingAgeRange = document.getElementById('setting-age-range');
+// 右侧设置侧边栏相关元素
+const settingsBtn = document.getElementById('settings-btn');
+const settingsSidebar = document.getElementById('settings-sidebar');
+const settingsOverlay = document.getElementById('settings-overlay');
+const settingsCloseBtn = document.getElementById('settings-close-btn');
+
+// [V20 修改] 获取新设置元素的引用 (使用新 ID)
+const settingChatModel = document.getElementById('settings-sidebar-chat-model');
+const settingVlModel = document.getElementById('settings-sidebar-vl-model');
+const settingImageModel = document.getElementById('settings-sidebar-image-model');
+const settingAgeRange = document.getElementById('settings-sidebar-age-range');
 
 // 功能一：AI智能上色
 const coloringFileInput = document.getElementById('coloring-file-input');
@@ -211,7 +217,7 @@ const sidebarContentData = {
 document.addEventListener('DOMContentLoaded', () => {
     initApiKeyManager();
     initHeroSlider();
-    initNavigation();
+    initUIInteractions();
     initColoring();
     initStyleWorkshop();
     initSelfPortrait();
@@ -358,7 +364,9 @@ function startSlideShow() { showHeroSlide(0); clearInterval(slideInterval); slid
 // ==========================================================
 // 核心模块 2: 主导航逻辑 (V9 恢复)
 // ==========================================================
-function initNavigation() {
+
+function initUIInteractions() {
+    // --- 导航逻辑 ---
     navLinks.addEventListener('click', (e) => {
         const button = e.target.closest('button.nav-btn');
         if (button) {
@@ -366,7 +374,10 @@ function initNavigation() {
             navigateTo(targetId);
         }
     });
-    homeLogoButton.addEventListener('click', (e) => { e.preventDefault(); navigateTo('home-view'); });
+    homeLogoButton.addEventListener('click', (e) => {
+        e.preventDefault();
+        navigateTo('home-view');
+    });
     featureCards.forEach(card => {
         card.addEventListener('click', () => {
             const targetId = card.dataset.target;
@@ -375,7 +386,24 @@ function initNavigation() {
             }
         });
     });
+
+    // --- 设置侧边栏逻辑 ---
+    settingsBtn.addEventListener('click', () => {
+        settingsSidebar.classList.add('active');
+        settingsOverlay.classList.remove('hidden');
+    });
+
+    settingsCloseBtn.addEventListener('click', closeSettingsSidebar);
+    settingsOverlay.addEventListener('click', closeSettingsSidebar);
 }
+
+// 关闭设置侧边栏的辅助函数
+function closeSettingsSidebar() {
+    settingsSidebar.classList.remove('active');
+    settingsOverlay.classList.add('hidden');
+}
+
+// [V19] navigateTo 函数 (不变, V19 已是最终版)
 function navigateTo(targetId) {
     allNavButtons.forEach(btn => {
         btn.classList.toggle('active', btn.dataset.target === targetId);
@@ -420,6 +448,8 @@ function navigateTo(targetId) {
            panel.classList.remove('active');
        });
     }
+
+    // 6. 滚动到顶部
     window.scrollTo(0, 0);
 }
 
@@ -762,23 +792,20 @@ async function fetchFromBackend(endpoint, body) {
         throw new Error("您尚未登录。");
     }
 
-    const headers = {
-        'Content-Type': 'application/json'
-    };
-    // [V10 新增] 将 token 作为 query 参数附加到 URL
+    const headers = { 'Content-Type': 'application/json' };
     let requestUrl = `${BACKEND_URL}${endpoint}`;
     if (token) {
-        // 确保只添加 '?' 或 '&'，以防 endpoint 自身已包含参数
         requestUrl += (requestUrl.includes('?') ? '&' : '?') + `token=${encodeURIComponent(token)}`;
     }
 
     // [V17 新增] 附加全局 AI 设置
     // 检查 body 是否已定义（所有 AI 调用都应该有）
     if (body) {
-        body.config_chat_model = settingChatModel.value;
-        body.config_vl_model = settingVlModel.value;
-        body.config_image_model = settingImageModel.value;
-        body.config_age_range = settingAgeRange.value;
+
+        body.config_chat_model = document.getElementById('settings-sidebar-chat-model').value;
+        body.config_vl_model = document.getElementById('settings-sidebar-vl-model').value;
+        body.config_image_model = document.getElementById('settings-sidebar-image-model').value;
+        body.config_age_range = document.getElementById('settings-sidebar-age-range').value;
     }
 
     const response = await fetch(requestUrl, {
@@ -788,7 +815,6 @@ async function fetchFromBackend(endpoint, body) {
     });
 
     if (!response.ok) {
-        // [修改] 捕获 401 错误并弹出模态框
         if (response.status === 401) {
             console.error("Authentication error (401). Token is invalid or expired.");
             const err = await response.json();
