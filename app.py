@@ -10,6 +10,7 @@ from flask import Flask, request, jsonify, send_file, send_from_directory
 from dotenv import load_dotenv
 from flask_cors import CORS
 from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadTimeSignature
+from requests.exceptions import HTTPError
 
 class ApiKeyMissingError(Exception):
     """当 session 中缺少 API key 时引发"""
@@ -53,18 +54,58 @@ s3_client = boto3.client(
 
 # --- 2. 核心：API 密钥管理 ---
 
+def get_headers(token):
+    """[V11 移至此处] 辅助函数，验证和后续调用都需要用到"""
+    return {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json",
+    }
+
+def validate_modelscope_key(api_key):
+    """[V11 新增] 尝试调用 ModelScope 以验证 API Key 的有效性"""
+    try:
+        headers = get_headers(api_key)
+        # 使用 Qwen LLM 进行一个轻量级的“测试”调用
+        payload = {
+            "model": QWEN_LLM_ID,
+            "messages": [{"role": "user", "content": "Test"}],
+            "max_tokens": 1,
+        }
+        response = requests.post(
+            f"{MODEL_SCOPE_BASE_URL}v1/chat/completions",
+            headers=headers,
+            json=payload,
+            timeout=10  # 设置10秒超时
+        )
+
+        # 401 = Unauthorized. Key是无效的。
+        if response.status_code == 401:
+            return False
+        if response.ok:
+            return True
+        return False
+
+    except requests.exceptions.RequestException as e:
+        print(f"Key validation request failed: {e}")
+        return False
+
+
 @app.route("/api/set_key", methods=["POST"])
 def set_key():
-    data = request.json
-    api_key = data.get("api_key")
-    if not api_key:
-        return jsonify({"error": "API key is required"}), 400
     try:
+        data = request.json
+        api_key = data.get("api_key")
+        if not api_key:
+            return jsonify({"error": "API key is required"}), 400
+        if not validate_modelscope_key(api_key):
+            return jsonify({"error": "API Key 无效、已过期或网络错误"}), 401
         token = ts.dumps(api_key, salt=API_KEY_SALT) # 加密 API Key
         return jsonify({"message": "API key set successfully", "token": token}), 200
+    except UnicodeEncodeError:
+        return jsonify({"error": "API Key 包含非法字符，请输入有效的Key"}), 400
     except Exception as e:
-        print(f"Token generation error: {e}")
-        return jsonify({"error": "Failed to generate token"}), 500
+        print(f"set_key error: {e}")
+        return handle_api_errors(e)
 
 
 @app.route("/api/check_key", methods=["GET"])
@@ -124,13 +165,6 @@ def get_api_key():
     except Exception as e:
         print(f"Token decryption error: {e}")
         raise ApiKeyMissingError("Invalid token.")
-
-
-def get_headers(token):
-    return {
-        "Authorization": f"Bearer {token}",
-        "Content-Type": "application/json",
-    }
 
 # R2 上传辅助函数
 def upload_to_r2(base64_string):
@@ -277,6 +311,23 @@ def poll_generation_result(token, task_id):
 
 # --- 4. 面向前端的 API 路由  ---
 
+# 定义一个通用的错误处理函数
+def handle_api_errors(e):
+    if isinstance(e, ApiKeyMissingError):
+        # Token 解密失败或过期
+        return jsonify({"error": str(e)}), 401
+    if isinstance(e, HTTPError):
+        # ModelScope 返回了 4xx 或 5xx 错误
+        if e.response.status_code == 401:
+            # 关键：将 ModelScope 的 401 错误传递给前端
+            return jsonify({"error": "API Key 无效或已过期 (来自 ModelScope)"}), 401
+        else:
+            # ModelScope 的其他错误 (如 500, 400)
+            return jsonify({"error": f"ModelScope API 错误 (HTTP {e.response.status_code}): {str(e)}"}), 502
+    # 其他所有 Python 内部错误
+    print(f"An unexpected error occurred: {e}")
+    return jsonify({"error": f"服务器内部错误: {str(e)}"}), 500
+
 
 # 路由一：AI智能上色
 @app.route("/api/colorize-lineart", methods=["POST"])
@@ -291,13 +342,10 @@ def handle_colorize_lineart():
             return jsonify({"error": "线稿图片是必需的"}), 400
 
         public_url = upload_to_r2(base64_image)
-
-        # [优化] 强化中文提示词，加入质量词
         full_prompt = f"为这张线稿上色。风格：{prompt}。要求：杰作, 最高质量, 色彩鲜艳, 细节丰富, 专业上色, 干净的阴影。"
         english_prompt = generate_english_prompt(
             api_key, full_prompt, "Coloring a lineart image."
         )
-
         body = {
             "model": FLUX_MODEL_ID,
             "prompt": english_prompt,
@@ -305,17 +353,12 @@ def handle_colorize_lineart():
             "image_url": public_url,
             "size": "1024x1024",
         }
-
         task_id = submit_async_generation_task(api_key, body)
         image_url = poll_generation_result(api_key, task_id)
-
         return jsonify({"imageUrl": image_url})
 
-    except ApiKeyMissingError as e:
-        return jsonify({"error": str(e)}), 401
     except Exception as e:
-        print(e)
-        return jsonify({"error": str(e)}), 500
+        return handle_api_errors(e)
 
 
 # 路由二：创意风格工坊
@@ -344,44 +387,34 @@ def handle_generate_style():
         }
 
         style_prompt_text = style_prompts.get(style, f"{style}风格")
-
         quality_boost = "杰作, 最高质量, 8k, 细节丰富"
         if content:
              full_chinese_prompt = f"{style_prompt_text}, {quality_boost}。主题：{content}"
         else:
              full_chinese_prompt = f"{style_prompt_text}, {quality_boost}"
 
-
         english_prompt = generate_english_prompt(
             api_key, full_chinese_prompt, f"A beautiful artwork in the style of {style}."
         )
-
         body = {
             "model": FLUX_MODEL_ID,
             "prompt": english_prompt,
             "negative_prompt": "text, watermark, signature, blurry, low quality, worst quality, deformed, ugly, bad anatomy",
             "size": "1024x1024"
         }
-
         if base64_image:
             public_url = upload_to_r2(base64_image)
             body["image_url"] = public_url
-
         task_id = submit_async_generation_task(api_key, body)
         image_url = poll_generation_result(api_key, task_id)
-
         return jsonify(
             {
                 "imageUrl": image_url,
                 "styleDescription": style_desc.get(style, "这是一种独特的艺术风格"),
             }
         )
-
-    except ApiKeyMissingError as e:
-        return jsonify({"error": str(e)}), 401
     except Exception as e:
-        print(e)
-        return jsonify({"error": str(e)}), 500
+        return handle_api_errors(e)
 
 
 # 路由三：AI自画像
@@ -399,30 +432,22 @@ def handle_self_portrait():
             return jsonify({"error": "风格是必需的"}), 400
 
         public_url = upload_to_r2(base64_image)
-
         full_prompt = f"一张{style_prompt}风格的肖像画。杰作, 最高质量, 细节丰富。关键：必须保持输入照片中人物的面部特征和相似性。"
         english_prompt = generate_english_prompt(api_key, full_prompt, "A stylized portrait, maintaining likeness to the original photo.")
-
         body = {
             "model": FLUX_MODEL_ID,
             "prompt": english_prompt,
-            # [优化] 更严格的负向提示词
             "negative_prompt": "text, watermark, signature, blurry, ugly, deformed, disfigured, worst quality, low quality, multiple heads, bad anatomy, extra limbs, mutation, gender swap",
             "image_url": public_url,
             "size": "1024x1024",
             "strength": 0.45
         }
-
         task_id = submit_async_generation_task(api_key, body)
         image_url = poll_generation_result(api_key, task_id)
-
         return jsonify({"imageUrl": image_url})
 
-    except ApiKeyMissingError as e:
-        return jsonify({"error": str(e)}), 401
     except Exception as e:
-        print(e)
-        return jsonify({"error": str(e)}), 500
+        return handle_api_errors(e)
 
 
 # 路由四：艺术融合
@@ -439,10 +464,7 @@ def handle_art_fusion():
 
         content_url = upload_to_r2(content_image_b64)
         style_description = get_style_prompt_from_image(api_key, style_image_b64)
-
-        # 明确指示AI“融合”风格和内容
         full_prompt = f"A masterpiece painting. Apply the following style: [{style_description}]. The composition and subject MUST be based on the input image."
-
         body = {
             "model": FLUX_MODEL_ID,
             "prompt": full_prompt,
@@ -451,17 +473,12 @@ def handle_art_fusion():
             "size": "1024x1024",
             "strength": 0.6
         }
-
         task_id = submit_async_generation_task(api_key, body)
         image_url = poll_generation_result(api_key, task_id)
-
         return jsonify({"imageUrl": image_url})
 
-    except ApiKeyMissingError as e:
-        return jsonify({"error": str(e)}), 401
     except Exception as e:
-        print(e)
-        return jsonify({"error": str(e)}), 500
+        return handle_api_errors(e)
 
 
 # 路由五：艺术问答
@@ -471,10 +488,9 @@ def handle_ask_question():
         api_key = get_api_key()
         data = request.json
         question = data.get("question")
-
         user_prompt = f"""
             <role>
-            你是一位非常出色、友好的乡村艺术老师，你的名字叫“小艺”。
+            你是一位非常出色、友好的艺术老师，你的名字叫“小艺”。
             </role>
             
             <audience>
@@ -502,21 +518,16 @@ def handle_ask_question():
             "max_tokens": 500,
             "temperature": 0.7,
         }
-
         response = requests.post(
             f"{MODEL_SCOPE_BASE_URL}v1/chat/completions",
             headers=get_headers(api_key),
             json=payload
         )
         response.raise_for_status()
-
         return jsonify(response.json())
 
-    except ApiKeyMissingError as e:
-        return jsonify({"error": str(e)}), 401
     except Exception as e:
-        print(e)
-        return jsonify({"error": str(e)}), 500
+        return handle_api_errors(e)
 
 
 # 路由六：创意灵感
@@ -526,7 +537,6 @@ def handle_generate_ideas():
         api_key = get_api_key()
         data = request.json
         theme = data.get("theme")
-
         text_prompt = f"""
             <role>
             你是一个充满想象力的儿童艺术创意总监。
@@ -565,28 +575,22 @@ def handle_generate_ideas():
             </json_schema>
             </format_instructions>
             """
-
         payload = {
             "model": QWEN_LLM_ID,
             "messages": [{"role": "user", "content": text_prompt}],
             "max_tokens": 800,
             "temperature": 0.8,
         }
-
         text_response = requests.post(
             f"{MODEL_SCOPE_BASE_URL}v1/chat/completions",
             headers=get_headers(api_key),
             json=payload
         )
         text_response.raise_for_status()
-
         ideas_data = text_response.json()
         content = ideas_data["choices"][0]["message"]["content"]
         json_string = content[content.find('{') : content.rfind('}')+1]
-
         ideas = json.loads(json_string).get("ideas", [])
-
-        # 循环为每个创意生成图片
         processed_ideas = []
         for idea in ideas:
             try:
@@ -606,15 +610,14 @@ def handle_generate_ideas():
             except Exception as img_err:
                 print(f"Failed to generate image for idea '{idea['name']}': {img_err}")
                 idea["exampleImage"] = None
+                if isinstance(img_err, HTTPError) and img_err.response.status_code == 401:
+                    raise img_err
             processed_ideas.append(idea)
 
         return jsonify(processed_ideas)
 
-    except ApiKeyMissingError as e:
-        return jsonify({"error": str(e)}), 401
     except Exception as e:
-        print(e)
-        return jsonify({"error": str(e)}), 500
+        return handle_api_errors(e)
 
 
 # --- 4.5. 静态文件服务 (为 Docker 部署新增) ---
@@ -637,4 +640,4 @@ def serve_image(filename):
 
 # --- 5. 启动服务器 ---
 if __name__ == '__main__':
-    app.run(debug=False, host='0.0.0.0', port=7860)
+    app.run(debug=True, host='localhost', port=7860)

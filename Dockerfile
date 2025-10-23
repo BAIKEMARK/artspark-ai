@@ -17,6 +17,6 @@ COPY . .
 # 5. 声明服务端口
 EXPOSE 7860
 
-# 6. 配置启动命令 (ENTRYPOINT)
+# 6. 配置启动命令
 
-ENTRYPOINT ["python", "app.py"]
+CMD ["gunicorn", "--workers=2", "--threads=4", "--bind=0.0.0.0:7860", "app:app"]

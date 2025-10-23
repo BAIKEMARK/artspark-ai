@@ -11,6 +11,9 @@ const AUTH_TOKEN_KEY = 'art_spark_auth_token'; // 用于 localStorage
 
 const MODEL_SCOPE_TOKEN_KEY = 'modelscope_api_key';
 const apiKeyModal = document.getElementById('api-key-modal');
+const modalTitle = document.getElementById('modal-title');
+const modalDescription = document.getElementById('modal-description');
+
 const apiKeySection = document.getElementById('api-key-section');
 const apiKeyInput = document.getElementById('api-key-input');
 const saveKeyBtn = document.getElementById('save-key-btn');
@@ -255,6 +258,11 @@ function initApiKeyManager() {
             apiError.textContent = 'API KEY 不能为空';
             return;
         }
+
+        saveKeyBtn.disabled = true;
+        saveKeyBtn.textContent = '验证中...';
+        apiError.textContent = '';
+
         try {
             const response = await fetch(`${BACKEND_URL}/api/set_key`, {
                 method: 'POST',
@@ -278,6 +286,9 @@ function initApiKeyManager() {
 
         } catch (error) {
             apiError.textContent = `错误: ${error.message}`;
+        } finally {
+            saveKeyBtn.disabled = false;
+            saveKeyBtn.textContent = '进入美术馆';
         }
     });
 
@@ -289,7 +300,7 @@ function initApiKeyManager() {
             showMainContent();
         } else {
             console.log("No valid token found, showing API key modal.");
-            showApiKeyModal();
+            showApiKeyModal('initial');
         }
     })();
 }
@@ -302,14 +313,28 @@ function showMainContent() {
         navigateTo('home-view');
     });
 }
-function showApiKeyModal() {
+
+function showApiKeyModal(reason = 'initial') {
+
+    if (reason === 'expired' || reason === 'invalid') {
+        modalTitle.textContent = 'API Key 已失效';
+        modalDescription.textContent = '您的API Key已过期或无效。请重新输入以继续使用。';
+
+    } else {
+        modalTitle.textContent = '欢迎来到 艺启智AI';
+        modalDescription.textContent = '请输入您的ModelScope API KEY以激活助教功能。';
+
+        // 在首次加载时，我们必须隐藏所有内容
+        homeView.style.display = 'none';
+        homeFeaturesSection.style.display = 'none';
+        toolContent.style.display = 'none';
+        contextualSidebar.classList.add('hidden');
+    }
+
+    // 统一的逻辑：显示弹窗、隐藏页脚、清除旧Token
     apiKeyModal.classList.remove('hidden');
     footerGuide.classList.add('hidden');
     localStorage.removeItem(AUTH_TOKEN_KEY);
-    homeView.style.display = 'none';
-    homeFeaturesSection.style.display = 'none';
-    toolContent.style.display = 'none';
-    contextualSidebar.classList.add('hidden');
 }
 
 // ==========================================================
@@ -750,8 +775,8 @@ async function fetchFromBackend(endpoint, body) {
         // [修改] 捕获 401 错误并弹出模态框
         if (response.status === 401) {
             console.error("Authentication error (401). Token is invalid or expired.");
-            showApiKeyModal();
             const err = await response.json();
+            showApiKeyModal('expired');
             throw new Error(err.error || "API 密钥已失效，请重新输入");
         }
         const err = await response.json();
