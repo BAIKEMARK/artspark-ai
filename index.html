@@ -27,6 +27,7 @@
             <a href="#" id="home-logo-btn" class="nav-logo">🎨 艺启智AI</a>
             <div class="nav-links">
                 <button data-target="home-view" class="nav-btn active"><i class="icon ph-bold ph-house"></i>首页</button>
+                <button data-target="art-gallery" class="nav-btn"><i class="icon ph-bold ph-palette"></i>艺术画廊</button>
                 <button data-target="line-coloring" class="nav-btn"><i class="icon ph-bold ph-paint-brush"></i>AI智能上色</button>
                 <button data-target="style-workshop" class="nav-btn"><i class="icon ph-bold ph-sparkle"></i>创意风格工坊</button>
                 <button data-target="self-portrait" class="nav-btn"><i class="icon ph-bold ph-user-square"></i>AI自画像</button>
@@ -106,7 +107,29 @@
                         <p id="coloring-error" class="error-message"></p>
                         <div id="coloring-result" class="result-container hidden"></div>
                     </section>
-                     <section id="style-workshop" class="feature-panel hidden">
+
+                    <section id="art-gallery" class="feature-panel hidden">
+                    <h2>艺术画廊 (Met Museum)</h2>
+                    <div class="form-group gallery-filters">
+                        <div class="filter-item">
+                            <label for="gallery-search-input">关键词:</label>
+                            <input type="text" id="gallery-search-input" placeholder="例如：Monet, cat, Japan">
+                        </div>
+                        <div class="filter-item">
+                            <label for="gallery-department-select">展厅:</label>
+                            <select id="gallery-department-select">
+                                <option value="">所有展厅</option>
+                                </select>
+                        </div>
+                        <button id="search-gallery-btn" class="cta-btn">搜索画廊</button>
+                    </div>
+                    <div id="gallery-loader" class="loader hidden"></div>
+                    <p id="gallery-error" class="error-message"></p>
+                    <div id="gallery-result" class="hidden">
+                        </div>
+                </section>
+
+                    <section id="style-workshop" class="feature-panel hidden">
                         <h2>创意风格工坊</h2>
                         <div class="form-group">
                             <label for="style-select">艺术风格:</label>

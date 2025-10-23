@@ -103,6 +103,14 @@ const ideasLoader = document.getElementById('ideas-loader');
 const ideasError = document.getElementById('ideas-error');
 const ideasResult = document.getElementById('ideas-result');
 
+// 功能七：艺术画廊
+const gallerySearchInput = document.getElementById('gallery-search-input');
+const galleryDepartmentSelect = document.getElementById('gallery-department-select');
+const searchGalleryBtn = document.getElementById('search-gallery-btn');
+const galleryLoader = document.getElementById('gallery-loader');
+const galleryError = document.getElementById('gallery-error');
+const galleryResult = document.getElementById('gallery-result');
+
 // ==========================================================
 // [新增] 侧边栏内容数据库
 // ==========================================================
@@ -224,6 +232,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initArtFusion();
     initArtQA();
     initIdeaGenerator();
+    initArtGallery();
     setupImagePreview(coloringFileInput, coloringPreview);
     setupImagePreview(styleFileInput, stylePreview);
     setupImagePreview(portraitFileInput, portraitPreview);
@@ -704,6 +713,117 @@ function displayArtIdeas(ideas) {
         ideasResult.appendChild(card);
     });
     ideasResult.classList.remove('hidden');
+}
+
+// ==========================================================
+// 模块 9: 艺术画廊 (Met API)
+// ==========================================================
+
+function initArtGallery() {
+    // 页面加载时，异步获取所有展厅并填充下拉框
+    loadGalleryDepartments();
+
+    // 搜索按钮
+    searchGalleryBtn.addEventListener('click', async () => {
+        const q = gallerySearchInput.value.trim() || '*'; // 默认为 *
+        const departmentId = galleryDepartmentSelect.value;
+
+        toggleUIState(searchGalleryBtn, galleryLoader, galleryError, true);
+        galleryResult.classList.add('hidden');
+        galleryResult.innerHTML = ''; // 清空旧结果
+
+        try {
+            // 注意：我们创建一个新的 fetch 函数，因为它不使用 ModelScope token
+            const result = await fetchGallerySearch({ q, departmentId });
+            displayGalleryResults(result.artworks);
+            if (result.artworks.length === 0) {
+                 galleryError.textContent = '没有找到符合条件的作品。';
+            }
+        } catch (error) {
+            galleryError.textContent = `搜索失败: ${error.message}`;
+            console.error(error);
+        } finally {
+            toggleUIState(searchGalleryBtn, galleryLoader, galleryError, false);
+        }
+    });
+}
+
+/**
+ * 辅助函数：加载 Met 展厅列表到下拉框
+ */
+async function loadGalleryDepartments() {
+    try {
+        // 这个 GET 请求不需要 token
+        const requestUrl = `${BACKEND_URL}/api/gallery/departments`;
+        const response = await fetch(requestUrl, { method: 'GET' });
+
+        if (!response.ok) {
+            const err = await response.json();
+            throw new Error(err.error || 'Failed to load departments');
+        }
+
+        const data = await response.json();
+        galleryDepartmentSelect.innerHTML = '<option value="">所有展厅</option>'; // 重置
+
+        data.departments.forEach(dept => {
+            const option = document.createElement('option');
+            option.value = dept.departmentId;
+            option.textContent = dept.displayName;
+            galleryDepartmentSelect.appendChild(option);
+        });
+
+    } catch (error) {
+        console.error("Error loading gallery departments:", error);
+        // 即使加载失败也不阻塞主功能，用户仍然可以搜索
+        galleryDepartmentSelect.innerHTML = '<option value="">所有展厅 (加载失败)</option>';
+    }
+}
+
+/**
+ * 辅助函数：渲染画廊卡片
+ */
+function displayGalleryResults(artworks) {
+    galleryResult.innerHTML = '';
+    if (!artworks || artworks.length === 0) {
+        return; // 错误信息由调用者处理
+    }
+
+    artworks.forEach(art => {
+        const card = document.createElement('div');
+        card.className = 'gallery-card';
+
+        // 使用 innerHTML 快速构建卡片
+        card.innerHTML = `
+            <img src="${art.imageUrl}" alt="${art.title}" loading="lazy">
+            <div class="gallery-card-content">
+                <h3>${art.title}</h3>
+                <p><strong>${art.artist || 'Unknown Artist'}</strong></p>
+                <p>${art.date || 'N/A'}</p>
+                <p><em>${art.medium || 'N/A'}</em></p>
+                <a href="${art.metUrl}" target="_blank" rel="noopener">查看详情</a>
+            </div>
+        `;
+        galleryResult.appendChild(card);
+    });
+    galleryResult.classList.remove('hidden');
+}
+
+/**
+ * 辅助函数：调用画廊搜索后端 (不发送 ModelScope token)
+ */
+async function fetchGallerySearch(body) {
+    const requestUrl = `${BACKEND_URL}/api/gallery/search`;
+    const response = await fetch(requestUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+    });
+
+    if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || `请求失败: ${response.status}`);
+    }
+    return response.json();
 }
 
 // ==========================================================

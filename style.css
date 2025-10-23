@@ -301,3 +301,99 @@ footer { width: 100%; background: var(--secondary-color); color: rgba(255, 255, 
 .settings-sidebar-content .form-group-sidebar {
     margin-bottom: 18px;
 }
+
+/* 17. 艺术画廊卡片 */
+.gallery-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    align-items: flex-end; /* 关键：对齐输入框和按钮 */
+    margin-bottom: 25px;
+}
+.gallery-filters .filter-item {
+    display: flex;
+    flex-direction: column;
+}
+.gallery-filters label {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--secondary-color);
+    margin-bottom: 5px;
+}
+.gallery-filters input, .gallery-filters select {
+    margin-top: 0;
+    max-width: 250px;
+}
+.gallery-filters .cta-btn {
+    margin-bottom: 0; /* 移除按钮的默认 margin-bottom */
+}
+
+/* 艺术画廊结果 */
+#gallery-result {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+    text-align: left;
+    margin-top: 20px;
+}
+#gallery-result.hidden {
+    display: none;
+}
+.gallery-card {
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    background: #fff;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    overflow: hidden; /* 确保图片圆角生效 */
+}
+.gallery-card:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--card-shadow);
+}
+.gallery-card img {
+    width: 100%;
+    height: 200px; /* 固定高度 */
+    object-fit: cover;
+    border-bottom: 1px solid var(--border-color);
+    background: #eee; /* 图片加载时的占位符颜色 */
+}
+.gallery-card-content {
+    padding: 15px;
+}
+.gallery-card h3 {
+    font-size: 1.1rem;
+    color: var(--secondary-color);
+    margin: 0 0 10px 0;
+    font-family: var(--font-serif);
+    line-height: 1.4;
+    /* 截断长标题 */
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-height: 2.8em; /* 约 2 行的高度 */
+}
+.gallery-card p {
+    font-size: 0.85rem;
+    color: #555;
+    margin: 4px 0;
+    line-height: 1.5;
+    /* 截断长文本 */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.gallery-card p:last-of-type {
+    margin-bottom: 10px;
+}
+.gallery-card a {
+    font-size: 0.85rem;
+    color: var(--accent-color);
+    text-decoration: none;
+    font-weight: 500;
+}
+.gallery-card a:hover {
+    text-decoration: underline;
+}
