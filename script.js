@@ -9,7 +9,6 @@ console.log(`[App] 运行在 ${isLocalDev ? '本地开发' : '生产'} 模式. A
 
 const AUTH_TOKEN_KEY = 'art_spark_auth_token'; // 用于 localStorage
 
-const MODEL_SCOPE_TOKEN_KEY = 'modelscope_api_key';
 const apiKeyModal = document.getElementById('api-key-modal');
 const modalTitle = document.getElementById('modal-title');
 const modalDescription = document.getElementById('modal-description');
@@ -40,6 +39,11 @@ const toolPanelsWrapper = document.getElementById('tool-panels-wrapper');
 const contextualSidebar = document.getElementById('contextual-sidebar');
 const footerGuide = document.getElementById('footer-guide'); // Get footer
 
+// [V17 新增] AI 设置的 DOM 元素
+const settingChatModel = document.getElementById('setting-chat-model');
+const settingVlModel = document.getElementById('setting-vl-model');
+const settingImageModel = document.getElementById('setting-image-model');
+const settingAgeRange = document.getElementById('setting-age-range');
 
 // 功能一：AI智能上色
 const coloringFileInput = document.getElementById('coloring-file-input');
@@ -231,11 +235,8 @@ async function checkTokenValidity() {
     if (!token) {
         return false;
     }
-
     try {
-        // [V10 修改] 将 token 作为 query 参数附加到 URL
         const requestUrl = `${BACKEND_URL}/api/check_key?token=${encodeURIComponent(token)}`;
-
         const response = await fetch(requestUrl, {
             method: 'GET'
         });
@@ -306,12 +307,9 @@ function initApiKeyManager() {
 }
 function showMainContent() {
     apiKeyModal.classList.add('hidden');
-    footerGuide.classList.remove('hidden');
     document.body.classList.add('showing-home');
     document.body.classList.remove('showing-tools');
-    requestAnimationFrame(() => {
-        navigateTo('home-view');
-    });
+    navigateTo('home-view');
 }
 
 function showApiKeyModal(reason = 'initial') {
@@ -395,14 +393,11 @@ function navigateTo(targetId) {
     homeFeaturesSection.style.display = isHomePage ? 'block' : 'none';
     toolContent.style.display = isHomePage ? 'none' : 'flex';
 
-    if (isHomePage) {
-        contextualSidebar.classList.add('hidden');
-        featurePanels.forEach(panel => {
-           panel.classList.add('hidden');
-           panel.classList.remove('active');
-       });
-    } else {
-        contextualSidebar.classList.remove('hidden');
+    // 4. 管理侧边栏和底部栏
+    contextualSidebar.classList.toggle('hidden', isHomePage); // 首页隐藏，工具页显示
+
+    // 5. 切换工具面板 (仅在工具页执行)
+    if (!isHomePage) {
         let panelFound = false;
         featurePanels.forEach(panel => {
             const shouldShow = (panel.id === targetId);
@@ -410,14 +405,20 @@ function navigateTo(targetId) {
             panel.classList.toggle('active', shouldShow);
             if(shouldShow) panelFound = true;
         });
-        if (!panelFound) {
-             console.warn(`Panel with id "${targetId}" not found.`);
-             toolContent.style.display = 'none';
-             contextualSidebar.classList.add('hidden');
-        } else {
-            // Update sidebar content only if a valid tool panel is shown
+
+        if (panelFound) {
             updateSidebarContent(targetId);
+        } else {
+             // 如果没找到面板，显示默认提示，但不隐藏 toolContent
+             console.warn(`Panel with id "${targetId}" not found. Displaying default sidebar.`);
+             updateSidebarContent('default'); // 显示默认侧边栏内容
         }
+    } else {
+        // 如果是首页，确保所有工具面板都隐藏
+        featurePanels.forEach(panel => {
+           panel.classList.add('hidden');
+           panel.classList.remove('active');
+       });
     }
     window.scrollTo(0, 0);
 }
@@ -436,7 +437,13 @@ function updateSidebarContent(targetId) {
         html += `<div class="sidebar-widget">${content.examples}</div>`;
     }
 
-    contextualSidebar.innerHTML = html;
+    // [V17 修改] 只更新动态内容区域
+    const dynamicContentEl = document.getElementById('dynamic-sidebar-content');
+    if (dynamicContentEl) {
+        dynamicContentEl.innerHTML = html;
+    } else {
+        console.error("Missing #dynamic-sidebar-content element in HTML.");
+    }
 }
 
 // ==========================================================
@@ -751,7 +758,7 @@ function displaySingleImageResult(resultContainer, imageUrl, altText, filename) 
 async function fetchFromBackend(endpoint, body) {
     const token = localStorage.getItem(AUTH_TOKEN_KEY);
     if (!token && endpoint !== '/api/set_key') {
-        showApiKeyModal();
+        showApiKeyModal('expired');
         throw new Error("您尚未登录。");
     }
 
@@ -765,7 +772,16 @@ async function fetchFromBackend(endpoint, body) {
         requestUrl += (requestUrl.includes('?') ? '&' : '?') + `token=${encodeURIComponent(token)}`;
     }
 
-    const response = await fetch(requestUrl, { // [V10 修改] 使用新的 requestUrl
+    // [V17 新增] 附加全局 AI 设置
+    // 检查 body 是否已定义（所有 AI 调用都应该有）
+    if (body) {
+        body.config_chat_model = settingChatModel.value;
+        body.config_vl_model = settingVlModel.value;
+        body.config_image_model = settingImageModel.value;
+        body.config_age_range = settingAgeRange.value;
+    }
+
+    const response = await fetch(requestUrl, {
         method: 'POST',
         headers: headers,
         body: JSON.stringify(body),

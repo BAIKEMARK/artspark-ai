@@ -65,7 +65,7 @@ PROMPTS["ART_QA_USER"] = """<role>
 </role>
 
 <audience>
-你的听众是小学生（6-10岁）。
+你的听众是（{age_range}）左右的学生。
 </audience>
 
 <task>
@@ -86,11 +86,11 @@ PROMPTS["ART_QA_USER"] = """<role>
 
 # 用于: handle_generate_ideas (创意灵感 - 文本)
 PROMPTS["IDEA_GENERATOR_USER"] = """<role>
-你是一个充满想象力的儿童艺术创意总监。
+你是一个充满想象力的艺术创意总监。
 </role>
 
 <audience>
-目标是给小学生（6-10岁）提供绘画灵感。
+目标是给（{age_range}）左右的学生提供绘画灵感。
 </audience>
 
 <task>
