@@ -177,7 +177,7 @@ def get_ai_config(data):
     }
     return config
 
-# [V16] 尺寸计算辅助函数
+# 尺寸计算辅助函数
 def round_to_64(x):
     """将尺寸调整为 64 的最接近倍数，最小为 64"""
     return max(64, int(round(x / 64.0)) * 64)
@@ -244,10 +244,11 @@ def generate_english_prompt(token, chinese_prompt, context_description):
         context=context_description,
         chinese_description=chinese_prompt
     )
-
+    data = request.json
+    config=get_ai_config(data)
     messages = [{"role": "user", "content": full_user_prompt}]
     payload = {
-        "model": QWEN_LLM_ID,
+        "model": config["chat_model"],
         "messages": messages,
         "max_tokens": 200,
         "temperature": 0.5,
