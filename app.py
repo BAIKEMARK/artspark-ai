@@ -629,7 +629,10 @@ def handle_generate_ideas():
             except Exception as img_err:
                 print(f"Failed to generate image for idea '{idea['name']}': {img_err}")
                 idea["exampleImage"] = None
-                if isinstance(img_err, HTTPError) and img_err.response.status_code == 401:
+                if (
+                    isinstance(img_err, HTTPError)
+                    and img_err.response.status_code == 401
+                ):
                     raise img_err
             processed_ideas.append(idea)
 
@@ -638,6 +641,87 @@ def handle_generate_ideas():
     except Exception as e:
         return handle_api_errors(e)
 
+
+MET_API_BASE = "https://collectionapi.metmuseum.org/public/collection/v1"
+
+
+# 路由七：艺术画廊搜索
+@app.route("/api/gallery/search", methods=["POST"])
+def handle_gallery_search():
+    try:
+        data = request.json
+        search_term = data.get("q", "*")  # 搜索词
+        department_id = data.get("departmentId")  # 部门ID
+
+        # 1. 构建搜索参数
+        search_params = {
+            "q": search_term,
+            "hasImages": "true",  # 只搜索有图的
+            "isPublicDomain": "true",  # 只搜索公共领域的
+        }
+        if department_id:
+            search_params["departmentId"] = department_id
+
+        # 2. 调用搜索 API (获取 Object IDs)
+        search_url = f"{MET_API_BASE}/search"
+        search_res = requests.get(search_url, params=search_params, timeout=10)
+        search_res.raise_for_status()
+        search_data = search_res.json()
+
+        object_ids = search_data.get("objectIDs", [])
+        if not object_ids:
+            return jsonify({"artworks": [], "total": 0})
+
+        # 3. 只获取前 12 个作品的详细信息
+        artworks = []
+        # [修改] 我们只取前12个ID
+        for obj_id in object_ids[:12]:
+            try:
+                obj_url = f"{MET_API_BASE}/objects/{obj_id}"
+                obj_res = requests.get(obj_url, timeout=5)
+                obj_res.raise_for_status()
+                obj_data = obj_res.json()
+
+                # 筛选我们需要的数据，确保有图
+                if obj_data.get("primaryImageSmall"):
+                    artworks.append(
+                        {
+                            "id": obj_data.get("objectID"),
+                            "title": obj_data.get("title", "N/A"),
+                            "artist": obj_data.get("artistDisplayName", "Unknown"),
+                            "date": obj_data.get("objectDate", "N/A"),
+                            "medium": obj_data.get("medium", "N/A"),
+                            "country": obj_data.get("country", "N/A"),
+                            "imageUrl": obj_data.get("primaryImageSmall"),  # 使用小图
+                            "metUrl": obj_data.get(
+                                "objectURL", "#"
+                            ),  # 指向Met官网的链接
+                        }
+                    )
+            except requests.exceptions.RequestException as e:
+                print(f"Failed to fetch object {obj_id}: {e}")
+                continue  # 跳过这个作品
+
+        return jsonify({"artworks": artworks, "total": search_data.get("total", 0)})
+
+    except requests.exceptions.RequestException as http_err:
+        return jsonify({"error": f"Met API 错误: {str(http_err)}"}), 502
+    except Exception as e:
+        # 这个不能用 handle_api_errors, 因为它不涉及 ApiKeyMissingError
+        print(f"An unexpected error occurred in gallery search: {e}")
+        return jsonify({"error": f"服务器内部错误: {str(e)}"}), 500
+
+
+# 路由八：获取所有展厅
+@app.route("/api/gallery/departments", methods=["GET"])
+def handle_gallery_departments():
+    try:
+        dept_url = f"{MET_API_BASE}/departments"
+        dept_res = requests.get(dept_url, timeout=10)
+        dept_res.raise_for_status()
+        return jsonify(dept_res.json())
+    except Exception as e:
+        return jsonify({"error": f"Met API 错误: {str(e)}"}), 502
 
 # --- 4.5. 静态文件服务 (为 Docker 部署新增) ---
 @app.route('/')
