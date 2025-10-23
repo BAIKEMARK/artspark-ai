@@ -230,11 +230,11 @@ async function checkTokenValidity() {
     }
 
     try {
-        const response = await fetch(`${BACKEND_URL}/api/check_key`, {
-            method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
+        // [V10 修改] 将 token 作为 query 参数附加到 URL
+        const requestUrl = `${BACKEND_URL}/api/check_key?token=${encodeURIComponent(token)}`;
+
+        const response = await fetch(requestUrl, {
+            method: 'GET'
         });
         if (response.ok) {
             return true;
@@ -733,11 +733,14 @@ async function fetchFromBackend(endpoint, body) {
     const headers = {
         'Content-Type': 'application/json'
     };
+    // [V10 新增] 将 token 作为 query 参数附加到 URL
+    let requestUrl = `${BACKEND_URL}${endpoint}`;
     if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
+        // 确保只添加 '?' 或 '&'，以防 endpoint 自身已包含参数
+        requestUrl += (requestUrl.includes('?') ? '&' : '?') + `token=${encodeURIComponent(token)}`;
     }
 
-    const response = await fetch(`${BACKEND_URL}${endpoint}`, {
+    const response = await fetch(requestUrl, { // [V10 修改] 使用新的 requestUrl
         method: 'POST',
         headers: headers,
         body: JSON.stringify(body),
