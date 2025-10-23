@@ -105,15 +105,12 @@ def proxy_download():
 
 
 def get_api_key():
-    auth_header = request.headers.get("Authorization")
-    if not auth_header:
-        raise ApiKeyMissingError("Authorization header is missing.")
+    # [V10 修改] 从 URL Query 参数中获取 token，以兼容创空间环境
+    token = request.args.get("token")
 
-    parts = auth_header.split()
-    if parts[0].lower() != "bearer" or len(parts) != 2:
-        raise ApiKeyMissingError("Invalid Authorization header format. Expected 'Bearer <token>'.")
-
-    token = parts[1]
+    if not token:
+        # [V10 修改] 更新错误信息
+        raise ApiKeyMissingError("Token is missing from query parameters. (token=...).")
 
     try:
         # 解密 Token，设置有效期为 1 天 (86400 秒)
