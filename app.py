@@ -11,6 +11,8 @@ from dotenv import load_dotenv
 from flask_cors import CORS
 from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadTimeSignature
 from requests.exceptions import HTTPError
+from PIL import Image
+from prompt import PROMPTS
 
 class ApiKeyMissingError(Exception):
     """当 session 中缺少 API key 时引发"""
@@ -166,16 +168,53 @@ def get_api_key():
         print(f"Token decryption error: {e}")
         raise ApiKeyMissingError("Invalid token.")
 
+# [V16 新增] 辅助函数：圆整到 64 的倍数
+def round_to_64(x):
+    """将尺寸调整为 64 的最接近倍数，最小为 64"""
+    return max(64, int(round(x / 64.0)) * 64)
+
+# 辅助函数：计算自适应尺寸
+def calculate_adaptive_size(width, height, target_dim=1024):
+    """根据原始宽高比计算新的尺寸，使最长边为 target_dim，并圆整到 64"""
+    if width == 0 or height == 0:
+        return f"{target_dim}x{target_dim}" # 备用
+
+    if width > height:
+        # 横向 (Landscape)
+        aspect_ratio = height / width
+        new_width = target_dim
+        new_height = int(new_width * aspect_ratio)
+    else:
+        # 纵向或方形 (Portrait or Square)
+        aspect_ratio = width / height
+        new_height = target_dim
+        new_width = int(new_height * aspect_ratio)
+
+    # 圆整到 64 的倍数
+    final_width = round_to_64(new_width)
+    final_height = round_to_64(new_height)
+
+    # 避免返回 0
+    if final_width == 0: final_width = 64
+    if final_height == 0: final_height = 64
+
+    return f"{final_width}x{final_height}"
+
 # R2 上传辅助函数
 def upload_to_r2(base64_string):
     try:
         header, encoded = base64_string.split(",", 1)
         data = base64.b64decode(encoded)
+        image_bytes = BytesIO(data)
+        # 从字节中读取图像尺寸
+        with Image.open(image_bytes) as img:
+            width, height = img.size
+        image_bytes.seek(0)
         mime_type = header.split(";")[0].split(":")[-1]
         extension = mime_type.split("/")[-1]
         file_name = f"uploads/{uuid.uuid4()}.{extension}"
         s3_client.upload_fileobj(
-            BytesIO(data),
+            image_bytes,
             R2_BUCKET_NAME,
             file_name,
             ExtraArgs={
@@ -184,30 +223,19 @@ def upload_to_r2(base64_string):
             }
         )
         public_url = f"{R2_PUBLIC_URL_BASE}/{file_name}"
-        return public_url
+        return public_url, width, height
     except Exception as e:
         print(f"R2 Upload Error: {e}")
-        raise Exception("Failed to upload image to R2 OSS.")
+        raise Exception(f"Failed to upload image to R2 OSS: {e}")
 
 def generate_english_prompt(token, chinese_prompt, context_description):
     """[后端实现] 调用 Qwen 将中文提示词转为英文"""
-    full_user_prompt = f"""
-<task>
-You are an expert AI art prompt translator and enhancer. Your job is to translate a Chinese description into a vivid, concise, and high-quality English prompt suitable for the FLUX image model.
-1.  Translate the core meaning of the Chinese description.
-2.  Enrich the prompt with 2-3 professional "quality modifier" keywords (e.g., 'masterpiece', 'best quality', 'vibrant colors', 'dynamic lighting', 'cinematic', 'detailed').
-3.  Keep the context in mind.
-**Rules:**
--   **ONLY** output the final English prompt.
--   **DO NOT** include any conversational text, markdown, or explanations.
-</task>
-<context>
-{context_description}
-</context>
-<chinese_description>
-{chinese_prompt}
-</chinese_description>
-"""
+
+    full_user_prompt = PROMPTS["PROMPT_TRANSLATOR"].format(
+        context=context_description,
+        chinese_description=chinese_prompt
+    )
+
     messages = [{"role": "user", "content": full_user_prompt}]
     payload = {
         "model": QWEN_LLM_ID,
@@ -228,18 +256,8 @@ You are an expert AI art prompt translator and enhancer. Your job is to translat
 
 def get_style_prompt_from_image(token, base64_image_url):
 
-    system_prompt = """
-        You are an expert style analysis bot. Your sole purpose is to analyze an image and extract its visual style as a comma-separated list of keywords for an AI art model.
-        
-        **Rules:**
-        -   Focus on: **visual style** (e.g., 'oil painting', 'watercolor', '3d render'), **texture**, **color palette**, **lighting**, and **mood**.
-        -   Use ONLY English keywords and short phrases.
-        -   Separate all terms with a comma.
-        -   DO NOT use full sentences or conversational language.
-        
-        **Example Output:**
-        'oil painting, impasto, thick brush strokes, swirling clouds, vibrant blues and yellows, dynamic, expressive'
-        """
+    system_prompt = PROMPTS["STYLE_ANALYSIS_SYSTEM"]
+    user_text = PROMPTS["STYLE_ANALYSIS_USER"]
 
     payload = {
         "model": QWEN_VL_ID,
@@ -253,7 +271,7 @@ def get_style_prompt_from_image(token, base64_image_url):
                     "role": "user",
                     "content": [
                         {"image": base64_image_url},
-                        {"text": "Analyze the style of this image based on the rules."},
+                        {"text": user_text},
                     ],
                 },
             ]
@@ -341,8 +359,10 @@ def handle_colorize_lineart():
         if not base64_image:
             return jsonify({"error": "线稿图片是必需的"}), 400
 
-        public_url = upload_to_r2(base64_image)
-        full_prompt = f"为这张线稿上色。风格：{prompt}。要求：杰作, 最高质量, 色彩鲜艳, 细节丰富, 专业上色, 干净的阴影。"
+        public_url, w, h = upload_to_r2(base64_image)
+        adaptive_size = calculate_adaptive_size(w, h)
+
+        full_prompt = PROMPTS["COLORIZE_PROMPT_CN"].format(prompt=prompt)
         english_prompt = generate_english_prompt(
             api_key, full_prompt, "Coloring a lineart image."
         )
@@ -351,10 +371,12 @@ def handle_colorize_lineart():
             "prompt": english_prompt,
             "negative_prompt": "text, watermark, signature, blurry, low quality, worst quality, deformed, ugly, grayscale, monochrome, sketch, unfinished, lineart",
             "image_url": public_url,
-            "size": "1024x1024",
+            "size": adaptive_size,
         }
+
         task_id = submit_async_generation_task(api_key, body)
         image_url = poll_generation_result(api_key, task_id)
+
         return jsonify({"imageUrl": image_url})
 
     except Exception as e:
@@ -371,42 +393,48 @@ def handle_generate_style():
         content = data.get("content", "")
         base64_image = data.get("base64_image")
 
-        style_prompts = {
-            "梵高": "梵高风格, 杰作, 厚涂颜料, 充满活力的旋转笔触, 鲜艳的色彩",
-            "毕加索": "毕加索立体主义风格, 杰作, 破碎的视角, 几何形状, 抽象",
-            "水墨画": "中国传统水墨画, 意境深远, 留白, 笔触有力, 墨色浓淡",
-            "剪纸风格": "中国剪纸艺术, 杰作, 鲜艳的红色, 镂空, 对称美学",
-            "水彩画": "水彩画风格, 色彩透明, 渲染, 湿画法, 明亮"
-        }
-        style_desc = {
-            "梵高": "梵高：使用旋转、充满活力的笔触和厚重的颜料来表达情感。",
-            "毕加索": "毕加索：通过将物体分解成几何形状来从多个角度展示它们。",
-            "水墨画": "水墨画：利用墨色的浓淡变化和笔触的力度来传达意境。",
-            "剪纸风格": "剪纸风格：中国传统的民间艺术，通常使用红色纸张和镂空图案。",
-            "水彩画": "水彩画：一种使用透明颜料和水在纸上作画的技法。",
-        }
+        style_prompts = PROMPTS["STYLE_PROMPTS_CN"]
+        style_desc = PROMPTS["STYLE_DESCRIPTIONS_CN"]
 
         style_prompt_text = style_prompts.get(style, f"{style}风格")
-        quality_boost = "杰作, 最高质量, 8k, 细节丰富"
+
+        quality_boost = PROMPTS["STYLE_QUALITY_BOOST_CN"]
         if content:
-             full_chinese_prompt = f"{style_prompt_text}, {quality_boost}。主题：{content}"
+            full_chinese_prompt = PROMPTS["STYLE_PROMPT_WITH_CONTENT_CN"].format(
+                style_text=style_prompt_text,
+                quality_boost=quality_boost,
+                content=content
+            )
         else:
-             full_chinese_prompt = f"{style_prompt_text}, {quality_boost}"
+            full_chinese_prompt = PROMPTS["STYLE_PROMPT_WITHOUT_CONTENT_CN"].format(
+                style_text=style_prompt_text,
+                quality_boost=quality_boost
+            )
+
 
         english_prompt = generate_english_prompt(
-            api_key, full_chinese_prompt, f"A beautiful artwork in the style of {style}."
+            api_key,
+            full_chinese_prompt,
+            f"A beautiful artwork in the style of {style}."
         )
+
         body = {
             "model": FLUX_MODEL_ID,
             "prompt": english_prompt,
             "negative_prompt": "text, watermark, signature, blurry, low quality, worst quality, deformed, ugly, bad anatomy",
-            "size": "1024x1024"
         }
+
+        adaptive_size = "1024x1024"
         if base64_image:
-            public_url = upload_to_r2(base64_image)
+            public_url, w, h = upload_to_r2(base64_image)
             body["image_url"] = public_url
+            adaptive_size = calculate_adaptive_size(w, h)
+
+        body["size"] = adaptive_size
+
         task_id = submit_async_generation_task(api_key, body)
         image_url = poll_generation_result(api_key, task_id)
+
         return jsonify(
             {
                 "imageUrl": image_url,
@@ -431,16 +459,24 @@ def handle_self_portrait():
         if not style_prompt:
             return jsonify({"error": "风格是必需的"}), 400
 
-        public_url = upload_to_r2(base64_image)
-        full_prompt = f"一张{style_prompt}风格的肖像画。杰作, 最高质量, 细节丰富。关键：必须保持输入照片中人物的面部特征和相似性。"
-        english_prompt = generate_english_prompt(api_key, full_prompt, "A stylized portrait, maintaining likeness to the original photo.")
+        public_url, w, h = upload_to_r2(base64_image)
+        adaptive_size = calculate_adaptive_size(w, h)
+
+        full_prompt = PROMPTS["SELF_PORTRAIT_PROMPT_CN"].format(style_prompt=style_prompt)
+
+        english_prompt = generate_english_prompt(
+            api_key,
+            full_prompt,
+            "A stylized portrait, maintaining likeness to the original photo."
+        )
+
         body = {
             "model": FLUX_MODEL_ID,
             "prompt": english_prompt,
             "negative_prompt": "text, watermark, signature, blurry, ugly, deformed, disfigured, worst quality, low quality, multiple heads, bad anatomy, extra limbs, mutation, gender swap",
             "image_url": public_url,
-            "size": "1024x1024",
-            "strength": 0.45
+            "size": adaptive_size,
+            "strength": 0.65
         }
         task_id = submit_async_generation_task(api_key, body)
         image_url = poll_generation_result(api_key, task_id)
@@ -462,19 +498,26 @@ def handle_art_fusion():
         if not content_image_b64 or not style_image_b64:
             return jsonify({"error": "内容图片和风格图片都是必需的"}), 400
 
-        content_url = upload_to_r2(content_image_b64)
+        content_url, w, h = upload_to_r2(content_image_b64)
+        adaptive_size = calculate_adaptive_size(w, h)
+
+        # 风格图片仅用于分析
         style_description = get_style_prompt_from_image(api_key, style_image_b64)
-        full_prompt = f"A masterpiece painting. Apply the following style: [{style_description}]. The composition and subject MUST be based on the input image."
+
+        full_prompt = PROMPTS["ART_FUSION_PROMPT_EN"].format(style_description=style_description)
+
         body = {
             "model": FLUX_MODEL_ID,
             "prompt": full_prompt,
             "negative_prompt": "text, watermark, signature, blurry, ugly, deformed, disfigured, worst quality, low quality, bad anatomy",
             "image_url": content_url,
-            "size": "1024x1024",
+            "size": adaptive_size,
             "strength": 0.6
         }
+
         task_id = submit_async_generation_task(api_key, body)
         image_url = poll_generation_result(api_key, task_id)
+
         return jsonify({"imageUrl": image_url})
 
     except Exception as e:
@@ -488,30 +531,9 @@ def handle_ask_question():
         api_key = get_api_key()
         data = request.json
         question = data.get("question")
-        user_prompt = f"""
-            <role>
-            你是一位非常出色、友好的艺术老师，你的名字叫“小艺”。
-            </role>
-            
-            <audience>
-            你的听众是小学生（6-10岁）。
-            </audience>
-            
-            <task>
-            用**非常简单、有趣、鼓励性**的语言回答下面的问题。
-            </task>
-            
-            <rules>
-            1.  **称呼：** 一定要以“嗨，小朋友！”或“你好呀！”开头。
-            2.  **简洁：** 答案保持在100-150字左右。
-            3.  **易懂：** 绝对不要使用任何复杂的专业术语。
-            4.  **风格：** 像讲故事一样，多用比喻。
-            </rules>
-            
-            <question>
-            {question}
-            </question>
-            """
+
+        user_prompt = PROMPTS["ART_QA_USER"].format(question=question)
+
         payload = {
             "model": QWEN_LLM_ID,
             "messages": [{"role": "user", "content": user_prompt}],
@@ -537,50 +559,16 @@ def handle_generate_ideas():
         api_key = get_api_key()
         data = request.json
         theme = data.get("theme")
-        text_prompt = f"""
-            <role>
-            你是一个充满想象力的儿童艺术创意总监。
-            </role>
-            
-            <audience>
-            目标是给小学生（6-10岁）提供绘画灵感。
-            </audience>
-            
-            <task>
-            为主题 “{theme}” 生成 3 个独特且有趣的绘画创意。
-            </task>
-            
-            <format_instructions>
-            你必须严格按照下面的JSON格式返回，不要有任何JSON之外的文字、注释或markdown。
-            <json_schema>
-            {{
-                "ideas": [
-                    {{
-                        "name": "创意名称 (例如：彩虹雨下的毛毛虫)",
-                        "description": "一句话的有趣描述 (例如：一只毛毛虫撑着一片叶子在彩虹色的雨滴下散步)",
-                        "elements": "3个关键词 (例如：彩虹, 毛毛虫, 叶子)"
-                    }},
-                    {{
-                        "name": "...",
-                        "description": "...",
-                        "elements": "..."
-                    }},
-                    {{
-                        "name": "...",
-                        "description": "...",
-                        "elements": "..."
-                    }}
-                ]
-            }}
-            </json_schema>
-            </format_instructions>
-            """
+
+        text_prompt = PROMPTS["IDEA_GENERATOR_USER"].format(theme=theme)
+
         payload = {
             "model": QWEN_LLM_ID,
             "messages": [{"role": "user", "content": text_prompt}],
             "max_tokens": 800,
             "temperature": 0.8,
         }
+
         text_response = requests.post(
             f"{MODEL_SCOPE_BASE_URL}v1/chat/completions",
             headers=get_headers(api_key),
@@ -589,12 +577,24 @@ def handle_generate_ideas():
         text_response.raise_for_status()
         ideas_data = text_response.json()
         content = ideas_data["choices"][0]["message"]["content"]
-        json_string = content[content.find('{') : content.rfind('}')+1]
+
+        # 增加健壮性，防止 JSON.loads 失败
+        json_start = content.find('{')
+        json_end = content.rfind('}') + 1
+        if json_start == -1 or json_end == 0:
+            raise Exception("LLM did not return valid JSON.")
+
+        json_string = content[json_start : json_end]
         ideas = json.loads(json_string).get("ideas", [])
         processed_ideas = []
         for idea in ideas:
             try:
-                img_prompt_cn = f"绘画创意示例：{idea['name']}，{idea['description']}，包含元素：{idea['elements']}"
+                img_prompt_cn = PROMPTS["IDEA_IMAGE_PROMPT_CN"].format(
+                    name=idea['name'],
+                    description=idea['description'],
+                    elements=idea['elements']
+                )
+
                 img_prompt_en = generate_english_prompt(
                     api_key,
                     img_prompt_cn,
