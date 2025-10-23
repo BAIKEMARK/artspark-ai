@@ -26,7 +26,8 @@ CORS(
     resources={r"/api/*": {"origins": ["http://localhost:63342", "http://127.0.0.1:63342"]}}
 )
 
-app.config["SECRET_KEY"] = "a_very_secret_random_string_for_your_app"
+app.config["SECRET_KEY"] = os.getenv("FLASK_SECRET_KEY")
+API_KEY_SALT = os.getenv("API_KEY_SALT")
 ts = URLSafeTimedSerializer(app.config["SECRET_KEY"])
 
 MODEL_SCOPE_BASE_URL = "https://api-inference.modelscope.cn/"
@@ -59,7 +60,7 @@ def set_key():
     if not api_key:
         return jsonify({"error": "API key is required"}), 400
     try:
-        token = ts.dumps(api_key, salt='api-key-salt') # 加密 API Key
+        token = ts.dumps(api_key, salt=API_KEY_SALT) # 加密 API Key
         return jsonify({"message": "API key set successfully", "token": token}), 200
     except Exception as e:
         print(f"Token generation error: {e}")
@@ -113,8 +114,8 @@ def get_api_key():
         raise ApiKeyMissingError("Token is missing from query parameters. (token=...).")
 
     try:
-        # 解密 Token，设置有效期为 1 天 (86400 秒)
-        api_key = ts.loads(token, salt='api-key-salt', max_age=86400)
+        # 解密 Token，设置有效期为 30 天 (2592000 秒)
+        api_key = ts.loads(token, salt=API_KEY_SALT, max_age=2592000)
         return api_key
     except SignatureExpired:
         raise ApiKeyMissingError("Token has expired. Please re-enter API Key.")

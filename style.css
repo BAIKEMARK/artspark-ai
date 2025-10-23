@@ -531,7 +531,7 @@ body.showing-home #home-view .hero-gallery {
 .style-desc { text-align: center; margin-top: 15px; font-style: italic; color: var(--secondary-color); }
 
 /* 14. 问答结果 */
-#qa-result { white-space: pre-wrap; line-height: 1.8; font-size: 1.05rem; color: var(--dark-text); }
+#qa-result { white-space: pre-wrap; line-height: 1.8; font-size: 1.05rem; color: var(--dark-text); text-align: left;}
 
 /* 15. 创意灵感卡片 */
 #ideas-result { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; }
