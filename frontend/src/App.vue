@@ -1,86 +1,77 @@
 <template>
-  <div id="vue-app" :class="bodyClass">
+  <el-container id="vue-app" :class="bodyClass">
     <ApiKeyModal v-if="!isLoggedIn"
                  @save-api-key="saveApiKey"
                  :is-verifying="isVerifyingApiKey"
                  :api-error="apiKeyError"
     />
 
-    <TheNavbar :nav-items="navItems"
-               :active-view="activeView"
-               @navigate="navigateTo"
-               @open-settings="isSettingsSidebarOpen = true"
-    />
-
-    <div id="main-content-wrapper">
-      <HomeView v-if="activeView === 'home-view'"
-                :hero-slides="heroSlides"
-                :feature-cards="featureCards"
-                @navigate="navigateTo"
+    <el-header class="app-header">
+      <TheNavbar :nav-items="navItems"
+                 :active-view="activeView"
+                 @navigate="navigateTo"
+                 @open-settings="isSettingsSidebarOpen = true"
       />
+    </el-header>
 
-      <main id="tool-content" class="view-panel" v-else>
-        <div id="tool-panels-wrapper">
-          <div id="feature-panels">
-            <!-- 动态组件来显示不同的工具 -->
-            <component :is="currentToolComponent"
-                       :files="files"
-                       :previews="previews"
-                       @file-change="handleFileChange"
-            />
-          </div>
+    <el-container class="main-content-container" :class="{ 'centered-layout': activeView !== 'home-view' }">
+
+      <el-main :style="mainStyle">
+        <HomeView v-if="activeView === 'home-view'"
+                  :hero-slides="heroSlides"
+                  :feature-cards="featureCards"
+                  @navigate="navigateTo"
+        />
+        <div id="tool-content" class="view-panel" v-else>
+          <component :is="currentToolComponent" />
         </div>
-        <aside id="contextual-sidebar" v-if="activeView !== 'home-view'">
-          <div id="dynamic-sidebar-content" v-html="sidebarContentHTML"></div>
-        </aside>
-      </main>
-    </div>
+      </el-main>
 
-    <TheFooter v-if="isLoggedIn" />
+      <el-aside width="300px" class="contextual-sidebar" v-if="activeView !== 'home-view'" style="padding: 20px 20px 0 0;">
+        <div id="dynamic-sidebar-content" v-html="sidebarContentHTML"></div>
+      </el-aside>
+    </el-container>
+
+    <el-footer v-if="isLoggedIn" class="app-footer">
+      <TheFooter />
+    </el-footer>
 
     <SettingsSidebar :is-open="isSettingsSidebarOpen"
-                     :ai-settings="aiSettings"
-                     @update:ai-settings="settingsStore.updateSettings"
                      @close="isSettingsSidebarOpen = false"
     />
-  </div>
+  </el-container>
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, defineAsyncComponent } from 'vue';
+import { ref, computed, onMounted, defineAsyncComponent } from 'vue';
 import { useAuthStore } from './stores/auth';
 import { useSettingsStore } from './stores/settings';
 import { storeToRefs } from 'pinia';
 
-// 导入组件
+// 导入组件 (路径将很快更新)
 import ApiKeyModal from './components/ApiKeyModal.vue';
 import TheNavbar from './components/TheNavbar.vue';
 import HomeView from './views/HomeView.vue';
 import TheFooter from './components/TheFooter.vue';
 import SettingsSidebar from './components/SettingsSidebar.vue';
 
+// 图片存放在 `public/img`，应使用绝对路径 `/img/...`
+
 const authStore = useAuthStore();
-const { isLoggedIn, token } = storeToRefs(authStore);
+const { isLoggedIn } = storeToRefs(authStore);
 
 const settingsStore = useSettingsStore();
 
 const isVerifyingApiKey = ref(false);
 const apiKeyError = ref('');
 
-
 const activeView = ref('home-view');
 const isSettingsSidebarOpen = ref(false);
 
-const previews = reactive({
-  coloring: null, styleWorkshop: null, selfPortrait: null,
-  artFusionContent: null, artFusionStyle: null,
-});
-const files = reactive({
-  coloring: null, styleWorkshop: null, selfPortrait: null,
-  artFusionContent: null, artFusionStyle: null,
-});
+// 移除了 files 和 previews
 
 async function saveApiKey(apiKey) {
+  // ... (此函数保持不变)
   if (!apiKey) {
     apiKeyError.value = '请输入 API Key。';
     return;
@@ -88,36 +79,26 @@ async function saveApiKey(apiKey) {
   isVerifyingApiKey.value = true;
   apiKeyError.value = '';
   try {
-    // 1. 调用正确的后端端点: /api/set_key
     const response = await fetch('/api/set_key', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      // 2. 在 body 中发送原始 Key
       body: JSON.stringify({ api_key: apiKey }),
     });
-
     const data = await response.json();
-
     if (!response.ok) {
-      // 3. 从后端获取错误信息 (例如 "API Key 无效...")
       throw new Error(data.error || `验证失败: ${response.status}`);
     }
-
-    // 4. 验证成功, 从响应中获取加密的 token
     if (data.token) {
-      // 5. 使用加密的 token 登录
       authStore.login(data.token);
     } else {
       throw new Error('未收到Token，登录失败。');
     }
-
   } catch (error) {
     apiKeyError.value = error.message || 'API Key 验证失败，请重试。';
   } finally {
     isVerifyingApiKey.value = false;
   }
 }
-
 
 // --- 静态数据 ---
 const heroSlides = [
@@ -153,6 +134,14 @@ const sidebarContentData = {
 };
 
 // --- 计算属性 (Computed) ---
+
+const mainStyle = computed(() => {
+  if (activeView.value === 'home-view') {
+    return { padding: 0 };
+  }
+  return { padding: '20px 40px 0 20px' };
+});
+
 const bodyClass = computed(() => ({
   'showing-home': activeView.value === 'home-view',
   'showing-tools': activeView.value !== 'home-view'
@@ -185,36 +174,47 @@ const currentToolComponent = computed(() => {
   return toolComponentMap[activeView.value];
 });
 
-
 // --- 方法 (Methods) ---
 function navigateTo(targetId) {
   activeView.value = targetId;
   window.scrollTo(0, 0);
 }
 
-function handleFileChange(event, key) {
-  const file = event.target.files[0];
-  if (!file) {
-    files[key] = null;
-    previews[key] = null;
-    return;
-  }
-  files[key] = file;
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    previews[key] = e.target.result;
-  };
-  reader.readAsDataURL(file);
-}
+// 移除了 handleFileChange
 
 // --- 生命周期钩子 (Lifecycle Hooks) ---
 onMounted(() => {
   if (!isLoggedIn.value) {
+    // No action needed, modal will show
   } else {
     navigateTo('home-view');
   }
 });
 </script>
 
-<style>
+<style scoped>
+.app-header {
+  padding: 0;
+  height: var(--nav-height);
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  z-index: 100;
+}
+.main-content-container {
+  width: 100%;
+  flex-grow: 1;
+}
+.main-content-container.centered-layout {
+  max-width: 1260px;
+  margin: 0 auto;
+}
+.app-footer {
+  height: auto;
+  padding: 0;
+}
+#tool-content {
+  padding: 0;
+}
 </style>

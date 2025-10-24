@@ -1,44 +1,110 @@
 <template>
   <section id="art-fusion" class="feature-panel">
     <h2>艺术融合</h2>
-    <div class="form-group">
-      <label for="fusion-content-input">上传内容图片 (例如：你的宠物):</label>
-      <input type="file" id="fusion-content-input" accept="image/*" @change="emit('file-change', $event, 'artFusionContent')" />
-      <img id="fusion-content-preview" class="image-preview" :src="previews.artFusionContent" v-show="previews.artFusionContent" alt="内容预览" />
-    </div>
-    <div class="form-group">
-      <label for="fusion-style-input">上传风格图片 (例如：一张星空图):</label>
-      <input type="file" id="fusion-style-input" accept="image/*" @change="emit('file-change', $event, 'artFusionStyle')" />
-      <img id="fusion-style-preview" class="image-preview" :src="previews.artFusionStyle" v-show="previews.artFusionStyle" alt="风格预览" />
-    </div>
-    <button id="generate-fusion-btn" class="cta-btn" @click="generate" :disabled="isLoading">开始融合</button>
-    <div class="loader" v-if="isLoading"></div>
-    <p class="error-message">{{ error }}</p>
+    <el-form label-position="top" @submit.prevent="generate">
+      <el-form-item label="上传内容图片 (例如：你的宠物):">
+        <el-upload
+          action="#"
+          :auto-upload="false"
+          :on-change="handleContentFileChange"
+          :limit="1"
+          list-type="picture-card"
+        >
+          <div class="upload-demo-box">
+            <el-icon :size="28"><Upload /></el-icon>
+            <span>点击上传内容图</span>
+          </div>
+        </el-upload>
+      </el-form-item>
+      <el-form-item label="上传风格图片 (例如：一张星空图):">
+        <el-upload
+          action="#"
+          :auto-upload="false"
+          :on-change="handleStyleFileChange"
+          :limit="1"
+          list-type="picture-card"
+        >
+          <div class="upload-demo-box">
+            <el-icon :size="28"><Upload /></el-icon>
+            <span>点击上传风格图</span>
+          </div>
+        </el-upload>
+      </el-form-item>
+      <el-form-item>
+        <el-button
+          type="primary"
+          @click="generate"
+          :loading="isLoading"
+          style="width: 100%;"
+        >
+          开始融合
+        </el-button>
+      </el-form-item>
+    </el-form>
+
+    <el-alert
+      v-if="error"
+      :title="error"
+      type="error"
+      show-icon
+      :closable="false"
+      style="margin-top: 20px;"
+    />
+
     <ImageResult v-if="result?.imageUrl" :image-url="result.imageUrl" alt-text="艺术融合作品" filename="art-fusion.png" />
   </section>
 </template>
 
 <script setup>
+import { ref } from 'vue';
 import { useAIApi } from '../composables/useAIApi.js';
 import ImageResult from '../components/ImageResult.vue';
+import { Upload } from '@element-plus/icons-vue'
 
-const props = defineProps({
-  files: Object,
-  previews: Object,
-});
-const emit = defineEmits(['file-change']);
+const contentFile = ref(null);
+const styleFile = ref(null);
 
 const { isLoading, error, result, execute, fileToBase64 } = useAIApi('/api/art-fusion', { initialResult: { imageUrl: null } });
 
+function handleContentFileChange(file) {
+  contentFile.value = file.raw;
+}
+
+function handleStyleFileChange(file) {
+  styleFile.value = file.raw;
+}
+
 async function generate() {
-  if (!props.files.artFusionContent) { error.value = '请上传内容图片'; return; }
-  if (!props.files.artFusionStyle) { error.value = '请上传风格图片'; return; }
+  if (!contentFile.value) {
+    error.value = '请上传内容图片';
+    return;
+  }
+  if (!styleFile.value) {
+    error.value = '请上传风格图片';
+    return;
+  }
 
   try {
-    const content_image = await fileToBase64(props.files.artFusionContent);
-    const style_image = await fileToBase64(props.files.artFusionStyle);
+    const content_image = await fileToBase64(contentFile.value);
+    const style_image = await fileToBase64(styleFile.value);
     await execute({ content_image, style_image });
   } catch (e) {
+    console.error(e);
   }
 }
 </script>
+<style scoped>
+.upload-demo-box {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  height: 100%;
+  color: var(--el-text-color-secondary);
+}
+.upload-demo-box span {
+  font-size: 13px;
+}
+</style>

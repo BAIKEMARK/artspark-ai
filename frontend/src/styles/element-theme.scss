@@ -1,0 +1,30 @@
+// frontend/src/styles/element-theme.scss
+
+// 1. 导入Element Plus的变量文件
+@forward 'element-plus/theme-chalk/src/common/var.scss' with (
+  // 2. 覆盖颜色变量
+  $colors: (
+    'primary': (
+      'base': #B8860B,
+    ),
+    'warning': (
+      'base': #B8860B,
+    ),
+    'danger': (
+      'base': #E74C3C,
+    ),
+    'success': (
+      'base': #2ECC71,
+    )
+  ),
+
+  // 3. 覆盖字体变量
+  // 直接使用字体堆栈，而不是CSS变量
+  $font-family: (
+    'sans-serif': ('Noto Sans SC', -apple-system, sans-serif),
+    'serif': ('Noto Serif SC', 'Source Serif Pro', serif)
+  )
+);
+
+// 4. 导入Element Plus的完整样式
+@use "element-plus/theme-chalk/src/index.scss" as *;
