@@ -1,10 +1,10 @@
 # 1. --- Python 基础镜像 ---
-FROM mshub-registry.cn-zhangjiakou.cr.aliyuncs.com/library/python:3.12-slim as python-base
+FROM python:3.10-slim as python-base
 # 设置工作目录
 WORKDIR /app
 
 # 2. --- Node.js 构建器 ---
-FROM mshub-registry.cn-zhangjiakou.cr.aliyuncs.com/library/node:20-slim as frontend-builder
+FROM node:alpine as frontend-builder
 WORKDIR /app/frontend
 # 复制 package 文件和 LOCK 文件
 COPY frontend/package.json ./
