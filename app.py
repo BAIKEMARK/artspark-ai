@@ -26,7 +26,8 @@ app = Flask(__name__)
 CORS(
     app,
     supports_credentials=True,
-    resources={r"/api/*": {"origins": ["http://localhost:63342", "http://127.0.0.1:63342"]}}
+    # [修改] 移除本地开发源，Vite代理将处理CORS
+    resources={r"/api/*": {"origins": "*" }} # 允许所有源，或更具体的生产环境源
 )
 
 app.config["SECRET_KEY"] = os.getenv("FLASK_SECRET_KEY")
@@ -270,32 +271,35 @@ def get_style_prompt_from_image(token, base64_image_url, vl_model_id):
 
     payload = {
         "model": vl_model_id,
-        "input": {
-            "messages": [
-                {
-                    "role": "system",
-                    "content": system_prompt,
-                },
-                {
-                    "role": "user",
-                    "content": [
-                        {"image": base64_image_url},
-                        {"text": user_text},
-                    ],
-                },
-            ]
-        },
-        "parameters": {"max_tokens": 300, "temperature": 0.6},
+        "messages": [
+            {
+                "role": "system",
+                "content": [{"type": "text", "text": system_prompt}],
+            },
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "image_url",
+                        "image_url": {"url": base64_image_url}, # 修正图片部分的结构
+                    },
+                    {"type": "text", "text": user_text},
+                ],
+            },
+        ],
+        "max_tokens": 300,
+        "temperature": 0.6,
     }
     response = requests.post(
-        f"{MODEL_SCOPE_BASE_URL}v1/services/aigc/multimodal-generation/generation",
+        f"{MODEL_SCOPE_BASE_URL}v1/chat/completions",
         headers=get_headers(token),
         json=payload,
     )
     response.raise_for_status()
     data = response.json()
-    if data.get("output"):
-        return data["output"]["choices"][0]["message"]["content"]
+
+    if data.get("choices") and data["choices"][0].get("message"):
+        return data["choices"][0]["message"]["content"]
     else:
         raise Exception(f"Qwen-VL API Error: {data.get('message', 'Unknown error')}")
 
@@ -734,21 +738,24 @@ def handle_gallery_departments():
         return jsonify({"error": f"Met API 错误: {str(e)}"}), 502
 
 # --- 4.5. 静态文件服务 (为 Docker 部署新增) ---
-@app.route('/')
-def serve_index():
-    return send_from_directory('.', 'index.html')
+# [修改] 在Vite开发模式下，这些路由不再需要，可以注释掉或删除
+# Vite的代理会处理API请求，Vite的开发服务器会处理静态文件
+# 在生产构建时，您可能需要一个Web服务器（如Nginx）来服务静态文件和代理API
+# @app.route('/')
+# def serve_index():
+#     return send_from_directory('.', 'index.html')
 
-@app.route('/style.css')
-def serve_css():
-    return send_from_directory('.', 'style.css')
+# @app.route('/style.css')
+# def serve_css():
+#     return send_from_directory('.', 'style.css')
 
-@app.route('/script.js')
-def serve_js():
-    return send_from_directory('.', 'script.js')
+# @app.route('/script.js')
+# def serve_js():
+#     return send_from_directory('.', 'script.js')
 
-@app.route('/img/<path:filename>')
-def serve_image(filename):
-    return send_from_directory('img', filename)
+# @app.route('/img/<path:filename>')
+# def serve_image(filename):
+#     return send_from_directory('img', filename)
 
 
 # --- 5. 启动服务器 ---
