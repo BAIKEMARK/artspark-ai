@@ -171,10 +171,10 @@ def get_api_key():
 def get_ai_config(data):
     """从请求数据中提取 AI 配置，并提供默认值"""
     config = {
-        "chat_model": data.get("config_chat_model", QWEN_LLM_ID),
-        "vl_model": data.get("config_vl_model", QWEN_VL_ID),
-        "image_model": data.get("config_image_model", FLUX_MODEL_ID),
-        "age_range": data.get("config_age_range", "6-8岁"), # 默认年龄
+        "chat_model": data.get("chat_model", QWEN_LLM_ID),
+        "vl_model": data.get("vl_model", QWEN_VL_ID),
+        "image_model": data.get("image_model", FLUX_MODEL_ID),
+        "age_range": data.get("age_range", "6-8岁"),
     }
     return config
 
@@ -688,7 +688,6 @@ def handle_gallery_search():
 
         # 3. 只获取前 20 个作品的详细信息
         artworks = []
-        # [修改] 我们只取前20个ID
         for obj_id in object_ids[:20]:
             try:
                 obj_url = f"{MET_API_BASE}/objects/{obj_id}"
