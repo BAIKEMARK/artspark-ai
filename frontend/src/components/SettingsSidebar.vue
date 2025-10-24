@@ -49,7 +49,7 @@
 </template>
 
 <script setup>
-import { useSettingsStore } from '../stores/settings';
+import { useSettingsStore } from '../stores/settings.js';
 import { storeToRefs } from 'pinia';
 
 // 1. 定义 props，只接收 isOpen

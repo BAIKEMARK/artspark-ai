@@ -19,8 +19,8 @@
 
 <script setup>
 import { ref } from 'vue';
-import { useAIApi } from '../../composables/useAIApi.js';
-import ImageResult from '../common/ImageResult.vue';
+import { useAIApi } from '../composables/useAIApi.js';
+import ImageResult from '../components/ImageResult.vue';
 
 const props = defineProps({
   files: Object,

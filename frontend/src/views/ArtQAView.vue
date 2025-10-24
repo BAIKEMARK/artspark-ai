@@ -14,7 +14,7 @@
 
 <script setup>
 import { ref, computed } from 'vue';
-import { useAIApi } from '../../composables/useAIApi.js';
+import { useAIApi } from '../composables/useAIApi.js';
 
 const question = ref('');
 const { isLoading, error, result, execute } = useAIApi('/api/ask-question');
