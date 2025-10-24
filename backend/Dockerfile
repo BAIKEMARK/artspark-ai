@@ -1,26 +1,30 @@
+# 1. --- Python 基础镜像 ---
 FROM python:3.12-slim as python-base
+# 设置工作目录
+WORKDIR /app
 
-# 2. --- Frontend Builder ---
+# 2. --- Node.js 构建器 ---
 FROM node:20-slim as frontend-builder
 WORKDIR /app/frontend
-COPY frontend/package.json ./
-COPY frontend/package-lock.json ./
+# 复制 package 文件并安装依赖 (利用缓存)
+COPY frontend/package*.json ./
 RUN npm install
-COPY frontend./
+# 复制所有前端代码并构建
+COPY frontend/. .
 RUN npm run build
 
-# 3. --- Final Application Image ---
+# 3. --- 最终的 Python 应用镜像 ---
 FROM python-base
-WORKDIR /app
-# Copy backend code from the context
-COPY backend/ ./backend/
-# Copy built frontend from the builder stage
+# 复制后端依赖文件并安装
+COPY backend/requirements.txt ./backend/
+RUN pip install --no-cache-dir -r backend/requirements.txt
+
+# 复制后端代码
+COPY backend/. ./backend/
+# 从构建器阶段复制前端静态文件
 COPY --from=frontend-builder /app/frontend/dist ./frontend/dist/
 
-# Install Python dependencies
-WORKDIR /app/backend
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Expose port and run the application
+# 暴露端口
 EXPOSE 7860
-CMD ["python", "app.py"]
+
+CMD ["gunicorn", "--bind", "0.0.0.0:7860", "--chdir", "backend", "app:app"]

@@ -240,7 +240,5 @@ onMounted(async () => {
 </script>
 
 <style>
-/* 将 style.css 的内容移动到这里或保持为单独的CSS文件 */
-/* 为了简洁，我们假设 style.css 已经被 main.js 导入 */
 </style>
 

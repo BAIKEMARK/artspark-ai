@@ -121,8 +121,34 @@ h2 { font-family: var(--font-serif); border-bottom: 2px solid var(--accent-color
 /* 9.5 侧边栏表单样式 */
 .form-group-sidebar { margin-bottom: 12px; }
 .form-group-sidebar label { display: block; font-size: 0.85rem; font-weight: 500; color: var(--secondary-color); margin-bottom: 4px; }
-.form-group-sidebar select { width: 100%; padding: 6px 8px; border: 2px solid var(--border-color); border-radius: 6px; background-color: var(--light-bg); font-size: 0.9rem; font-family: var(--font-sans); }
-.form-group-sidebar select:focus { border-color: var(--primary-color); outline: none; background-color: #fff; }
+.form-group-sidebar select {
+    width: 100%;
+    padding: 8px 12px; /* 调整内边距 */
+    border: 1px solid #DCDFE6; /* 使用更清晰的边框颜色 */
+    border-radius: 6px;
+    background-color: #fff; /* 默认使用白色背景 */
+    font-size: 0.9rem;
+    font-family: var(--font-sans);
+    -webkit-appearance: none; /* 移除默认外观 */
+    -moz-appearance: none;
+    appearance: none;
+    /* 自定义下拉箭头 */
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+    background-position: right 0.5rem center;
+    background-repeat: no-repeat;
+    background-size: 1.5em 1.5em;
+    padding-right: 2.5rem; /* 为箭头留出空间 */
+    transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out; /* 添加过渡效果 */
+}
+.form-group-sidebar select:hover {
+    border-color: #C0C4CC; /* 悬停时边框颜色加深 */
+}
+.form-group-sidebar select:focus {
+    border-color: var(--primary-color);
+    outline: none;
+    background-color: #fff;
+    box-shadow: 0 0 0 2px rgba(52, 73, 94, 0.2); /* 添加 focus 状态的外发光效果 */
+}
 
 /* 10. 主按钮 */
 .cta-btn { padding: 10px 20px; background-color: var(--accent-color); color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 1rem; font-weight: 500; transition: all 0.3s ease; box-shadow: 0 4px 12px rgba(184, 134, 11, 0.2); }
