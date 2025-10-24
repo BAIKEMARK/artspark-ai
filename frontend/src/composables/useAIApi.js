@@ -1,11 +1,14 @@
 import { ref } from 'vue';
-
-const AUTH_TOKEN_KEY = 'art_spark_auth_token';
+import { useAuthStore } from '../stores/auth';
+import { useSettingsStore } from '../stores/settings';
 
 export function useAIApi(endpoint, options = {}) {
   const isLoading = ref(false);
   const error = ref('');
   const result = ref(options.initialResult || null);
+
+  const authStore = useAuthStore();
+  const settingsStore = useSettingsStore();
 
   const fileToBase64 = (file) => {
     return new Promise((resolve, reject) => {
@@ -16,39 +19,36 @@ export function useAIApi(endpoint, options = {}) {
     });
   };
 
-  const execute = async (body, aiSettings) => {
+  const execute = async (body) => {
     isLoading.value = true;
     error.value = '';
     result.value = options.initialResult || null;
 
-    const token = localStorage.getItem(AUTH_TOKEN_KEY);
-    if (!token) {
+    if (!authStore.isLoggedIn) {
       error.value = '您尚未登录。';
       isLoading.value = false;
-      // 在组件中监听此错误并调用 showApiKeyModal
-      throw new Error('unauthorized');
+      authStore.logout(); // Ensure state is clean
+      return;
     }
 
     try {
       const fullBody = {
         ...body,
-        config_chat_model: aiSettings.chat_model,
-        config_vl_model: aiSettings.vl_model,
-        config_image_model: aiSettings.image_model,
-        config_age_range: aiSettings.age_range,
+        ...settingsStore.aiSettings,
       };
 
-      const response = await fetch(`${endpoint}?token=${encodeURIComponent(token)}`, {
+      const response = await fetch(`${endpoint}?token=${encodeURIComponent(authStore.token)}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(fullBody),
       });
 
       if (!response.ok) {
-        const errData = await response.json();
         if (response.status === 401) {
-          throw new Error('unauthorized');
+          authStore.logout();
+          throw new Error('API Key 无效或已过期，请重新登录。');
         }
+        const errData = await response.json();
         throw new Error(errData.error || `请求失败: ${response.status}`);
       }
 
@@ -56,9 +56,6 @@ export function useAIApi(endpoint, options = {}) {
       return result.value;
     } catch (e) {
       error.value = `生成失败: ${e.message}`;
-      if (e.message === 'unauthorized') {
-        throw e; // 重新抛出，以便组件可以处理
-      }
     } finally {
       isLoading.value = false;
     }
@@ -72,4 +69,3 @@ export function useAIApi(endpoint, options = {}) {
     fileToBase64,
   };
 }
-

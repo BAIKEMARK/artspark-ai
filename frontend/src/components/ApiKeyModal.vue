@@ -8,11 +8,10 @@
           type="password"
           id="api-key-input"
           placeholder="在此输入您的访问令牌"
-          :value="apiKeyInput"
-          @input="$emit('update:apiKeyInput', $event.target.value)"
-          @keyup.enter="$emit('save-api-key')"
+          v-model="apiKeyInput"
+          @keyup.enter="handleSaveApiKey"
         />
-        <button id="save-key-btn" @click="$emit('save-api-key')" :disabled="isVerifyingApiKey">
+        <button id="save-key-btn" @click="handleSaveApiKey" :disabled="isVerifyingApiKey">
           {{ isVerifyingApiKey ? '验证中...' : '进入美术馆' }}
         </button>
         <p id="api-error" class="error-message">{{ apiKeyError }}</p>
@@ -23,13 +22,23 @@
 </template>
 
 <script setup>
-defineProps({
-  apiKeyModal: Object,
-  isVerifyingApiKey: Boolean,
-  apiKeyError: String,
-  apiKeyInput: String,
-});
+import { ref } from 'vue';
+import { useAuthStore } from '../stores/auth';
 
-defineEmits(['update:apiKeyInput', 'save-api-key']);
+const authStore = useAuthStore();
+
+const apiKeyInput = ref('');
+const isVerifyingApiKey = ref(false);
+const apiKeyError = ref('');
+
+const apiKeyModal = {
+  title: '欢迎来到 艺启智AI',
+  description: '请输入您的ModelScope API KEY以激活助教功能。'
+};
+
+const emit = defineEmits(['save-api-key']);
+
+const handleSaveApiKey = () => {
+  emit('save-api-key', apiKeyInput.value);
+};
 </script>
-
