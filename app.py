@@ -650,17 +650,27 @@ MET_API_BASE = "https://collectionapi.metmuseum.org/public/collection/v1"
 def handle_gallery_search():
     try:
         data = request.json
-        search_term = data.get("q", "*")  # 搜索词
-        department_id = data.get("departmentId")  # 部门ID
 
         # 1. 构建搜索参数
         search_params = {
-            "q": search_term,
-            "hasImages": "true",  # 只搜索有图的
-            "isPublicDomain": "true",  # 只搜索公共领域的
+            "q": data.get("q", "*"), # 从辅助搜索框获取
+            "hasImages": "true",
+            "isPublicDomain": "true"
         }
-        if department_id:
-            search_params["departmentId"] = department_id
+
+        # 动态添加所有筛选条件
+        if data.get("departmentId"):
+            search_params["departmentId"] = data.get("departmentId")
+        if data.get("isHighlight"):
+            search_params["isHighlight"] = data.get("isHighlight")
+        if data.get("medium"):
+            search_params["medium"] = data.get("medium")
+        if data.get("geoLocation"):
+            search_params["geoLocation"] = data.get("geoLocation")
+        if data.get("dateBegin"):
+            search_params["dateBegin"] = data.get("dateBegin")
+        if data.get("dateEnd"):
+            search_params["dateEnd"] = data.get("dateEnd")
 
         # 2. 调用搜索 API (获取 Object IDs)
         search_url = f"{MET_API_BASE}/search"
@@ -672,10 +682,10 @@ def handle_gallery_search():
         if not object_ids:
             return jsonify({"artworks": [], "total": 0})
 
-        # 3. 只获取前 12 个作品的详细信息
+        # 3. 只获取前 20 个作品的详细信息
         artworks = []
-        # [修改] 我们只取前12个ID
-        for obj_id in object_ids[:12]:
+        # [修改] 我们只取前20个ID
+        for obj_id in object_ids[:20]:
             try:
                 obj_url = f"{MET_API_BASE}/objects/{obj_id}"
                 obj_res = requests.get(obj_url, timeout=5)

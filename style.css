@@ -302,31 +302,71 @@ footer { width: 100%; background: var(--secondary-color); color: rgba(255, 255, 
     margin-bottom: 18px;
 }
 
-/* 17. 艺术画廊卡片 */
-.gallery-filters {
+/* 17. 艺术画廊筛选 */
+
+/* 标签组 */
+.gallery-tag-groups {
+    margin-top: 10px;
+    margin-bottom: 25px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 10px 15px;
+}
+.tag-group {
     display: flex;
     flex-wrap: wrap;
-    gap: 15px;
-    align-items: flex-end; /* 关键：对齐输入框和按钮 */
-    margin-bottom: 25px;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+    padding-bottom: 10px;
+    border-bottom: 1px dashed var(--border-color);
 }
-.gallery-filters .filter-item {
-    display: flex;
-    flex-direction: column;
+.tag-group:last-child {
+    margin-bottom: 0;
+    border-bottom: none;
+    padding-bottom: 0;
 }
-.gallery-filters label {
+.tag-group h4 {
+    margin: 0;
     font-size: 0.9rem;
     font-weight: 500;
     color: var(--secondary-color);
-    margin-bottom: 5px;
+    width: 100px; /* 对齐标题 */
 }
-.gallery-filters input, .gallery-filters select {
-    margin-top: 0;
-    max-width: 250px;
+/* 标签按钮 */
+.tag-btn {
+    padding: 5px 12px;
+    font-size: 0.85rem;
+    background: #fff;
+    border: 1px solid var(--border-color);
+    border-radius: 20px; /* 胶囊形状 */
+    cursor: pointer;
+    color: var(--dark-text);
+    transition: all 0.2s ease;
 }
-.gallery-filters .cta-btn {
-    margin-bottom: 0; /* 移除按钮的默认 margin-bottom */
+.tag-btn:hover {
+    background: var(--light-bg);
+    border-color: #ccc;
 }
+.tag-btn.active {
+    background: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+    font-weight: 500;
+}
+
+/* 辅助搜索 */
+.gallery-aux-search {
+    margin-top: 20px;
+}
+.gallery-aux-search label {
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+#search-gallery-btn .icon {
+    margin-right: 8px;
+}
+
 
 /* 艺术画廊结果 */
 #gallery-result {

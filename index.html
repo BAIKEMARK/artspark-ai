@@ -109,25 +109,56 @@
                     </section>
 
                     <section id="art-gallery" class="feature-panel hidden">
-                    <h2>艺术画廊 (Met Museum)</h2>
-                    <div class="form-group gallery-filters">
-                        <div class="filter-item">
-                            <label for="gallery-search-input">关键词:</label>
-                            <input type="text" id="gallery-search-input" placeholder="例如：Monet, cat, Japan">
-                        </div>
-                        <div class="filter-item">
-                            <label for="gallery-department-select">展厅:</label>
+                        <h2>艺术画廊 (Met Museum)</h2>
+
+                        <div class="form-group">
+                            <label for="gallery-department-select">第一步：选择一个展厅</label>
                             <select id="gallery-department-select">
                                 <option value="">所有展厅</option>
                                 </select>
                         </div>
-                        <button id="search-gallery-btn" class="cta-btn">搜索画廊</button>
-                    </div>
-                    <div id="gallery-loader" class="loader hidden"></div>
-                    <p id="gallery-error" class="error-message"></p>
-                    <div id="gallery-result" class="hidden">
+
+                        <div class="gallery-tag-groups">
+                            <div class="tag-group">
+                                <h4>热门筛选：</h4>
+                                <button class="tag-btn" data-filter-type="isHighlight" data-value="true">博物馆精选</button>
+                            </div>
+                            <div class="tag-group">
+                                <h4>时代：</h4>
+                                <button class="tag-btn" data-filter-type="dateRange" data-begin="1800" data-end="1900">19世纪 (印象派等)</button>
+                                <button class="tag-btn" data-filter-type="dateRange" data-begin="1400" data-end="1600">文艺复兴 (1400-1600)</button>
+                                <button class="tag-btn" data-filter-type="dateRange" data-begin="-1000" data-end="400">古典时期 (希腊/罗马)</button>
+                            </div>
+                            <div class="tag-group">
+                                <h4>媒介：</h4>
+                                <button class="tag-btn" data-filter-type="medium" data-value="Paintings">绘画</button>
+                                <button class="tag-btn" data-filter-type="medium" data-value="Sculpture">雕塑</button>
+                                <button class="tag-btn" data-filter-type="medium" data-value="Ceramics">陶瓷</button>
+                            </div>
+                            <div class="tag-group">
+                                <h4>地区：</h4>
+                                <button class="tag-btn" data-filter-type="geoLocation" data-value="China">中国</button>
+                                <button class="tag-btn" data-filter-type="geoLocation" data-value="Japan">日本</button>
+                                <button class="tag-btn" data-filter-type="geoLocation" data-value="Europe">欧洲</button>
+                                <button class="tag-btn" data-filter-type="geoLocation" data-value="Egypt">埃及</button>
+                            </div>
                         </div>
-                </section>
+
+                        <div class="form-group gallery-aux-search">
+                            <label for="gallery-search-input">辅助搜索 (可选):</label>
+                            <input type="text" id="gallery-search-input" placeholder="在以上筛选结果中搜索，例如：Monet, cat">
+                        </div>
+
+                        <button id="search-gallery-btn" class="cta-btn">
+                            <i class="icon ph-bold ph-magnifying-glass"></i>
+                            应用筛选并查看
+                        </button>
+
+                        <div id="gallery-loader" class="loader hidden"></div>
+                        <p id="gallery-error" class="error-message"></p>
+                        <div id="gallery-result" class="hidden">
+                            </div>
+                    </section>
 
                     <section id="style-workshop" class="feature-panel hidden">
                         <h2>创意风格工坊</h2>
