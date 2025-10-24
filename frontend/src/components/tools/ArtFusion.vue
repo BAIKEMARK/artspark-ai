@@ -23,11 +23,10 @@ import { useAIApi } from '../../composables/useAIApi.js';
 import ImageResult from '../common/ImageResult.vue';
 
 const props = defineProps({
-  aiSettings: Object,
   files: Object,
   previews: Object,
 });
-const emit = defineEmits(['file-change', 'show-api-key-modal']);
+const emit = defineEmits(['file-change']);
 
 const { isLoading, error, result, execute, fileToBase64 } = useAIApi('/api/art-fusion', { initialResult: { imageUrl: null } });
 
@@ -38,12 +37,8 @@ async function generate() {
   try {
     const content_image = await fileToBase64(props.files.artFusionContent);
     const style_image = await fileToBase64(props.files.artFusionStyle);
-    await execute({ content_image, style_image }, props.aiSettings);
+    await execute({ content_image, style_image });
   } catch (e) {
-    if (e.message === 'unauthorized') {
-      emit('show-api-key-modal', 'expired');
-    }
   }
 }
 </script>
-

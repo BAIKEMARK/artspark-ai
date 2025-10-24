@@ -26,9 +26,6 @@
 import { ref } from 'vue';
 import { useAIApi } from '../../composables/useAIApi.js';
 
-const props = defineProps({ aiSettings: Object });
-const emit = defineEmits(['show-api-key-modal']);
-
 const theme = ref('');
 const { isLoading, error, result, execute } = useAIApi('/api/generate-ideas', { initialResult: [] });
 
@@ -40,12 +37,9 @@ async function generate() {
   if (!theme.value) { error.value = '请输入灵感主题'; return; }
 
   try {
-    await execute({ theme: theme.value }, props.aiSettings);
+    await execute({ theme: theme.value });
   } catch (e) {
-    if (e.message === 'unauthorized') {
-      emit('show-api-key-modal', 'expired');
-    }
+    // Handle error if needed
   }
 }
 </script>
-

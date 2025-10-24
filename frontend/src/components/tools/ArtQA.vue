@@ -16,9 +16,6 @@
 import { ref, computed } from 'vue';
 import { useAIApi } from '../../composables/useAIApi.js';
 
-const props = defineProps({ aiSettings: Object });
-const emit = defineEmits(['show-api-key-modal']);
-
 const question = ref('');
 const { isLoading, error, result, execute } = useAIApi('/api/ask-question');
 
@@ -28,12 +25,8 @@ async function ask() {
   if (!question.value) { error.value = '请输入你的问题'; return; }
 
   try {
-    await execute({ question: question.value }, props.aiSettings);
+    await execute({ question: question.value });
   } catch (e) {
-    if (e.message === 'unauthorized') {
-      emit('show-api-key-modal', 'expired');
-    }
   }
 }
 </script>
-

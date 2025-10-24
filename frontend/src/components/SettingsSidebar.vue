@@ -49,15 +49,27 @@
 </template>
 
 <script setup>
+import { useSettingsStore } from '../stores/settings';
+import { storeToRefs } from 'pinia';
+
+// 1. 定义 props，只接收 isOpen
 const props = defineProps({
   isOpen: Boolean,
-  aiSettings: Object,
 });
 
-const emit = defineEmits(['close', 'update:aiSettings']);
+// 2. 定义 emits，只发送 close
+const emit = defineEmits(['close']);
 
+// 3. 导入 settings store
+const settingsStore = useSettingsStore();
+
+// 4. 从 store 中获取 aiSettings (使用 storeToRefs 保持响应性)
+const { aiSettings } = storeToRefs(settingsStore);
+
+// 5. 更新 updateSetting 函数，使其直接调用 store 的 action
 function updateSetting(key, value) {
-  const newSettings = { ...props.aiSettings, [key]: value };
-  emit('update:aiSettings', newSettings);
+  // 创建一个新对象来更新 store
+  const newSettings = { ...aiSettings.value, [key]: value };
+  settingsStore.updateSettings(newSettings);
 }
 </script>
