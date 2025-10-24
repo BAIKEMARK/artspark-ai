@@ -1,7 +1,0 @@
-flask
-flask_cors
-requests
-boto3
-python-dotenv
-gunicorn
-pillow
