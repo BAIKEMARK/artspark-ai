@@ -1,10 +1,6 @@
 <template>
   <div id="vue-app" :class="bodyClass">
     <ApiKeyModal v-if="!isLoggedIn"
-                 :api-key-modal="apiKeyModal"
-                 :is-verifying-api-key="isVerifyingApiKey"
-                 :api-key-error="apiKeyError"
-                 v-model:apiKeyInput="apiKeyInput"
                  @save-api-key="saveApiKey"
     />
 
@@ -26,11 +22,9 @@
           <div id="feature-panels">
             <!-- 动态组件来显示不同的工具 -->
             <component :is="currentToolComponent"
-                       :ai-settings="aiSettings"
                        :files="files"
                        :previews="previews"
                        @file-change="handleFileChange"
-                       @show-api-key-modal="showApiKeyModal"
             />
           </div>
         </div>
@@ -43,7 +37,8 @@
     <TheFooter v-if="isLoggedIn" />
 
     <SettingsSidebar :is-open="isSettingsSidebarOpen"
-                     v-model:aiSettings="aiSettings"
+                     :ai-settings="aiSettings"
+                     @update:ai-settings="settingsStore.updateSettings"
                      @close="isSettingsSidebarOpen = false"
     />
   </div>
@@ -51,6 +46,9 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted, defineAsyncComponent } from 'vue';
+import { useAuthStore } from './stores/auth';
+import { useSettingsStore } from './stores/settings';
+import { storeToRefs } from 'pinia';
 
 // 导入组件
 import ApiKeyModal from './components/ApiKeyModal.vue';
@@ -59,26 +57,22 @@ import HomeView from './components/HomeView.vue';
 import TheFooter from './components/TheFooter.vue';
 import SettingsSidebar from './components/SettingsSidebar.vue';
 
-const AUTH_TOKEN_KEY = 'art_spark_auth_token';
+const authStore = useAuthStore();
+const { isLoggedIn, token } = storeToRefs(authStore);
 
-// --- 状态 (State) ---
-const isLoggedIn = ref(false);
+const settingsStore = useSettingsStore();
+const { aiSettings } = storeToRefs(settingsStore);
+
+function updateSettings(newSettings) {
+  settingsStore.updateSettings(newSettings);
+}
+
 const isVerifyingApiKey = ref(false);
-const apiKeyInput = ref('');
 const apiKeyError = ref('');
-const apiKeyModal = reactive({
-  title: '欢迎来到 艺启智AI',
-  description: '请输入您的ModelScope API KEY以激活助教功能。'
-});
+
+
 const activeView = ref('home-view');
 const isSettingsSidebarOpen = ref(false);
-
-const aiSettings = reactive({
-  chat_model: 'Qwen/Qwen3-30B-A3B-Instruct-2507',
-  vl_model: 'Qwen/Qwen3-VL-8B-Instruct',
-  image_model: 'black-forest-labs/FLUX.1-Krea-dev',
-  age_range: '6-8岁',
-});
 
 const previews = reactive({
   coloring: null, styleWorkshop: null, selfPortrait: null,
@@ -88,6 +82,22 @@ const files = reactive({
   coloring: null, styleWorkshop: null, selfPortrait: null,
   artFusionContent: null, artFusionStyle: null,
 });
+
+async function saveApiKey(apiKey) {
+  isVerifyingApiKey.value = true;
+  apiKeyError.value = '';
+  try {
+    // Here you would typically verify the API key with your backend
+    // For this example, we'll just simulate a successful verification
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    authStore.login(apiKey);
+  } catch (error) {
+    apiKeyError.value = 'API Key 验证失败，请重试。';
+  } finally {
+    isVerifyingApiKey.value = false;
+  }
+}
+
 
 // --- 静态数据 ---
 const heroSlides = [
@@ -151,62 +161,6 @@ const currentToolComponent = computed(() => toolComponentMap[activeView.value] |
 
 
 // --- 方法 (Methods) ---
-async function checkTokenValidity() {
-  const token = localStorage.getItem(AUTH_TOKEN_KEY);
-  if (!token) return false;
-  try {
-    const response = await fetch(`/api/check_key?token=${encodeURIComponent(token)}`);
-    if (response.ok) return true;
-    localStorage.removeItem(AUTH_TOKEN_KEY);
-    return false;
-  } catch (error) {
-    console.error("Error during token validity check:", error);
-    return false;
-  }
-}
-
-async function saveApiKey() {
-  if (!apiKeyInput.value.trim()) {
-    apiKeyError.value = 'API KEY 不能为空';
-    return;
-  }
-  isVerifyingApiKey.value = true;
-  apiKeyError.value = '';
-  try {
-    const response = await fetch(`/api/set_key`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ api_key: apiKeyInput.value.trim() }),
-    });
-    const result = await response.json();
-    if (!response.ok) throw new Error(result.error || '设置Key失败');
-    if (result.token) {
-      localStorage.setItem(AUTH_TOKEN_KEY, result.token);
-      isLoggedIn.value = true;
-      apiKeyError.value = '';
-      navigateTo('home-view');
-    } else {
-      throw new Error('未能从服务器获取 Token');
-    }
-  } catch (error) {
-    apiKeyError.value = `错误: ${error.message}`;
-  } finally {
-    isVerifyingApiKey.value = false;
-  }
-}
-
-function showApiKeyModal(reason = 'initial') {
-  if (reason === 'expired' || reason === 'invalid') {
-    apiKeyModal.title = 'API Key 已失效';
-    apiKeyModal.description = '您的API Key已过期或无效。请重新输入以继续使用。';
-  } else {
-    apiKeyModal.title = '欢迎来到 艺启智AI';
-    apiKeyModal.description = '请输入您的ModelScope API KEY以激活助教功能。';
-  }
-  isLoggedIn.value = false;
-  localStorage.removeItem(AUTH_TOKEN_KEY);
-}
-
 function navigateTo(targetId) {
   activeView.value = targetId;
   window.scrollTo(0, 0);
@@ -228,17 +182,14 @@ function handleFileChange(event, key) {
 }
 
 // --- 生命周期钩子 (Lifecycle Hooks) ---
-onMounted(async () => {
-  const hasValidToken = await checkTokenValidity();
-  if (hasValidToken) {
-    isLoggedIn.value = true;
-    navigateTo('home-view');
+onMounted(() => {
+  if (!isLoggedIn.value) {
+    // If not logged in, stay on the default view which shows the modal
   } else {
-    showApiKeyModal('initial');
+    navigateTo('home-view');
   }
 });
 </script>
 
 <style>
 </style>
-

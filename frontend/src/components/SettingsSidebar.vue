@@ -61,4 +61,3 @@ function updateSetting(key, value) {
   emit('update:aiSettings', newSettings);
 }
 </script>
-

@@ -21,13 +21,17 @@
 import { ref } from 'vue';
 import { useAIApi } from '../../composables/useAIApi.js';
 import ImageResult from '../common/ImageResult.vue';
+import { useSettingsStore } from '../../stores/settings.js';
+import { storeToRefs } from 'pinia';
 
 const props = defineProps({
-  aiSettings: Object,
   files: Object,
   previews: Object,
 });
-const emit = defineEmits(['file-change', 'show-api-key-modal']);
+const emit = defineEmits(['file-change']);
+
+const settingsStore = useSettingsStore();
+const { aiSettings } = storeToRefs(settingsStore);
 
 const prompt = ref('');
 const { isLoading, error, result, execute, fileToBase64 } = useAIApi('/api/colorize-lineart', { initialResult: { imageUrl: null } });
@@ -38,12 +42,9 @@ async function generate() {
 
   try {
     const base64_image = await fileToBase64(props.files.coloring);
-    await execute({ base64_image, prompt: prompt.value }, props.aiSettings);
+    await execute({ base64_image, prompt: prompt.value });
   } catch (e) {
-    if (e.message === 'unauthorized') {
-      emit('show-api-key-modal', 'expired');
-    }
+    // Error handling is now done in useAIApi
   }
 }
 </script>
-
