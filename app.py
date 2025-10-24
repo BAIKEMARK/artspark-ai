@@ -270,32 +270,35 @@ def get_style_prompt_from_image(token, base64_image_url, vl_model_id):
 
     payload = {
         "model": vl_model_id,
-        "input": {
-            "messages": [
-                {
-                    "role": "system",
-                    "content": system_prompt,
-                },
-                {
-                    "role": "user",
-                    "content": [
-                        {"image": base64_image_url},
-                        {"text": user_text},
-                    ],
-                },
-            ]
-        },
-        "parameters": {"max_tokens": 300, "temperature": 0.6},
+        "messages": [
+            {
+                "role": "system",
+                "content": [{"type": "text", "text": system_prompt}],
+            },
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "image_url",
+                        "image_url": {"url": base64_image_url}, # 修正图片部分的结构
+                    },
+                    {"type": "text", "text": user_text},
+                ],
+            },
+        ],
+        "max_tokens": 300,
+        "temperature": 0.6,
     }
     response = requests.post(
-        f"{MODEL_SCOPE_BASE_URL}v1/services/aigc/multimodal-generation/generation",
+        f"{MODEL_SCOPE_BASE_URL}v1/chat/completions",
         headers=get_headers(token),
         json=payload,
     )
     response.raise_for_status()
     data = response.json()
-    if data.get("output"):
-        return data["output"]["choices"][0]["message"]["content"]
+
+    if data.get("choices") and data["choices"][0].get("message"):
+        return data["choices"][0]["message"]["content"]
     else:
         raise Exception(f"Qwen-VL API Error: {data.get('message', 'Unknown error')}")
 
