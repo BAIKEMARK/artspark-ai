@@ -6,9 +6,11 @@ WORKDIR /app
 # 2. --- Node.js 构建器 ---
 FROM node:20-slim as frontend-builder
 WORKDIR /app/frontend
-# 复制 package 文件并安装依赖
-COPY frontend/package*.json ./
-RUN npm install
+# 复制 package 文件和 LOCK 文件
+COPY frontend/package.json ./
+COPY frontend/package-lock.json ./
+# 使用 npm ci (Clean Install)
+RUN npm ci
 # 复制所有前端代码并构建
 COPY frontend/. ./
 RUN npm run build
