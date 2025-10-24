@@ -19,9 +19,9 @@
 
 <script setup>
 import { ref } from 'vue';
-import { useAIApi } from '../../composables/useAIApi.js';
-import ImageResult from '../common/ImageResult.vue';
-import { useSettingsStore } from '../../stores/settings.js';
+import { useAIApi } from '../composables/useAIApi.js';
+import ImageResult from '../components/ImageResult.vue';
+import { useSettingsStore } from '../stores/settings.js';
 import { storeToRefs } from 'pinia';
 
 const props = defineProps({

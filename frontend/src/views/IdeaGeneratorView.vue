@@ -24,7 +24,7 @@
 
 <script setup>
 import { ref } from 'vue';
-import { useAIApi } from '../../composables/useAIApi.js';
+import { useAIApi } from '../composables/useAIApi.js';
 
 const theme = ref('');
 const { isLoading, error, result, execute } = useAIApi('/api/generate-ideas', { initialResult: [] });
