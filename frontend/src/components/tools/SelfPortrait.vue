@@ -23,11 +23,10 @@ import { useAIApi } from '../../composables/useAIApi.js';
 import ImageResult from '../common/ImageResult.vue';
 
 const props = defineProps({
-  aiSettings: Object,
   files: Object,
   previews: Object,
 });
-const emit = defineEmits(['file-change', 'show-api-key-modal']);
+const emit = defineEmits(['file-change']);
 
 const style = ref('');
 const { isLoading, error, result, execute, fileToBase64 } = useAIApi('/api/self-portrait', { initialResult: { imageUrl: null } });
@@ -38,12 +37,8 @@ async function generate() {
 
   try {
     const base64_image = await fileToBase64(props.files.selfPortrait);
-    await execute({ base64_image, style_prompt: style.value }, props.aiSettings);
+    await execute({ base64_image, style_prompt: style.value });
   } catch (e) {
-    if (e.message === 'unauthorized') {
-      emit('show-api-key-modal', 'expired');
-    }
   }
 }
 </script>
-

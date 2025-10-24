@@ -38,11 +38,10 @@ import { ref, computed } from 'vue';
 import { useAIApi } from '../../composables/useAIApi.js';
 
 const props = defineProps({
-  aiSettings: Object,
   files: Object,
   previews: Object,
 });
-const emit = defineEmits(['file-change', 'show-api-key-modal']);
+const emit = defineEmits(['file-change']);
 
 const style = ref('梵高');
 const content = ref('');
@@ -58,12 +57,8 @@ async function generate() {
     if (props.files.styleWorkshop) {
       base64_image = await fileToBase64(props.files.styleWorkshop);
     }
-    await execute({ content: content.value, style: style.value, base64_image }, props.aiSettings);
+    await execute({ content: content.value, style: style.value, base64_image });
   } catch (e) {
-    if (e.message === 'unauthorized') {
-      emit('show-api-key-modal', 'expired');
-    }
   }
 }
 </script>
-

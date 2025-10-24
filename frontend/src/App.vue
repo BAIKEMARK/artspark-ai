@@ -2,6 +2,8 @@
   <div id="vue-app" :class="bodyClass">
     <ApiKeyModal v-if="!isLoggedIn"
                  @save-api-key="saveApiKey"
+                 :is-verifying="isVerifyingApiKey"
+                 :api-error="apiKeyError"
     />
 
     <TheNavbar :nav-items="navItems"
@@ -61,11 +63,6 @@ const authStore = useAuthStore();
 const { isLoggedIn, token } = storeToRefs(authStore);
 
 const settingsStore = useSettingsStore();
-const { aiSettings } = storeToRefs(settingsStore);
-
-function updateSettings(newSettings) {
-  settingsStore.updateSettings(newSettings);
-}
 
 const isVerifyingApiKey = ref(false);
 const apiKeyError = ref('');
@@ -84,15 +81,38 @@ const files = reactive({
 });
 
 async function saveApiKey(apiKey) {
+  if (!apiKey) {
+    apiKeyError.value = '请输入 API Key。';
+    return;
+  }
   isVerifyingApiKey.value = true;
   apiKeyError.value = '';
   try {
-    // Here you would typically verify the API key with your backend
-    // For this example, we'll just simulate a successful verification
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    authStore.login(apiKey);
+    // 1. 调用正确的后端端点: /api/set_key
+    const response = await fetch('/api/set_key', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      // 2. 在 body 中发送原始 Key
+      body: JSON.stringify({ api_key: apiKey }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      // 3. 从后端获取错误信息 (例如 "API Key 无效...")
+      throw new Error(data.error || `验证失败: ${response.status}`);
+    }
+
+    // 4. 验证成功, 从响应中获取加密的 token
+    if (data.token) {
+      // 5. 使用加密的 token 登录
+      authStore.login(data.token);
+    } else {
+      throw new Error('未收到Token，登录失败。');
+    }
+
   } catch (error) {
-    apiKeyError.value = 'API Key 验证失败，请重试。';
+    apiKeyError.value = error.message || 'API Key 验证失败，请重试。';
   } finally {
     isVerifyingApiKey.value = false;
   }
@@ -184,7 +204,6 @@ function handleFileChange(event, key) {
 // --- 生命周期钩子 (Lifecycle Hooks) ---
 onMounted(() => {
   if (!isLoggedIn.value) {
-    // If not logged in, stay on the default view which shows the modal
   } else {
     navigateTo('home-view');
   }
