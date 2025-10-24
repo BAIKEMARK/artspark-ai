@@ -10,11 +10,14 @@
   },
   "dependencies": {
     "@phosphor-icons/web": "^2.1.1",
+    "element-plus": "^2.11.5",
+    "marked": "^16.4.1",
     "pinia": "^3.0.3",
     "vue": "^3.4.21"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^6.0.1",
+    "sass-embedded": "^1.93.2",
     "vite": "^7.1.12"
   }
 }

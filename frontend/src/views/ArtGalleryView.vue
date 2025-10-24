@@ -2,52 +2,109 @@
   <section id="art-gallery" class="feature-panel">
     <h2>艺术画廊 (Met Museum)</h2>
 
-    <div class="form-group">
-      <label for="gallery-department-select">第一步：选择一个展厅</label>
-      <select id="gallery-department-select" v-model="filters.departmentId">
-        <option value="">所有展厅</option>
-        <option v-for="dept in departments" :key="dept.departmentId" :value="dept.departmentId">{{ dept.displayName }}</option>
-      </select>
-    </div>
+    <el-form label-position="top">
+      <el-form-item label="第一步：选择一个展厅">
+        <el-select
+          v-model="filters.departmentId"
+          placeholder="所有展厅"
+          style="width: 100%; max-width: 400px;"
+          filterable
+        >
+          <el-option value="">所有展厅</el-option>
+          <el-option v-for="dept in departments" :key="dept.departmentId" :label="dept.displayName" :value="dept.departmentId" />
+        </el-select>
+      </el-form-item>
+    </el-form>
 
-    <div class="gallery-tag-groups">
-      <div class="tag-group" v-for="group in tagGroups" :key="group.title">
-        <h4>{{ group.title }}：</h4>
-        <button v-for="tag in group.tags" :key="tag.label" class="tag-btn" :class="{ active: isTagActive(tag) }" @click="toggleTag(tag)">
-          {{ tag.label }}
-        </button>
-      </div>
-    </div>
-
-    <div class="form-group gallery-aux-search">
-      <label for="gallery-search-input">辅助搜索 (可选):</label>
-      <input type="text" id="gallery-search-input" placeholder="在以上筛选结果中搜索，例如：Monet, cat" v-model="filters.q" />
-    </div>
-
-    <button id="search-gallery-btn" class="cta-btn" @click="search" :disabled="isLoading">
-      <i class="icon ph-bold ph-magnifying-glass"></i>
-      应用筛选并查看
-    </button>
-
-    <div class="loader" v-if="isLoading"></div>
-    <p class="error-message">{{ error }}</p>
-    <div id="gallery-result" v-if="results.length > 0">
-      <div class="gallery-card" v-for="art in results" :key="art.id">
-        <img :src="art.imageUrl" :alt="art.title" loading="lazy" />
-        <div class="gallery-card-content">
-          <h3>{{ art.title }}</h3>
-          <p><strong>{{ art.artist || 'Unknown Artist' }}</strong></p>
-          <p>{{ art.date || 'N/A' }}</p>
-          <p><em>{{ art.medium || 'N/A' }}</em></p>
-          <a :href="art.metUrl" target="_blank" rel="noopener">查看详情</a>
+    <el-card shadow="never" class="tag-card-container">
+      <template #header>
+        <div class="card-header">
+          <span>第二步：快速筛选</span>
         </div>
+      </template>
+      <div v-for="group in tagGroups" :key="group.title" class="tag-group">
+        <el-text tag="h4" class="tag-group-title">{{ group.title }}：</el-text>
+        <el-space wrap>
+          <el-check-tag
+            v-for="tag in group.tags"
+            :key="tag.label"
+            :checked="isTagActive(tag)"
+            @change="toggleTag(tag)"
+          >
+            {{ tag.label }}
+          </el-check-tag>
+        </el-space>
       </div>
-    </div>
+    </el-card>
+
+    <el-form label-position="top" class="aux-search-form">
+      <el-form-item label="第三步：辅助搜索 (可选)">
+        <el-input
+          v-model="filters.q"
+          placeholder="在以上筛选结果中搜索，例如：Monet, cat"
+          clearable
+          style="max-width: 400px;"
+        />
+      </el-form-item>
+
+      <el-form-item>
+        <el-button
+          type="primary"
+          @click="search"
+          :loading="isLoading"
+          :icon="Search"
+          style="width: 100%; max-width: 400px;"
+        >
+          应用筛选并查看
+        </el-button>
+      </el-form-item>
+    </el-form>
+
+    <el-alert
+      v-if="error"
+      :title="error"
+      type="error"
+      show-icon
+      :closable="false"
+      style="margin-top: 20px;"
+    />
+
+    <el-row :gutter="20" id="gallery-result" v-if="results.length > 0">
+      <el-col
+        v-for="art in results"
+        :key="art.id"
+        :xs="24" :sm="12" :md="8"
+        style="margin-bottom: 20px;"
+      >
+        <el-card shadow="hover" :body-style="{ padding: '0px' }">
+          <el-image
+            :src="art.imageUrl"
+            :alt="art.title"
+            fit="cover"
+            lazy
+            :preview-src-list="[art.imageUrl]"
+            hide-on-click-modal
+            preview-teleported
+            style="width: 100%; height: 200px;"
+          />
+          <div class="gallery-card-content">
+            <h3>{{ art.title }}</h3>
+            <p><strong>{{ art.artist || 'Unknown Artist' }}</strong></p>
+            <p>{{ art.date || 'N/A' }}</p>
+            <p><em>{{ art.medium || 'N/A' }}</em></p>
+            <el-link type="primary" :href="art.metUrl" target="_blank" rel="noopener">
+              查看详情
+            </el-link>
+          </div>
+        </el-card>
+      </el-col>
+    </el-row>
   </section>
 </template>
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue';
+import { Search } from '@element-plus/icons-vue'; // 导入图标
 
 const departments = ref([]);
 const filters = reactive({ departmentId: '', q: '', activeTags: {} });
@@ -55,6 +112,7 @@ const isLoading = ref(false);
 const error = ref('');
 const results = ref([]);
 
+// ... (tagGroups 数组定义保持不变)
 const tagGroups = [
     { title: '热门筛选', tags: [{ label: '博物馆精选', type: 'isHighlight', value: 'true' }] },
     { title: '时代', tags: [
@@ -75,6 +133,7 @@ const tagGroups = [
     ]},
 ];
 
+// ... (loadDepartments, toggleTag, isTagActive, search 函数保持不变)
 async function loadDepartments() {
   try {
     const response = await fetch('/api/gallery/departments');
@@ -88,6 +147,7 @@ async function loadDepartments() {
 
 function toggleTag(tag) {
   const currentActiveTag = filters.activeTags[tag.type];
+  // ElCheckTag 的 @change 事件会触发，所以我们直接修改状态
   if (currentActiveTag && currentActiveTag.label === tag.label) {
     delete filters.activeTags[tag.type];
   } else {
@@ -132,7 +192,8 @@ async function search() {
     if (resultData.artworks.length === 0) {
       error.value = '没有找到符合条件的作品。';
     }
-  } catch (e) {
+  } catch (e)
+ {
     error.value = `搜索失败: ${e.message}`;
   } finally {
     isLoading.value = false;
@@ -142,3 +203,74 @@ async function search() {
 onMounted(loadDepartments);
 </script>
 
+<style scoped>
+/* 我们可以保留一些特定的样式，并移除 main.css 中的旧样式 */
+.tag-card-container {
+  margin-top: 10px;
+  margin-bottom: 25px;
+  background-color: #FDFDFD;
+}
+
+.card-header {
+  font-weight: 500;
+}
+
+.tag-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 15px;
+  padding-bottom: 15px;
+  border-bottom: 1px dashed var(--border-color);
+}
+.tag-group:last-child {
+  margin-bottom: 0;
+  border-bottom: none;
+  padding-bottom: 0;
+}
+.tag-group-title {
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--secondary-color);
+  width: 100px;
+}
+
+.aux-search-form {
+  margin-top: 20px;
+}
+
+/* 保持 main.css 中 gallery-card-content 的样式 */
+#gallery-result {
+  text-align: left;
+  margin-top: 20px;
+}
+.gallery-card-content {
+  padding: 15px;
+}
+.gallery-card-content h3 {
+  font-size: 1.1rem;
+  color: var(--secondary-color);
+  margin: 0 0 10px 0;
+  font-family: var(--font-serif);
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-height: 2.8em;
+}
+.gallery-card-content p {
+  font-size: 0.85rem;
+  color: #555;
+  margin: 4px 0;
+  line-height: 1.5;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.gallery-card-content p:last-of-type {
+  margin-bottom: 10px;
+}
+</style>

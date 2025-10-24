@@ -1,75 +1,74 @@
 <template>
-  <div>
-    <div class="settings-overlay" :class="{ active: isOpen }" @click="$emit('close')"></div>
-    <aside id="settings-sidebar" class="settings-sidebar" :class="{ active: isOpen }">
-      <div class="settings-sidebar-header">
-        <h3><i class="icon ph-bold ph-gear"></i> AI模型设置</h3>
-        <button id="settings-close-btn" class="settings-close-btn" aria-label="关闭设置" @click="$emit('close')">
-          <i class="icon ph-bold ph-x"></i>
-        </button>
-      </div>
-      <div class="settings-sidebar-content">
-        <div class="form-group-sidebar">
-          <label for="settings-sidebar-chat-model">对话模型:</label>
-          <select id="settings-sidebar-chat-model" :value="aiSettings.chat_model" @input="updateSetting('chat_model', $event.target.value)">
-            <option value="Qwen/Qwen3-30B-A3B-Instruct-2507">Qwen3-30B (推荐)</option>
-            <option value="Qwen/Qwen3-32B">Qwen/Qwen3-32B</option>
-            <option value="Qwen/Qwen3-235B-A22B-Instruct-2507">Qwen3-235B</option>
-            <option value="deepseek-ai/DeepSeek-V3.2-Exp">Deepseek-V3.2</option>
-          </select>
-        </div>
-        <div class="form-group-sidebar">
-          <label for="settings-sidebar-vl-model">识图模型:</label>
-          <select id="settings-sidebar-vl-model" :value="aiSettings.vl_model" @input="updateSetting('vl_model', $event.target.value)">
-            <option value="Qwen/Qwen3-VL-8B-Instruct">Qwen-VL-8B (推荐)</option>
-            <option value="Qwen/Qwen3-VL-30B-A3B-Instruct">Qwen3-VL-30B</option>
-          </select>
-        </div>
-        <div class="form-group-sidebar">
-          <label for="settings-sidebar-image-model">绘图模型:</label>
-          <select id="settings-sidebar-image-model" :value="aiSettings.image_model" @input="updateSetting('image_model', $event.target.value)">
-            <option value="black-forest-labs/FLUX.1-Krea-dev">FLUX.1-Krea (推荐)</option>
-            <option value="MusePublic/489_ckpt_FLUX_1">FLUX.1-dev</option>
-            <option value="MusePublic/Qwen-image">Qwen-image</option>
-          </select>
-        </div>
-        <div class="form-group-sidebar">
-          <label for="settings-sidebar-age-range">学生年龄:</label>
-          <select id="settings-sidebar-age-range" :value="aiSettings.age_range" @input="updateSetting('age_range', $event.target.value)">
-            <option value="6-8岁">6-8岁 (低年级)</option>
-            <option value="9-10岁">9-10岁 (中年级)</option>
-            <option value="11-12岁">11-12岁 (高年级)</option>
-            <option value="13-16岁">13-16岁 (初中)</option>
-            <option value="17-18岁">17-18岁 (高中)</option>
-          </select>
-        </div>
-      </div>
-    </aside>
-  </div>
+  <el-drawer
+    :model-value="isOpen"
+    title="AI模型设置"
+    direction="rtl"
+    @update:modelValue="$emit('close')"
+    size="320px"
+  >
+    <div class="settings-content">
+      <el-form label-position="top">
+        <el-form-item label="对话模型:">
+          <el-select v-model="aiSettings.chat_model" placeholder="请选择" style="width: 100%;">
+            <el-option label="Qwen3-30B (推荐)" value="Qwen/Qwen3-30B-A3B-Instruct-2507" />
+            <el-option label="Qwen/Qwen3-32B" value="Qwen/Qwen3-32B" />
+            <el-option label="Qwen3-235B" value="Qwen/Qwen3-235B-A22B-Instruct-2507" />
+            <el-option label="Deepseek-V3.2" value="deepseek-ai/DeepSeek-V3.2-Exp" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="识图模型:">
+          <el-select v-model="aiSettings.vl_model" placeholder="请选择" style="width: 100%;">
+            <el-option label="Qwen-VL-8B (推荐)" value="Qwen/Qwen3-VL-8B-Instruct" />
+            <el-option label="Qwen3-VL-30B" value="Qwen/Qwen3-VL-30B-A3B-Instruct" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="绘图模型:">
+          <el-select v-model="aiSettings.image_model" placeholder="请选择" style="width: 100%;">
+            <el-option label="FLUX.1-Krea (推荐)" value="black-forest-labs/FLUX.1-Krea-dev" />
+            <el-option label="FLUX.1-dev" value="MusePublic/489_ckpt_FLUX_1" />
+            <el-option label="Qwen-image" value="MusePublic/Qwen-image" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="学生年龄:">
+          <el-select v-model="aiSettings.age_range" placeholder="请选择" style="width: 100%;">
+            <el-option label="6-8岁 (低年级)" value="6-8岁" />
+            <el-option label="9-10岁 (中年级)" value="9-10岁" />
+            <el-option label="11-12岁 (高年级)" value="11-12岁" />
+            <el-option label="13-16岁 (初中)" value="13-16岁" />
+            <el-option label="17-18岁 (高中)" value="17-18岁" />
+          </el-select>
+        </el-form-item>
+      </el-form>
+    </div>
+  </el-drawer>
 </template>
 
 <script setup>
-import { useSettingsStore } from '../stores/settings.js';
+import { useSettingsStore } from '../stores/settings';
 import { storeToRefs } from 'pinia';
+import { watch } from 'vue';
 
-// 1. 定义 props，只接收 isOpen
 const props = defineProps({
   isOpen: Boolean,
 });
 
-// 2. 定义 emits，只发送 close
-const emit = defineEmits(['close']);
+defineEmits(['close']);
 
-// 3. 导入 settings store
 const settingsStore = useSettingsStore();
-
-// 4. 从 store 中获取 aiSettings (使用 storeToRefs 保持响应性)
 const { aiSettings } = storeToRefs(settingsStore);
 
-// 5. 更新 updateSetting 函数，使其直接调用 store 的 action
-function updateSetting(key, value) {
-  // 创建一个新对象来更新 store
-  const newSettings = { ...aiSettings.value, [key]: value };
-  settingsStore.updateSettings(newSettings);
-}
+// 使用 watch 来监听 aiSettings 的变化并调用 action
+watch(
+  aiSettings,
+  (newSettings) => {
+    settingsStore.updateSettings(newSettings);
+  },
+  { deep: true } // deep watch 确保对象内部属性的变化也能被监听到
+);
 </script>
+
+<style scoped>
+.settings-content {
+  padding: 0 20px;
+}
+</style>

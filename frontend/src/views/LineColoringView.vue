@@ -1,18 +1,50 @@
 <template>
   <section id="line-coloring" class="feature-panel">
     <h2>AI智能上色</h2>
-    <div class="form-group">
-      <label for="coloring-file-input">上传线稿/简笔画:</label>
-      <input type="file" id="coloring-file-input" accept="image/*" @change="emit('file-change', $event, 'coloring')" />
-      <img id="coloring-preview" class="image-preview" :src="previews.coloring" v-show="previews.coloring" alt="线稿预览" />
-    </div>
-    <div class="form-group">
-      <label for="coloring-prompt-input">上色风格:</label>
-      <input type="text" id="coloring-prompt-input" placeholder="例如：水彩画, 明亮的颜色" v-model="prompt" />
-    </div>
-    <button id="generate-coloring-btn" class="cta-btn" @click="generate" :disabled="isLoading">开始上色</button>
-    <div class="loader" v-if="isLoading"></div>
-    <p class="error-message">{{ error }}</p>
+    <el-form label-position="top" @submit.prevent="generate">
+      <el-form-item label="上传线稿/简笔画:">
+        <el-upload
+          action="#"
+          :auto-upload="false"
+          :on-change="handleFileChange"
+          :show-file-list="true"
+          :limit="1"
+          list-type="picture-card"
+        >
+          <div class="upload-demo-box">
+            <el-icon :size="28"><Upload /></el-icon>
+            <span>点击上传线稿</span>
+          </div>
+          </el-upload>
+      </el-form-item>
+      <el-form-item label="上色风格:">
+        <el-input
+          v-model="prompt"
+          placeholder="例如：水彩画, 明亮的颜色"
+          clearable
+        />
+      </el-form-item>
+      <el-form-item>
+        <el-button
+          type="primary"
+          @click="generate"
+          :loading="isLoading"
+          style="width: 100%;"
+        >
+          开始上色
+        </el-button>
+      </el-form-item>
+    </el-form>
+
+    <el-alert
+      v-if="error"
+      :title="error"
+      type="error"
+      show-icon
+      :closable="false"
+      style="margin-top: 20px;"
+    />
+
     <ImageResult v-if="result?.imageUrl" :image-url="result.imageUrl" alt-text="AI上色作品" filename="ai-coloring.png" />
   </section>
 </template>
@@ -21,30 +53,49 @@
 import { ref } from 'vue';
 import { useAIApi } from '../composables/useAIApi.js';
 import ImageResult from '../components/ImageResult.vue';
-import { useSettingsStore } from '../stores/settings.js';
-import { storeToRefs } from 'pinia';
-
-const props = defineProps({
-  files: Object,
-  previews: Object,
-});
-const emit = defineEmits(['file-change']);
-
-const settingsStore = useSettingsStore();
-const { aiSettings } = storeToRefs(settingsStore);
+import { Upload } from '@element-plus/icons-vue'
 
 const prompt = ref('');
+const lineartFile = ref(null);
+
 const { isLoading, error, result, execute, fileToBase64 } = useAIApi('/api/colorize-lineart', { initialResult: { imageUrl: null } });
 
+function handleFileChange(file) {
+  // ElUpload's file object is nested under `raw`
+  lineartFile.value = file.raw;
+}
+
 async function generate() {
-  if (!props.files.coloring) { error.value = '请上传一张线稿图片'; return; }
-  if (!prompt.value) { error.value = '请输入上色风格'; return; }
+  if (!lineartFile.value) {
+    error.value = '请上传一张线稿图片';
+    return;
+  }
+  if (!prompt.value) {
+    error.value = '请输入上色风格';
+    return;
+  }
 
   try {
-    const base64_image = await fileToBase64(props.files.coloring);
+    const base64_image = await fileToBase64(lineartFile.value);
     await execute({ base64_image, prompt: prompt.value });
   } catch (e) {
-    // Error handling is now done in useAIApi
+    // Error is already handled by useAIApi, but we catch to prevent unhandled promise rejections
+    console.error(e);
   }
 }
 </script>
+<style scoped>
+.upload-demo-box {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  height: 100%;
+  color: var(--el-text-color-secondary);
+}
+.upload-demo-box span {
+  font-size: 13px;
+}
+</style>
