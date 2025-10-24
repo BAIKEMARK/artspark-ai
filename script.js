@@ -106,6 +106,7 @@ const ideasResult = document.getElementById('ideas-result');
 // 功能七：艺术画廊
 const gallerySearchInput = document.getElementById('gallery-search-input');
 const galleryDepartmentSelect = document.getElementById('gallery-department-select');
+const galleryTagGroups = document.querySelector('.gallery-tag-groups');
 const searchGalleryBtn = document.getElementById('search-gallery-btn');
 const galleryLoader = document.getElementById('gallery-loader');
 const galleryError = document.getElementById('gallery-error');
@@ -723,18 +724,58 @@ function initArtGallery() {
     // 页面加载时，异步获取所有展厅并填充下拉框
     loadGalleryDepartments();
 
-    // 搜索按钮
+    // 2. [V22 新增] 处理标签点击 (事件委托)
+    galleryTagGroups.addEventListener('click', (e) => {
+        const clickedTag = e.target.closest('.tag-btn');
+        if (!clickedTag) return; // 点击的不是标签
+
+        const parentGroup = clickedTag.closest('.tag-group');
+        if (!parentGroup) return;
+
+        // 检查标签是否已经是 active
+        const wasActive = clickedTag.classList.contains('active');
+
+        // 移除同组内所有其他 'active' 状态 (实现单选)
+        parentGroup.querySelectorAll('.tag-btn').forEach(tag => {
+            tag.classList.remove('active');
+        });
+
+        // 如果点击的标签不是刚才那个 active 标签，则激活它
+        if (!wasActive) {
+            clickedTag.classList.add('active');
+        }
+        // (如果点击的是已激活的标签，则它刚才被移除 active，效果是“取消选择”)
+    });
+
+
+    // 3. [V22 修改] 搜索按钮点击事件
     searchGalleryBtn.addEventListener('click', async () => {
-        const q = gallerySearchInput.value.trim() || '*'; // 默认为 *
-        const departmentId = galleryDepartmentSelect.value;
+
+        // [V22 修改] 收集所有激活的筛选条件
+        const filters = {
+            q: gallerySearchInput.value.trim() || '*', // 默认为 *
+            departmentId: galleryDepartmentSelect.value
+        };
+
+        // 遍历所有激活的标签并收集 data
+        galleryTagGroups.querySelectorAll('.tag-btn.active').forEach(tag => {
+            const type = tag.dataset.filterType;
+            if (type === 'dateRange') {
+                filters.dateBegin = tag.dataset.begin;
+                filters.dateEnd = tag.dataset.end;
+            } else {
+                // (例如: filters['isHighlight'] = 'true' 或 filters['medium'] = 'Paintings')
+                filters[type] = tag.dataset.value;
+            }
+        });
 
         toggleUIState(searchGalleryBtn, galleryLoader, galleryError, true);
         galleryResult.classList.add('hidden');
         galleryResult.innerHTML = ''; // 清空旧结果
 
         try {
-            // 注意：我们创建一个新的 fetch 函数，因为它不使用 ModelScope token
-            const result = await fetchGallerySearch({ q, departmentId });
+            // (filters 对象将自动发送到后端)
+            const result = await fetchGallerySearch(filters);
             displayGalleryResults(result.artworks);
             if (result.artworks.length === 0) {
                  galleryError.textContent = '没有找到符合条件的作品。';
