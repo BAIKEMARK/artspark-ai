@@ -132,7 +132,7 @@ const { aiSettings } = storeToRefs(settingsStore);
 </script>
 
 <style scoped>
-/* 抽屉标题 (保持不变) */
+/* 抽屉标题 */
 .drawer-header {
   display: flex;
   align-items: center;
@@ -152,7 +152,7 @@ const { aiSettings } = storeToRefs(settingsStore);
   padding: 0 20px 20px 20px;
 }
 
-/* 分组标题 (保持不变) */
+/* 分组标题 */
 .setting-group-title {
   font-size: 0.9rem;
   font-weight: 500;
@@ -171,7 +171,6 @@ const { aiSettings } = storeToRefs(settingsStore);
   margin: 12px 0 20px 0;
 }
 
-/* 关键修改：添加 label 样式，移除旧的 description 样式 */
 .label-with-tooltip {
   display: flex;
   align-items: center;
@@ -179,7 +178,7 @@ const { aiSettings } = storeToRefs(settingsStore);
 }
 
 .help-icon {
-  color: var(--el-text-color-secondary); /* 柔和的图标颜色 */
+  color: var(--el-text-color-secondary);
   cursor: help; /* 鼠标悬停时显示帮助光标 */
 }
 </style>

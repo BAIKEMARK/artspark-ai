@@ -1,9 +1,7 @@
-/* * "艺启智AI - 乡村美术助教" */
-
 /* 1. 引入字体 */
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500&family=Noto+Serif+SC:wght@600;700&display=swap');
 
-/* 2. 色板 (仍然有用，可供非Element组件或自定义样式使用) */
+/* 2. 色板 */
 :root {
     --primary-color: #34495E;
     --secondary-color: #2C3E50;
@@ -132,9 +130,6 @@ h2 {
 .example-images { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .example-images img { width: 100%; height: 80px; object-fit: cover; border-radius: 8px; border: 1px solid var(--border-color); }
 @keyframes result-fade-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-
-
-/* 7. 页脚 (保留) */
 
 
 /* 8. Element Plus 微调 */

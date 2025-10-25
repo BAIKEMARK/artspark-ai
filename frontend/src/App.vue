@@ -70,10 +70,7 @@ const apiKeyError = ref('');
 const activeView = ref('home-view');
 const isSettingsSidebarOpen = ref(false);
 
-// 移除了 files 和 previews
-
 async function saveApiKey(apiKey) {
-  // ... (此函数保持不变)
   if (!apiKey) {
     apiKeyError.value = '请输入 API Key。';
     return;
@@ -181,8 +178,6 @@ function navigateTo(targetId) {
   activeView.value = targetId;
   window.scrollTo(0, 0);
 }
-
-// 移除了 handleFileChange
 
 // --- 生命周期钩子 (Lifecycle Hooks) ---
 onMounted(() => {

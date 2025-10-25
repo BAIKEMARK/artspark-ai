@@ -6,7 +6,9 @@
     :ellipsis="false"
     @select="handleSelect"
   >
-    <el-menu-item index="home-view" class="nav-logo">🎨 艺启智AI</el-menu-item>
+    <el-menu-item index="home-view" class="nav-logo">
+      🎨 <span>艺启智AI</span>
+    </el-menu-item>
 
     <div class="flex-grow" />
 
@@ -45,10 +47,10 @@ function handleSelect(index) {
 /* 1. 导航栏主体：深蓝色背景 */
 .global-nav-menu {
   height: var(--nav-height);
-  border-bottom: 1px solid var(--secondary-color); /* 颜色加深一点 */
+  border-bottom: 1px solid var(--secondary-color);
   padding: 0 20px;
-  background-color: var(--primary-color); /* 深蓝色背景 */
-  box-shadow: none; /* 移除阴影 */
+  background-color: var(--primary-color);
+  box-shadow: none;
 }
 
 /* 2. Logo 样式：白色文字 */
@@ -56,9 +58,6 @@ function handleSelect(index) {
   font-size: 1.4rem;
   font-weight: bold;
   color: white !important;
-}
-.nav-logo.is-active {
-  border-bottom-color: transparent !important; /* 首页激活时无下划线 */
 }
 
 .flex-grow {
@@ -74,6 +73,7 @@ function handleSelect(index) {
   color: rgba(255, 255, 255, 0.8) !important; /* 菜单项默认文字颜色 */
   background-color: transparent !important;
   border-bottom-color: transparent !important;
+  transition: all 0.2s ease;
 }
 
 .el-menu-item .icon {
@@ -83,7 +83,7 @@ function handleSelect(index) {
 /* 4. 菜单项 悬停 样式 */
 .el-menu-item:hover {
   color: white !important;
-  background-color: var(--secondary-color) !important; /* 悬停时颜色加深 */
+  background-color: var(--secondary-color) !important;
 }
 
 /* 5. 菜单项 激活 样式：金色下划线 */
@@ -100,5 +100,41 @@ function handleSelect(index) {
 /* 7. 特殊处理设置按钮的激活态 */
 .settings-trigger.is-active {
   border-bottom-color: transparent !important;
+}
+
+/* 8. 响应式布局：在小屏幕上隐藏菜单文字 */
+
+/* 屏幕宽度 <= 1200px (对应我们内容区的 1260px 断点) */
+@media (max-width: 1200px) {
+  .el-menu-item:not(.nav-logo) span {
+    display: none;
+  }
+
+  /* 调整一下间距，让图标更紧凑 */
+  .el-menu-item:not(.nav-logo) {
+    padding: 0 15px;
+    min-width: auto;
+  }
+}
+
+/* 屏幕宽度 <= 768px (手机) */
+@media (max-width: 768px) {
+   /* 在手机上，隐藏所有文字 */
+   .el-menu-item span {
+     display: none;
+   }
+
+   .nav-logo {
+     font-size: 1.4rem; /* 保持 Logo 图标大小 */
+     padding-left: 10px; /* 手机上左边距小一点 */
+   }
+
+   .el-menu-item {
+     padding: 0 10px; /* 手机上间距更小 */
+   }
+
+   .global-nav-menu {
+     padding: 0; /* 移除左右内边距 */
+   }
 }
 </style>
