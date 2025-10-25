@@ -53,20 +53,7 @@
       style="margin-top: 20px;"
     />
 
-    <el-card v-if="result?.imageUrl" class="result-card" shadow="never">
-       <el-image :src="result.imageUrl" alt="风格画作" fit="contain" />
-       <div class="result-content">
-          <p class="style-desc">{{ result.styleDescription }}</p>
-          <el-button
-            type="primary"
-            plain
-            size="small"
-            @click="downloadImage(result.imageUrl, 'style-workshop')"
-          >
-            <i class="icon ph-bold ph-download-simple"></i> 下载图片
-          </el-button>
-       </div>
-    </el-card>
+    <ImageResult v-if="result?.imageUrl" :image-url="result.imageUrl" :alt-text="result.styleDescription" filename="style-workshop.png" />
   </section>
 </template>
 
@@ -74,6 +61,7 @@
 import { ref } from 'vue';
 import { useAIApi } from '../composables/useAIApi.js';
 import { Upload } from '@element-plus/icons-vue'
+import ImageResult from '../components/ImageResult.vue';
 
 const style = ref('梵高');
 const content = ref('');
@@ -83,17 +71,6 @@ const { isLoading, error, result, execute, fileToBase64 } = useAIApi('/api/gener
 
 function handleFileChange(file) {
   workshopFile.value = file.raw;
-}
-
-function downloadImage(imageUrl, imageName) {
-  const link = document.createElement('a');
-  link.href = `/api/proxy-download?url=${encodeURIComponent(imageUrl)}`;
-  link.download = `${imageName.replace(/\s/g, '_')}.png`;
-  link.target = '_blank';
-  link.rel = 'noopener noreferrer';
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
 }
 
 async function generate() {
@@ -113,17 +90,3 @@ async function generate() {
   }
 }
 </script>
-
-<style scoped>
-.result-card {
-  margin-top: 20px;
-}
-.result-content {
-  padding: 14px;
-  text-align: center;
-}
-.style-desc {
-  margin-bottom: 15px;
-  color: #606266;
-}
-</style>
