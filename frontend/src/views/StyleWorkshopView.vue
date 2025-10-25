@@ -126,17 +126,4 @@ async function generate() {
   margin-bottom: 15px;
   color: #606266;
 }
-.upload-demo-box {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  height: 100%;
-  color: var(--el-text-color-secondary);
-}
-.upload-demo-box span {
-  font-size: 13px;
-}
 </style>

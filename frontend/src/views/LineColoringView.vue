@@ -44,7 +44,6 @@
       :closable="false"
       style="margin-top: 20px;"
     />
-
     <ImageResult v-if="result?.imageUrl" :image-url="result.imageUrl" alt-text="AI上色作品" filename="ai-coloring.png" />
   </section>
 </template>
@@ -84,18 +83,17 @@ async function generate() {
   }
 }
 </script>
+
 <style scoped>
-.upload-demo-box {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  height: 100%;
-  color: var(--el-text-color-secondary);
+.result-card {
+  margin-top: 20px;
 }
-.upload-demo-box span {
-  font-size: 13px;
+.result-content {
+  padding: 14px;
+  text-align: center;
+}
+.style-desc {
+  margin-bottom: 15px;
+  color: #606266;
 }
 </style>
