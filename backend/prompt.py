@@ -3,7 +3,7 @@ PROMPTS = {}
 # --- 1. 核心工具提示词 ---
 
 # 用于: generate_english_prompt
-# 目的: 将中文提示词翻译并优化为适用于FLUX模型的英文提示词
+# 目的: 将中文提示词翻译并优化为适用于Image模型的英文提示词
 PROMPTS["PROMPT_TRANSLATOR"] = """<task>
 You are an expert AI art prompt translator and enhancer. Your job is to translate a Chinese description into a vivid, concise, and high-quality English prompt suitable for the FLUX image model.
 1.  Translate the core meaning of the Chinese description.
@@ -19,6 +19,22 @@ You are an expert AI art prompt translator and enhancer. Your job is to translat
 <chinese_description>
 {chinese_description}
 </chinese_description>
+"""
+PROMPTS["BATCH_PROMPT_TRANSLATOR"] = """<task>
+You are an expert AI art prompt translator and enhancer.
+Your job is to translate each Chinese prompt in the input JSON list into a high-quality English prompt suitable for the FLUX image model.
+
+**Input:** A JSON list of Chinese strings.
+**Output:** You MUST return ONLY a valid JSON list of English strings. The list MUST have the same number of items and be in the same order as the input list.
+
+**Rules:**
+-   **ONLY** output the final JSON list.
+-   **DO NOT** include any conversational text, markdown, or explanations.
+-   Format: ["english prompt 1", "english prompt 2", "english prompt 3"]
+</task>
+<chinese_prompt_list>
+{json_input_list}
+</chinese_prompt_list>
 """
 
 # 用于: get_style_prompt_from_image
@@ -130,7 +146,7 @@ PROMPTS["IDEA_GENERATOR_USER"] = """<role>
 """
 
 # 用于: handle_generate_ideas (创意灵感 - 图像)
-PROMPTS["IDEA_IMAGE_PROMPT_CN"] = "绘画创意示例：{name}，{description}，包含元素：{elements}"
+PROMPTS["IDEA_IMAGE_PROMPT_CN"] = "绘画创意示例：{name}，{description}，包含元素：{elements}，适合的受众：{age_range}"
 
 
 # --- 4. 静态数据 (从 app.py 迁移) ---

@@ -43,9 +43,10 @@
 
 <style scoped>
 footer { width: 100%; background: var(--secondary-color); color: rgba(255, 255, 255, 0.7); padding: 0; margin-top: auto; flex-shrink: 0; }
-.footer-content { max-width: 900px; margin: 0 auto; padding: 2.5rem 1.5rem; display: flex; flex-wrap: wrap; gap: 20px; }
+.footer-content { max-width: 900px; margin: 0 auto; padding: 0.5rem 1.5rem; display: flex; flex-wrap: wrap; gap: 20px; }
 .footer-column { flex: 1; min-width: 300px; }
 .footer-column h3 { color: white; font-family: var(--font-serif); font-weight: 600; border-bottom: 1px solid var(--accent-color); padding-bottom: 10px; }
+.footer-column h4 { margin-top: 5px; margin-bottom: 5px; }
 .footer-column p, .footer-column li { font-size: 0.9rem; line-height: 1.8; }
 .footer-column ul { list-style: none; padding: 0; }
 .footer-column a { color: rgba(255, 255, 255, 0.9); text-decoration: none; transition: color 0.3s ease; }

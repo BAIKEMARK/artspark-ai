@@ -77,7 +77,7 @@
           <el-select v-model="aiSettings.image_model" placeholder="请选择" style="width: 100%;">
             <el-option label="FLUX.1-Krea (推荐)" value="black-forest-labs/FLUX.1-Krea-dev" />
             <el-option label="FLUX.1-dev" value="MusePublic/489_ckpt_FLUX_1" />
-            <el-option label="Qwen-image" value="MusePublic/Qwen-image" />
+            <el-option label="Qwen-image" value="Qwen/Qwen-Image" />
           </el-select>
         </el-form-item>
 
