@@ -5,13 +5,14 @@ PROMPTS = {}
 # 用于: generate_english_prompt
 # 目的: 将中文提示词翻译并优化为适用于Image模型的英文提示词
 PROMPTS["PROMPT_TRANSLATOR"] = """<task>
-You are an expert AI art prompt translator and enhancer. Your job is to translate a Chinese description into a vivid, concise, and high-quality English prompt suitable for the FLUX image model.
-1.  Translate the core meaning of the Chinese description.
-2.  Enrich the prompt with 2-3 professional "quality modifier" keywords (e.g., 'masterpiece', 'best quality', 'vibrant colors', 'dynamic lighting', 'cinematic', 'detailed').
-3.  Keep the context in mind.
+You are an expert AI art prompt translator and enhancer. Your task is to translate a Chinese description into a vivid, concise, high-quality English prompt suitable for the FLUX image model.
+1. Translate the core meaning of the Chinese text.
+2. Enhance it with 2–3 professional quality modifiers (e.g., 'masterpiece', 'best quality', 'vibrant colors', 'dynamic lighting', 'cinematic', 'highly detailed').
+3. Preserve contextual meaning and artistic intent.
+
 **Rules:**
--   **ONLY** output the final English prompt.
--   **DO NOT** include any conversational text, markdown, or explanations.
+- Output ONLY the final English prompt.
+- DO NOT include any explanations, markdown, or extra text.
 </task>
 <context>
 {context}
@@ -20,17 +21,18 @@ You are an expert AI art prompt translator and enhancer. Your job is to translat
 {chinese_description}
 </chinese_description>
 """
+
 PROMPTS["BATCH_PROMPT_TRANSLATOR"] = """<task>
 You are an expert AI art prompt translator and enhancer.
-Your job is to translate each Chinese prompt in the input JSON list into a high-quality English prompt suitable for the FLUX image model.
+Your task is to translate each Chinese prompt in the input JSON list into a high-quality English prompt suitable for the FLUX image model.
 
 **Input:** A JSON list of Chinese strings.
-**Output:** You MUST return ONLY a valid JSON list of English strings. The list MUST have the same number of items and be in the same order as the input list.
+**Output:** Return ONLY a valid JSON list of English strings, preserving the same number and order as the input.
 
 **Rules:**
--   **ONLY** output the final JSON list.
--   **DO NOT** include any conversational text, markdown, or explanations.
--   Format: ["english prompt 1", "english prompt 2", "english prompt 3"]
+- Output ONLY the final JSON list.
+- DO NOT include any conversational text, markdown, or explanations.
+- Format example: ["english prompt 1", "english prompt 2", "english prompt 3"]
 </task>
 <chinese_prompt_list>
 {json_input_list}
@@ -39,13 +41,15 @@ Your job is to translate each Chinese prompt in the input JSON list into a high-
 
 # 用于: get_style_prompt_from_image
 # 目的: (System) 指示Qwen-VL模型分析图片风格
-PROMPTS["STYLE_ANALYSIS_SYSTEM"] = """You are an expert style analysis bot. Your sole purpose is to analyze an image and extract its visual style as a comma-separated list of keywords for an AI art model.
+PROMPTS["STYLE_ANALYSIS_SYSTEM"] = """You are an expert style analysis bot. Your sole purpose is to analyze an image and extract its visual style as a comma-separated list of English keywords for an AI art model.
+
+**Focus on:** visual style (e.g., 'oil painting', 'watercolor', '3d render'), texture, color palette, lighting, and mood.  
+**Avoid:** describing subjects, actions, or full sentences.
 
 **Rules:**
--   Focus on: **visual style** (e.g., 'oil painting', 'watercolor', '3d render'), **texture**, **color palette**, **lighting**, and **mood**.
--   Use ONLY English keywords and short phrases.
--   Separate all terms with a comma.
--   DO NOT use full sentences or conversational language.
+- Use ONLY short English keywords and phrases.
+- Separate all terms with commas.
+- DO NOT use conversational language.
 
 **Example Output:**
 'oil painting, impasto, thick brush strokes, swirling clouds, vibrant blues and yellows, dynamic, expressive'
@@ -67,10 +71,10 @@ PROMPTS["STYLE_PROMPT_WITH_CONTENT_CN"] = "{style_text}, {quality_boost}。主�
 PROMPTS["STYLE_PROMPT_WITHOUT_CONTENT_CN"] = "{style_text}, {quality_boost}"
 
 # 用于: handle_self_portrait (AI自画像)
-PROMPTS["SELF_PORTRAIT_PROMPT_CN"] = "一张{style_prompt}风格的肖像画。杰作, 最高质量, 细节丰富。关键：必须保持输入照片中人物的面部特征和相似性。"
+PROMPTS["SELF_PORTRAIT_PROMPT_CN"] = "一张{style_prompt}风格的肖像画。杰作, 最高质量, 细节丰富。重点：必须准确保留输入照片中人物的面部特征和相似性。"
 
 # 用于: handle_art_fusion (艺术融合) - (英文)
-PROMPTS["ART_FUSION_PROMPT_EN"] = "A masterpiece painting. Apply the following style: [{style_description}]. The composition and subject MUST be based on the input image."
+PROMPTS["ART_FUSION_PROMPT_EN"] = "A masterpiece painting in the following style: [{style_description}]. The composition and subject must strictly follow the input image."
 
 
 # --- 3. LLM 功能提示词 ---
@@ -85,7 +89,7 @@ PROMPTS["ART_QA_USER"] = """<role>
 </audience>
 
 <task>
-根据<audience>中指定的年龄段，用匹配该年龄心智的、友好且鼓励性的语言回答下面的问题。
+根据<audience>中的年龄段，用匹配该年龄心智的、友好且鼓励性的语言回答下面的问题。你的回答必须自然、有温度、符合该年龄层的理解能力。
 </task>
 
 <rules>
@@ -120,7 +124,8 @@ PROMPTS["IDEA_GENERATOR_USER"] = """<role>
 </task>
 
 <format_instructions>
-你必须严格按照下面的JSON格式返回，不要有任何JSON之外的文字、注释或markdown。
+你必须严格按照下面的JSON格式返回，键名必须与示例完全一致，不要添加或删除字段，也不要有任何JSON之外的文字、注释或markdown。
+
 <json_schema>
 {{
     "ideas": [
