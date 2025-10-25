@@ -83,17 +83,3 @@ async function generate() {
   }
 }
 </script>
-
-<style scoped>
-.result-card {
-  margin-top: 20px;
-}
-.result-content {
-  padding: 14px;
-  text-align: center;
-}
-.style-desc {
-  margin-bottom: 15px;
-  color: #606266;
-}
-</style>

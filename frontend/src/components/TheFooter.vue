@@ -50,6 +50,7 @@ footer { width: 100%; background: var(--secondary-color); color: rgba(255, 255, 
 .footer-column ul { list-style: none; padding: 0; }
 .footer-column a { color: rgba(255, 255, 255, 0.9); text-decoration: none; transition: color 0.3s ease; }
 .footer-column a:hover { color: white; text-decoration: underline; }
-.footer-bottom { background: rgba(0, 0, 0, 0.06); padding: 0.25rem; text-align: center; font-size: 0.85rem; }
-#footer-guide {  margin-top: 2rem; }/* 您可以根据需要调整这个值，例如 40px */
+.footer-bottom { background: rgba(0, 0, 0, 0.06); padding: 0.25rem; text-align: center; font-size: 0.85rem;}
+.footer-bottom p {margin: 0;}
+#footer-guide {  margin-top: 2rem; }
 </style>

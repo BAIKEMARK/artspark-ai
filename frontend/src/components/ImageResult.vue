@@ -52,12 +52,6 @@ function downloadImage() {
 .result-card {
   margin-top: 20px;
 }
-.el-image {
-  width: 100%;
-  background: #f5f7fa;
-  min-height: 200px; /* 防止图片加载时闪烁 */
-}
-
 .result-content {
   padding: 14px;
   text-align: center;
