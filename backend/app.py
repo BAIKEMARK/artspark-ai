@@ -252,7 +252,7 @@ def generate_english_prompt(token, chinese_prompt, context_description):
     payload = {
         "model": config["chat_model"],
         "messages": messages,
-        "max_tokens": 200,
+        "max_tokens": 800,
         "temperature": 0.5,
     }
     response = requests.post(
@@ -288,7 +288,7 @@ def get_style_prompt_from_image(token, base64_image_url, vl_model_id):
                 ],
             },
         ],
-        "max_tokens": 300,
+        "max_tokens": 1000,
         "temperature": 0.6,
     }
     response = requests.post(
@@ -557,7 +557,7 @@ def handle_ask_question():
         )
 
         payload = {
-            "model": config["chat_model"], # [V17]
+            "model": config["chat_model"],
             "messages": [{"role": "user", "content": user_prompt}],
             "max_tokens": 500,
             "temperature": 0.7,
@@ -587,7 +587,7 @@ def handle_generate_ideas():
             age_range=config["age_range"]
         )
         payload = {
-            "model": config["chat_model"], # [V17]
+            "model": config["chat_model"],
             "messages": [{"role": "user", "content": text_prompt}],
             "max_tokens": 800,
             "temperature": 0.8,
@@ -653,7 +653,7 @@ def handle_generate_ideas():
 
         ideas_with_prompts = []
         for i, idea in enumerate(ideas):
-            idea["img_prompt_en"] = translated_prompts_list[i] # 附加英文提示词
+            idea["img_prompt_en"] = translated_prompts_list[i]
             ideas_with_prompts.append(idea)
 
         def _process_idea_image_worker(idea):
