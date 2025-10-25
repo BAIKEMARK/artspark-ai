@@ -23,7 +23,9 @@
                   @navigate="navigateTo"
         />
         <div id="tool-content" class="view-panel" v-else>
-          <component :is="currentToolComponent" />
+          <KeepAlive>
+            <component :is="currentToolComponent" />
+          </KeepAlive>
         </div>
       </el-main>
 
