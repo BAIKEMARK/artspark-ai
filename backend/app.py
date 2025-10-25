@@ -13,6 +13,7 @@ from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadTimeSignat
 from requests.exceptions import HTTPError
 from PIL import Image
 from prompt import PROMPTS
+from concurrent.futures import ThreadPoolExecutor
 
 class ApiKeyMissingError(Exception):
     """当 session 中缺少 API key 时引发"""
@@ -579,7 +580,7 @@ def handle_generate_ideas():
     try:
         api_key = get_api_key()
         data = request.json
-        config = get_ai_config(data) # [V17]
+        config = get_ai_config(data)
         theme = data.get("theme")
         text_prompt = PROMPTS["IDEA_GENERATOR_USER"].format(
             theme=theme,
@@ -609,20 +610,60 @@ def handle_generate_ideas():
 
         json_string = content[json_start : json_end]
         ideas = json.loads(json_string).get("ideas", [])
-        processed_ideas = []
-        for idea in ideas:
-            try:
-                img_prompt_cn = PROMPTS["IDEA_IMAGE_PROMPT_CN"].format(
-                    name=idea['name'],
-                    description=idea['description'],
-                    elements=idea['elements']
-                )
 
-                img_prompt_en = generate_english_prompt(
-                    api_key,
-                    img_prompt_cn,
-                    "A simple, colorful illustration for a child.",
-                )
+        # 2.1. 准备中文提示词列表
+        chinese_prompts_list = []
+        for idea in ideas:
+            img_prompt_cn = PROMPTS["IDEA_IMAGE_PROMPT_CN"].format(
+                name=idea['name'],
+                description=idea['description'],
+                elements=idea['elements'],
+                age_range=config["age_range"]
+            )
+            chinese_prompts_list.append(img_prompt_cn)
+
+        # 2.2. 构建批量翻译请求
+        batch_translator_prompt = PROMPTS["BATCH_PROMPT_TRANSLATOR"].format(
+            json_input_list=json.dumps(chinese_prompts_list)
+        )
+
+        payload = {
+            "model": config["chat_model"],
+            "messages": [{"role": "user", "content": batch_translator_prompt}],
+            "max_tokens": 1000,
+            "temperature": 0.5,
+        }
+        translate_response = requests.post(
+            f"{MODEL_SCOPE_BASE_URL}v1/chat/completions",
+            headers=get_headers(api_key),
+            json=payload
+        )
+        translate_response.raise_for_status()
+
+        content = translate_response.json()["choices"][0]["message"]["content"]
+        json_start = content.find('[')
+        json_end = content.rfind(']') + 1
+        if json_start == -1 or json_end == 0:
+            raise Exception("LLM did not return valid JSON list for translation.")
+
+        translated_prompts_list = json.loads(content[json_start : json_end])
+
+        if len(translated_prompts_list) != len(ideas):
+            raise Exception("Batch translation returned a different number of prompts.")
+
+        ideas_with_prompts = []
+        for i, idea in enumerate(ideas):
+            idea["img_prompt_en"] = translated_prompts_list[i] # 附加英文提示词
+            ideas_with_prompts.append(idea)
+
+        def _process_idea_image_worker(idea):
+            """(工作线程) 在单独的线程中为单个 "idea" 生成图像。"""
+            img_prompt_en = idea.get("img_prompt_en")
+            if not img_prompt_en:
+                idea["exampleImage"] = None
+                return idea
+
+            try:
                 img_body = {
                     "model": config["image_model"],
                     "prompt": img_prompt_en,
@@ -637,11 +678,15 @@ def handle_generate_ideas():
                     isinstance(img_err, HTTPError)
                     and img_err.response.status_code == 401
                 ):
-                    raise img_err
-            processed_ideas.append(idea)
+                    raise ApiKeyMissingError("Auth failed during parallel image gen.")
+            idea.pop("img_prompt_en", None)
+            return idea
 
+        processed_ideas = []
+        with ThreadPoolExecutor(max_workers=5) as executor:
+            results = executor.map(_process_idea_image_worker, ideas_with_prompts)
+            processed_ideas = list(results)
         return jsonify(processed_ideas)
-
     except Exception as e:
         return handle_api_errors(e)
 
