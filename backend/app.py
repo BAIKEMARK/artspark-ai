@@ -59,14 +59,14 @@ s3_client = boto3.client(
 # --- 2. 核心：API 密钥管理 ---
 
 def get_headers(token):
-    """[V11 移至此处] 辅助函数，验证和后续调用都需要用到"""
+    """辅助函数，验证和后续调用都需要用到"""
     return {
         "Authorization": f"Bearer {token}",
         "Content-Type": "application/json",
     }
 
 def validate_modelscope_key(api_key):
-    """[V11 新增] 尝试调用 ModelScope 以验证 API Key 的有效性"""
+    """尝试调用 ModelScope 以验证 API Key 的有效性"""
     try:
         headers = get_headers(api_key)
         # 使用 Qwen LLM 进行一个轻量级的“测试”调用
@@ -150,11 +150,11 @@ def proxy_download():
 # --- 3. 内部辅助函数 ---
 
 def get_api_key():
-    # [V10 修改] 从 URL Query 参数中获取 token，以兼容创空间环境
+    # 从 URL Query 参数中获取 token，以兼容创空间环境
     token = request.args.get("token")
 
     if not token:
-        # [V10 修改] 更新错误信息
+        # 更新错误信息
         raise ApiKeyMissingError("Token is missing from query parameters. (token=...).")
 
     try:
@@ -200,11 +200,9 @@ def calculate_adaptive_size(width, height, target_dim=1024):
         aspect_ratio = width / height
         new_height = target_dim
         new_width = int(new_height * aspect_ratio)
-
     # 圆整到 64 的倍数
     final_width = round_to_64(new_width)
     final_height = round_to_64(new_height)
-
     # 避免返回 0
     if final_width == 0: final_width = 64
     if final_height == 0: final_height = 64
@@ -240,7 +238,7 @@ def upload_to_r2(base64_string):
         raise Exception(f"Failed to upload image to R2 OSS: {e}")
 
 def generate_english_prompt(token, chinese_prompt, context_description):
-    """[后端实现] 调用 Qwen 将中文提示词转为英文"""
+    """调用 Qwen 将中文提示词转为英文"""
 
     full_user_prompt = PROMPTS["PROMPT_TRANSLATOR"].format(
         context=context_description,
@@ -282,7 +280,7 @@ def get_style_prompt_from_image(token, base64_image_url, vl_model_id):
                 "content": [
                     {
                         "type": "image_url",
-                        "image_url": {"url": base64_image_url}, # 修正图片部分的结构
+                        "image_url": {"url": base64_image_url},
                     },
                     {"type": "text", "text": user_text},
                 ],
@@ -351,12 +349,11 @@ def handle_api_errors(e):
     if isinstance(e, HTTPError):
         # ModelScope 返回了 4xx 或 5xx 错误
         if e.response.status_code == 401:
-            # 关键：将 ModelScope 的 401 错误传递给前端
+            # 将 ModelScope 的 401 错误传递给前端
             return jsonify({"error": "API Key 无效或已过期 (来自 ModelScope)"}), 401
         else:
             # ModelScope 的其他错误 (如 500, 400)
             return jsonify({"error": f"ModelScope API 错误 (HTTP {e.response.status_code}): {str(e)}"}), 502
-    # 其他所有 Python 内部错误
     print(f"An unexpected error occurred: {e}")
     return jsonify({"error": f"服务器内部错误: {str(e)}"}), 500
 
@@ -426,7 +423,6 @@ def handle_generate_style():
                 style_text=style_prompt_text,
                 quality_boost=quality_boost
             )
-
 
         english_prompt = generate_english_prompt(
             api_key,
