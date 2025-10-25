@@ -117,8 +117,7 @@
 <script setup>
 import { useSettingsStore } from '../stores/settings';
 import { storeToRefs } from 'pinia';
-import { watch } from 'vue';
-// 关键：导入图标
+
 import { QuestionFilled } from '@element-plus/icons-vue';
 
 const props = defineProps({
@@ -130,14 +129,6 @@ defineEmits(['close']);
 const settingsStore = useSettingsStore();
 const { aiSettings } = storeToRefs(settingsStore);
 
-// watch 逻辑保持不变
-watch(
-  aiSettings,
-  (newSettings) => {
-    settingsStore.updateSettings(newSettings);
-  },
-  { deep: true }
-);
 </script>
 
 <style scoped>
