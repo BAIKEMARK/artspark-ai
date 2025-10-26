@@ -135,15 +135,6 @@ h2 {
 /* 8. Element Plus 微调 */
 .el-drawer .el-form-item__label { font-family: var(--font-serif); font-weight: 500; }
 
-/* 统一画廊卡片内容样式 */
-.gallery-card-content { padding: 15px; }
-.gallery-card-content h3 { font-size: 1.1rem; color: var(--secondary-color); margin: 0 0 10px 0; font-family: var(--font-serif); line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; text-overflow: ellipsis; min-height: 2.8em; }
-.gallery-card-content p { font-size: 0.85rem; color: #555; margin: 4px 0; line-height: 1.5; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.gallery-card-content p:last-of-type { margin-bottom: 10px; }
-.gallery-card-content a { font-size: 0.85rem; color: var(--accent-color); text-decoration: none; font-weight: 500; }
-.gallery-card-content a:hover { text-decoration: underline; }
-
-
 /* 9. 文件上传组件自定义样式 */
 .upload-demo-box {
   display: flex;

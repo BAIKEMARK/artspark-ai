@@ -36,7 +36,7 @@
           </template>
           <el-select v-model="aiSettings.chat_model" placeholder="请选择" style="width: 100%;">
             <el-option label="Qwen3-30B (推荐)" value="Qwen/Qwen3-30B-A3B-Instruct-2507" />
-            <el-option label="Qwen/Qwen3-32B" value="Qwen/Qwen3-32B" />
+<!--            <el-option label="Qwen/Qwen3-32B" value="Qwen/Qwen3-32B" />-->
             <el-option label="Qwen3-235B" value="Qwen/Qwen3-235B-A22B-Instruct-2507" />
             <el-option label="Deepseek-V3.2" value="deepseek-ai/DeepSeek-V3.2-Exp" />
           </el-select>

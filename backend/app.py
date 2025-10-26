@@ -15,6 +15,13 @@ from PIL import Image
 from prompt import PROMPTS
 from concurrent.futures import ThreadPoolExecutor
 
+from tencentcloud.common import credential
+from tencentcloud.common.profile.client_profile import ClientProfile
+from tencentcloud.common.profile.http_profile import HttpProfile
+from tencentcloud.common.exception.tencent_cloud_sdk_exception import TencentCloudSDKException
+from tencentcloud.tmt.v20180321 import tmt_client, models
+
+
 class ApiKeyMissingError(Exception):
     """当 session 中缺少 API key 时引发"""
     pass
@@ -55,6 +62,10 @@ s3_client = boto3.client(
     aws_secret_access_key=R2_SECRET_ACCESS_KEY,
     region_name='auto'
 )
+# ---  腾讯云翻译配置 ---
+TENCENT_SECRET_ID = os.getenv("Tencent_SecretId")
+TENCENT_SECRET_KEY = os.getenv("Tencent_Secretkey")
+TENCENT_REGION = "ap-guangzhou" # 或者你选择的地域
 
 # --- 2. 核心：API 密钥管理 ---
 
@@ -337,6 +348,49 @@ def poll_generation_result(token, task_id):
         elif data["task_status"] == "FAILED":
             raise Exception(f"Task failed: {data.get('task_message', 'Unknown error')}")
         time.sleep(3)
+def translate_text_tencent(text_list, target_lang="zh"):
+    """使用腾讯云API批量翻译文本列表"""
+    if not TENCENT_SECRET_ID or not TENCENT_SECRET_KEY:
+        print("Warning: Tencent Cloud API keys not configured. Skipping translation.")
+        # 返回原始文本，避免程序崩溃
+        return text_list
+
+    try:
+        cred = credential.Credential(TENCENT_SECRET_ID, TENCENT_SECRET_KEY)
+        httpProfile = HttpProfile()
+        httpProfile.endpoint = "tmt.tencentcloudapi.com"
+
+        clientProfile = ClientProfile()
+        clientProfile.httpProfile = httpProfile
+        client = tmt_client.TmtClient(cred, TENCENT_REGION, clientProfile)
+
+        req = models.TextTranslateBatchRequest()
+        params = {
+            "Source": "auto",
+            "Target": target_lang,
+            "ProjectId": 0,
+            "SourceTextList": text_list
+        }
+        req.from_json_string(json.dumps(params))
+
+        resp = client.TextTranslateBatch(req)
+        # 提取翻译结果
+        translated_list = resp.TargetTextList
+
+        # 确保返回列表长度一致
+        if len(translated_list) != len(text_list):
+            print(f"Warning: Tencent translation returned {len(translated_list)} results for {len(text_list)} inputs. Returning originals.")
+            return text_list
+
+        return translated_list
+
+    except TencentCloudSDKException as err:
+        print(f"Tencent Cloud Translation Error: {err}")
+        # 出错时返回原始文本
+        return text_list
+    except Exception as e:
+        print(f"An unexpected error occurred during translation: {e}")
+        return text_list
 
 
 # --- 4. 面向前端的 API 路由  ---
@@ -728,7 +782,7 @@ def handle_gallery_search():
             return jsonify({"artworks": [], "total": 0})
 
         # 3. 只获取前 20 个作品的详细信息
-        artworks = []
+        artworks_raw = []
         for obj_id in object_ids[:20]:
             try:
                 obj_url = f"{MET_API_BASE}/objects/{obj_id}"
@@ -736,32 +790,49 @@ def handle_gallery_search():
                 obj_res.raise_for_status()
                 obj_data = obj_res.json()
 
-                # 筛选我们需要的数据，确保有图
                 if obj_data.get("primaryImageSmall"):
-                    artworks.append(
-                        {
-                            "id": obj_data.get("objectID"),
-                            "title": obj_data.get("title", "N/A"),
-                            "artist": obj_data.get("artistDisplayName", "Unknown"),
-                            "date": obj_data.get("objectDate", "N/A"),
-                            "medium": obj_data.get("medium", "N/A"),
-                            "country": obj_data.get("country", "N/A"),
-                            "imageUrl": obj_data.get("primaryImageSmall"),  # 使用小图
-                            "metUrl": obj_data.get(
-                                "objectURL", "#"
-                            ),  # 指向Met官网的链接
-                        }
-                    )
+                    artworks_raw.append({
+                        "id": obj_data.get("objectID"),
+                        "title": obj_data.get("title", "N/A"),
+                        "artist": obj_data.get("artistDisplayName", "Unknown"),
+                        "date": obj_data.get("objectDate", "N/A"),
+                        "medium": obj_data.get("medium", "N/A"),
+                        "country": obj_data.get("country", "N/A"),
+                        "imageUrl": obj_data.get("primaryImageSmall"),
+                        "metUrl": obj_data.get("objectURL", "#"),
+                        "original_title": obj_data.get("title", "N/A"),
+                        "original_artist": obj_data.get("artistDisplayName", "Unknown"),
+                        "original_medium": obj_data.get("medium", "N/A"),
+                        "original_department": obj_data.get("department", "N/A"),
+                        "original_classification": obj_data.get("classification", "N/A"),
+                    })
             except requests.exceptions.RequestException as e:
                 print(f"Failed to fetch object {obj_id}: {e}")
-                continue  # 跳过这个作品
+                continue
 
-        return jsonify({"artworks": artworks, "total": search_data.get("total", 0)})
+        # --- [关键修改]：使用腾讯云批量翻译 ---
+        if artworks_raw:
+            # 1. 准备待翻译的列表
+            titles_en = [art.get("original_title", "") for art in artworks_raw]
+            artists_en = [art.get("original_artist", "") for art in artworks_raw]
+            mediums_en = [art.get("original_medium", "") for art in artworks_raw]
+
+            # 2. 调用翻译 API (可以考虑并发或合并调用，这里为简单起见分开调用)
+            titles_zh = translate_text_tencent(titles_en)
+            artists_zh = translate_text_tencent(artists_en)
+            mediums_zh = translate_text_tencent(mediums_en)
+
+            # 3. 将翻译结果合并回 artworks 列表
+            for i, art in enumerate(artworks_raw):
+                art["title"] = titles_zh[i] if i < len(titles_zh) else art["original_title"]
+                art["artist"] = artists_zh[i] if i < len(artists_zh) else art["original_artist"]
+                art["medium"] = mediums_zh[i] if i < len(mediums_zh) else art["original_medium"]
+
+        return jsonify({"artworks": artworks_raw, "total": search_data.get("total", 0)})
 
     except requests.exceptions.RequestException as http_err:
         return jsonify({"error": f"Met API 错误: {str(http_err)}"}), 502
     except Exception as e:
-        # 这个不能用 handle_api_errors, 因为它不涉及 ApiKeyMissingError
         print(f"An unexpected error occurred in gallery search: {e}")
         return jsonify({"error": f"服务器内部错误: {str(e)}"}), 500
 
@@ -776,6 +847,86 @@ def handle_gallery_departments():
         return jsonify(dept_res.json())
     except Exception as e:
         return jsonify({"error": f"Met API 错误: {str(e)}"}), 502
+
+# 路由九：AI讲解展品
+@app.route("/api/gallery/explain", methods=["POST"])
+def handle_gallery_explain():
+    try:
+        api_key = get_api_key()
+        data = request.json
+        config = get_ai_config(data)
+
+
+        # 1. 从前端获取作品信息 (英文原文，用于AI和翻译)
+        art_info_en = {
+            "title": data.get("title", "N/A"),
+            "artist": data.get("artist", "N/A"),
+            "medium": data.get("medium", "N/A"),
+            "date": data.get("date", "N/A"),
+        }
+
+        # --- 2. 获取 AI 讲解  ---
+        ai_user_prompt = PROMPTS["ARTWORK_EXPLAINER"].format(
+            age_range=config["age_range"],
+            **art_info_en
+        )
+        ai_payload = {
+            "model": config["chat_model"],
+            "messages": [{"role": "user", "content": ai_user_prompt}],
+            "max_tokens": 500, "temperature": 0.7,
+        }
+        explain_response = requests.post(
+            f"{MODEL_SCOPE_BASE_URL}v1/chat/completions",
+            headers=get_headers(api_key),
+            json=ai_payload
+        )
+        explain_response.raise_for_status()
+        ai_explanation = explain_response.json()["choices"][0]["message"]
+
+        # --- 3. 翻译提供给 AI 的原始信息 ---
+        try:
+            # 3.1 准备待翻译的文本列表
+            to_translate = [
+                f"作品名称: {art_info_en['title']}",
+                f"艺术家: {art_info_en['artist']}",
+                f"媒介: {art_info_en['medium']}",
+                f"创作日期: {art_info_en['date']}"
+            ]
+
+            # 3.2 使用腾讯云批量翻译
+            translated_list = translate_text_tencent(to_translate)
+
+            # 3.3 将翻译结果格式化为字符串
+            if translated_list and len(translated_list) == len(to_translate):
+                 # 用换行符连接翻译后的各个字段
+                original_description_zh = "\n".join(translated_list)
+            else:
+                # 如果翻译失败，至少显示英文原文
+                original_description_zh = "\n".join([
+                    f"Title: {art_info_en['title']}",
+                    f"Artist: {art_info_en['artist']}",
+                    f"Medium: {art_info_en['medium']}",
+                    f"Date: {art_info_en['date']}"
+                ])
+
+        except Exception as e:
+            print(f"Error translating original artwork info: {e}")
+            # 出错时也尝试显示英文原文
+            original_description_zh = "\n".join([
+                f"Title: {art_info_en['title']}",
+                f"Artist: {art_info_en['artist']}",
+                f"Medium: {art_info_en['medium']}",
+                f"Date: {art_info_en['date']}"
+            ])
+
+        # --- 4. 返回两个结果 ---
+        return jsonify({
+            "ai_explanation": ai_explanation,
+            "original_description_zh": original_description_zh
+        })
+
+    except Exception as e:
+        return handle_api_errors(e)
 
 # --- 4.5. 静态文件服务 (为生产环境和Docker部署修改) ---
 @app.route('/', defaults={'path': ''})
