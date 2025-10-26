@@ -1,6 +1,6 @@
 <template>
   <section id="art-gallery" class="feature-panel">
-    <h2>艺术画廊 (Met Museum)</h2>
+    <h2>艺术画廊 </h2>
 
     <el-form label-position="top">
       <el-form-item label="第一步：选择一个展厅">
@@ -89,22 +89,72 @@
           />
           <div class="gallery-card-content">
             <h3>{{ art.title }}</h3>
-            <p><strong>{{ art.artist || 'Unknown Artist' }}</strong></p>
+            <p><strong>{{ art.artist || '未知艺术家' }}</strong></p>
             <p>{{ art.date || 'N/A' }}</p>
             <p><em>{{ art.medium || 'N/A' }}</em></p>
-            <el-link type="primary" :href="art.metUrl" target="_blank" rel="noopener">
+
+            <el-button
+              type="primary"
+              plain
+              size="small"
+              @click="openArtworkDetail(art)"
+            >
+              <i class="icon ph-bold ph-eye"></i>
               查看详情
-            </el-link>
+            </el-button>
           </div>
         </el-card>
       </el-col>
     </el-row>
   </section>
+
+  <el-dialog
+    v-model="dialogVisible"
+    :title="selectedArtwork?.title"
+    width="70%"
+    top="5vh"
+  >
+    <div v-if="selectedArtwork" class="artwork-detail-dialog">
+      <div class="artwork-image-wrapper">
+        <el-image
+          :src="selectedArtwork.imageUrl.replace('small', 'large')"
+          :alt="selectedArtwork.title"
+          fit="contain"
+          lazy
+        />
+      </div>
+      <div class="artwork-info-wrapper">
+        <h3>{{ selectedArtwork.title }}</h3> <p><strong>{{ selectedArtwork.artist }}</strong></p> <p>{{ selectedArtwork.date }} | <em>{{ selectedArtwork.medium }}</em></p> <el-divider />
+        <h4><i class="icon ph-bold ph-robot"></i> 小艺为你讲解</h4>
+
+        <el-skeleton :rows="5" animated v-if="isExplainLoading" />
+
+        <el-alert v-if="explainError" :title="explainError" type="error" show-icon />
+        <div v-if="explainResult?.ai_explanation" class="ai-explanation" v-html="formattedAIExplanation"></div>
+
+        <el-divider />
+        <h4><i class="icon ph-bold ph-scroll"></i> 官方介绍 (中文)</h4>
+        <el-skeleton :rows="8" animated v-if="isExplainLoading" />
+        <el-alert v-if="explainError" :title="explainError" type="error" show-icon />
+        <div v-if="explainResult?.original_description_zh" class="original-explanation">
+          <p class="original-explanation-text">{{ explainResult.original_description_zh }}</p>
+        </div>
+
+        <el-divider />
+
+        <el-link type="info" :href="selectedArtwork.metUrl" target="_blank" rel="noopener">
+          访问博物馆官网 <i class="icon ph-bold ph-arrow-up-right"></i>
+        </el-link>
+      </div>
+    </div>
+  </el-dialog>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
-import { Search } from '@element-plus/icons-vue'; // 导入图标
+import { ref, reactive, onMounted, computed } from 'vue';
+import { Search } from '@element-plus/icons-vue';
+import { useAIApi } from '../composables/useAIApi.js'; // 导入 useAIApi
+import { marked } from 'marked'; // 导入 marked
 
 const departments = ref([]);
 const filters = reactive({ departmentId: '', q: '', activeTags: {} });
@@ -112,7 +162,16 @@ const isLoading = ref(false);
 const error = ref('');
 const results = ref([]);
 
-// ... (tagGroups 数组定义保持不变)
+// [弹窗状态]
+const dialogVisible = ref(false);
+const selectedArtwork = ref(null);
+// [新增] AI 讲解的状态
+const {
+  isLoading: isExplainLoading,
+  error: explainError,
+  result: explainResult,
+  execute: fetchExplanation
+} = useAIApi('/api/gallery/explain');
 const tagGroups = [
     { title: '热门筛选', tags: [{ label: '博物馆精选', type: 'isHighlight', value: 'true' }] },
     { title: '时代', tags: [
@@ -132,8 +191,30 @@ const tagGroups = [
         { label: '埃及', type: 'geoLocation', value: 'Egypt' },
     ]},
 ];
+const formattedAIExplanation = computed(() => {
+  return explainResult.value && explainResult.value.ai_explanation && explainResult.value.ai_explanation.content
+    ? marked(explainResult.value.ai_explanation.content)
+    : '';
+});
 
-// ... (loadDepartments, toggleTag, isTagActive, search 函数保持不变)
+// [新增] 打开弹窗并触发 AI 讲解
+function openArtworkDetail(art) {
+  selectedArtwork.value = art;
+  dialogVisible.value = true;
+
+  // 重置之前的讲解结果
+  explainResult.value = null;
+  explainError.value = '';
+
+
+  fetchExplanation({
+    id: art.id, // 传递 objectID
+    title: art.original_title || art.title,
+    artist: art.original_artist || art.artist,
+    medium: art.original_medium || art.medium,
+    date: art.date,
+  });
+}
 async function loadDepartments() {
   try {
     const response = await fetch('/api/gallery/departments');
@@ -180,7 +261,7 @@ async function search() {
 
     const response = await fetch('/api/gallery/search', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {'Content-Type': 'application/json'},
       body: JSON.stringify(searchFilters),
     });
     if (!response.ok) {
@@ -189,11 +270,11 @@ async function search() {
     }
     const resultData = await response.json();
     results.value = resultData.artworks;
+
     if (resultData.artworks.length === 0) {
       error.value = '没有找到符合条件的作品。';
     }
-  } catch (e)
- {
+  } catch (e) {
     error.value = `搜索失败: ${e.message}`;
   } finally {
     isLoading.value = false;
@@ -204,17 +285,13 @@ onMounted(loadDepartments);
 </script>
 
 <style scoped>
-/* 我们可以保留一些特定的样式，并移除 main.css 中的旧样式 */
+
 .tag-card-container {
   margin-top: 10px;
   margin-bottom: 25px;
   background-color: #FDFDFD;
 }
-
-.card-header {
-  font-weight: 500;
-}
-
+.card-header { font-weight: 500; }
 .tag-group {
   display: flex;
   flex-wrap: wrap;
@@ -240,14 +317,15 @@ onMounted(loadDepartments);
   margin-top: 20px;
 }
 
-/* 保持 main.css 中 gallery-card-content 的样式 */
 #gallery-result {
   text-align: left;
   margin-top: 20px;
 }
+
 .gallery-card-content {
   padding: 15px;
 }
+
 .gallery-card-content h3 {
   font-size: 1.1rem;
   color: var(--secondary-color);
@@ -261,6 +339,7 @@ onMounted(loadDepartments);
   text-overflow: ellipsis;
   min-height: 2.8em;
 }
+
 .gallery-card-content p {
   font-size: 0.85rem;
   color: #555;
@@ -270,7 +349,102 @@ onMounted(loadDepartments);
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
 .gallery-card-content p:last-of-type {
   margin-bottom: 10px;
+}
+
+/* 弹窗内部样式 */
+.artwork-detail-dialog {
+  display: flex;
+  gap: 20px;
+}
+.artwork-image-wrapper {
+  flex: 3; /* 图片占 3/5 */
+  background: #f5f7fa;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 500px;
+}
+.artwork-image-wrapper .el-image {
+  max-height: 75vh;
+}
+.artwork-info-wrapper {
+  flex: 2; /* 信息占 2/5 */
+}
+.artwork-info-wrapper h3 {
+  font-family: var(--font-serif);
+  font-size: 1.6rem;
+  color: var(--secondary-color);
+  margin-top: 0;
+}
+.artwork-info-wrapper h4 {
+  font-family: var(--font-serif);
+  color: var(--secondary-color);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1.1rem;
+}
+.artwork-info-wrapper .icon {
+  font-size: 1.2rem;
+}
+.ai-explanation {
+  background-color: #fdfdfd;
+  padding: 10px 15px;
+  border-radius: 8px;
+  line-height: 1.8;
+  font-size: 0.95rem;
+}
+
+.ai-explanation :deep(p) {
+  margin: 0.5em 0;
+}
+
+.ai-explanation :deep(ul), .ai-explanation :deep(ol) {
+  padding-left: 20px;
+}
+/* [新增] 官方原文样式 */
+.original-explanation {
+  background-color: #f8f9fa; /* 用不同的背景色区分 */
+  padding: 10px 15px;
+  border-radius: 8px;
+  line-height: 1.7;
+  font-size: 0.9rem;
+  color: #495057;
+}
+.original-explanation p {
+  margin: 0.5em 0;
+}
+.el-link .icon {
+  font-size: 0.8rem;
+  margin-left: 2px;
+}
+
+/* 弹窗响应式 */
+@media (max-width: 992px) {
+  .artwork-detail-dialog {
+    flex-direction: column;
+  }
+  .artwork-image-wrapper {
+    min-height: auto;
+    max-height: 50vh;
+  }
+}
+.original-explanation {
+  background-color: #f8f9fa; /* 用不同的背景色区分 */
+  padding: 10px 15px;
+  border-radius: 8px;
+  line-height: 1.7;
+  font-size: 0.9rem;
+  color: #495057;
+}
+
+/* [新增] 添加这个规则以处理换行 */
+.original-explanation-text {
+  white-space: pre-line; /* 保留换行符 */
+  margin: 0; /* 移除 p 标签默认的 margin */
 }
 </style>
