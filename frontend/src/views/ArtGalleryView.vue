@@ -82,10 +82,10 @@
             :alt="art.title"
             fit="cover"
             lazy
-            :preview-src-list="[art.imageUrl]"
             hide-on-click-modal
             preview-teleported
-            style="width: 100%; height: 200px;"
+            style="width: 100%; height: 200px; cursor: pointer;"
+            @click="openArtworkDetail(art)"
           />
           <div class="gallery-card-content">
             <h3>{{ art.title }}</h3>
@@ -121,6 +121,9 @@
           :alt="selectedArtwork.title"
           fit="contain"
           lazy
+          :preview-src-list="[selectedArtwork.imageUrl.replace('small', 'large')]"
+          hide-on-click-modal
+          preview-teleported
         />
       </div>
       <div class="artwork-info-wrapper">
@@ -197,23 +200,54 @@ const formattedAIExplanation = computed(() => {
     : '';
 });
 
-// [新增] 打开弹窗并触发 AI 讲解
-function openArtworkDetail(art) {
+async function openArtworkDetail(art) {
   selectedArtwork.value = art;
   dialogVisible.value = true;
 
-  // 重置之前的讲解结果
+  // 重置状态
   explainResult.value = null;
   explainError.value = '';
+  isExplainLoading.value = true; // 手动设置为加载中
 
+  const cacheKey = `artExplain_${art.id}`; // 定义缓存键
 
-  fetchExplanation({
-    id: art.id, // 传递 objectID
-    title: art.original_title || art.title,
-    artist: art.original_artist || art.artist,
-    medium: art.original_medium || art.medium,
-    date: art.date,
-  });
+  try {
+    // 1. 尝试从 sessionStorage 读取缓存
+    const cachedData = sessionStorage.getItem(cacheKey);
+    if (cachedData) {
+      console.log("Loading explanation from cache for key:", cacheKey);
+      explainResult.value = JSON.parse(cachedData); // 使用缓存数据
+      isExplainLoading.value = false; // 结束加载状态
+      return; // 提前结束函数
+    }
+  } catch (e) {
+    console.error("Error reading explanation from sessionStorage:", e);
+    // 如果读取缓存出错，则继续执行 API 请求
+  }
+
+  // 2. 如果没有缓存，则发起 API 请求
+  console.log("Fetching explanation from API for key:", cacheKey);
+  try {
+    const explanationData = await fetchExplanation({ // 等待 execute 函数
+      id: art.id, // 传递 objectID
+      title: art.original_title || art.title,
+      artist: art.original_artist || art.artist,
+      medium: art.original_medium || art.medium,
+      date: art.date,
+    });
+
+    // 3. 缓存结果 (useAIApi的execute在成功时会返回result.value)
+    // 检查 explanationData (即 result.value) 是否有效，并且没有发生错误
+    if (explanationData && !explainError.value) {
+      try {
+        sessionStorage.setItem(cacheKey, JSON.stringify(explanationData));
+      } catch (e) {
+        console.error("Error writing explanation to sessionStorage:", e);
+      }
+    }
+  } catch (e) {
+    console.error("fetchExplanation failed:", e);
+  }
 }
 async function loadDepartments() {
   try {
@@ -244,32 +278,57 @@ function isTagActive(tag) {
 async function search() {
   isLoading.value = true;
   error.value = '';
+
+  // --- 缓存逻辑 ---
+  const searchFilters = { // 先构建筛选条件对象
+    q: filters.q || '*',
+    departmentId: filters.departmentId,
+  };
+  Object.values(filters.activeTags).forEach(tag => {
+    if (tag.type === 'dateRange') {
+      searchFilters.dateBegin = tag.begin;
+      searchFilters.dateEnd = tag.end;
+    } else {
+      searchFilters[tag.type] = tag.value;
+    }
+  });
+
+  // 1. 生成缓存键 (基于筛选条件)
+  const cacheKey = `artGallerySearch_${JSON.stringify(searchFilters)}`;
+
+  try {
+    // 2. 尝试从 sessionStorage 读取缓存
+    const cachedData = sessionStorage.getItem(cacheKey);
+    if (cachedData) {
+      console.log("Loading search results from cache for key:", cacheKey);
+      results.value = JSON.parse(cachedData); // 使用缓存数据
+      isLoading.value = false; // 加载完成
+      return; // 提前结束函数，不发起 API 请求
+    }
+  } catch (e) {
+    console.error("Error reading from sessionStorage:", e);
+  }
+
   results.value = [];
   try {
-    const searchFilters = {
-      q: filters.q || '*',
-      departmentId: filters.departmentId,
-    };
-    Object.values(filters.activeTags).forEach(tag => {
-      if (tag.type === 'dateRange') {
-        searchFilters.dateBegin = tag.begin;
-        searchFilters.dateEnd = tag.end;
-      } else {
-        searchFilters[tag.type] = tag.value;
-      }
-    });
-
     const response = await fetch('/api/gallery/search', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify(searchFilters),
     });
     if (!response.ok) {
-      const err = await response.json();
-      throw new Error(err.error || `请求失败: ${response.status}`);
+        const err = await response.json();
+        throw new Error(err.error || `请求失败: ${response.status}`);
     }
     const resultData = await response.json();
     results.value = resultData.artworks;
+
+    try {
+      console.log("Saving search results to cache for key:", cacheKey);
+      sessionStorage.setItem(cacheKey, JSON.stringify(results.value));
+    } catch (e) {
+      console.error("Error writing to sessionStorage:", e);
+    }
 
     if (resultData.artworks.length === 0) {
       error.value = '没有找到符合条件的作品。';
