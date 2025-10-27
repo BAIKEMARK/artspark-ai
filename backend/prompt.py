@@ -63,7 +63,14 @@ PROMPTS["STYLE_ANALYSIS_USER"] = "Analyze the style of this image based on the r
 # --- 2. 功能模块提示词 (中文模板) ---
 
 # 用于: handle_colorize_lineart (AI智能上色)
-PROMPTS["COLORIZE_PROMPT_CN"] = "为这张线稿上色。风格：{prompt}。要求：杰作, 最高质量, 色彩鲜艳, 细节丰富, 专业上色, 干净的阴影。"
+PROMPTS["COLORIZE_PROMPT_CN"] = """
+为这张线稿上色。主要风格：{prompt}。
+要求：杰作, 最高质量, 专业上色, 干净的阴影。
+
+重要：请额外根据学生的年龄（{age_range}）来调整上色细节：
+- 如果是低龄（例如 6-10岁），请确保 "色彩鲜艳" 且 "风格更卡通或简单"。
+- 如果是高龄（例如 13-18岁），请确保 "细节丰富" 且 "光影更写实"。
+"""
 
 # 用于: handle_generate_style (创意风格工坊)
 PROMPTS["STYLE_QUALITY_BOOST_CN"] = "杰作, 最高质量, 8k, 细节丰富"
@@ -151,7 +158,12 @@ PROMPTS["IDEA_GENERATOR_USER"] = """<role>
 """
 
 # 用于: handle_generate_ideas (创意灵感 - 图像)
-PROMPTS["IDEA_IMAGE_PROMPT_CN"] = "绘画创意示例：{name}，{description}，包含元素：{elements}，适合的受众：{age_range}"
+PROMPTS["IDEA_IMAGE_PROMPT_CN"] = """
+绘画创意示例：{name}，{description}，包含元素：{elements}。
+重要：请根据适合的受众（{age_range}）来智能调整最终图像的视觉风格：
+- 如果是低龄（例如 6-10岁），请在提示词中强化：卡通风格, 色彩明亮, 简单形状。
+- 如果是高龄（例如 13-18岁），请在提示词中强化：精细细节, 复杂构图, 写实光影。
+"""
 
 
 # --- 4. 静态数据 (从 app.py 迁移) ---

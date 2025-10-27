@@ -427,8 +427,10 @@ def handle_colorize_lineart():
 
         public_url, w, h = upload_to_r2(base64_image)
         adaptive_size = calculate_adaptive_size(w, h)
-
-        full_prompt = PROMPTS["COLORIZE_PROMPT_CN"].format(prompt=prompt)
+        full_prompt = PROMPTS["COLORIZE_PROMPT_CN"].format(
+            prompt=prompt,
+            age_range=config["age_range"]
+        )
         english_prompt = generate_english_prompt(
             api_key, full_prompt, "Coloring a lineart image."
         )
