@@ -35,7 +35,7 @@
     </el-container>
 
     <el-footer v-if="isLoggedIn" class="app-footer">
-      <TheFooter />
+      <TheFooter :is-home-page="isHomePage" />
     </el-footer>
 
     <SettingsSidebar :is-open="isSettingsSidebarOpen"
@@ -134,6 +134,7 @@ const sidebarContentData = {
 
 // --- 计算属性 (Computed) ---
 
+const isHomePage = computed(() => activeView.value === 'home-view');
 const mainStyle = computed(() => {
   if (activeView.value === 'home-view') {
     return { padding: 0 };
