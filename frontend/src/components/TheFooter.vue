@@ -1,5 +1,5 @@
 <template>
-  <footer id="footer-guide">
+  <footer id="footer-guide" :class="{ 'extra-margin': !isHomePage }">
     <div class="footer-content">
       <div class="footer-column">
         <h3>使用指南和教学建议</h3>
@@ -38,7 +38,12 @@
 </template>
 
 <script setup>
-// No script needed for this static component
+defineProps({
+  isHomePage: {
+    type: Boolean,
+    default: false
+  }
+});
 </script>
 
 <style scoped>
@@ -53,5 +58,5 @@ footer { width: 100%; background: var(--secondary-color); color: rgba(255, 255, 
 .footer-column a:hover { color: white; text-decoration: underline; }
 .footer-bottom { background: rgba(0, 0, 0, 0.06); padding: 0.25rem; text-align: center; font-size: 0.85rem;}
 .footer-bottom p {margin: 0;}
-#footer-guide {  margin-top: 2rem; }
+#footer-guide.extra-margin {margin-top: 2rem;}
 </style>
