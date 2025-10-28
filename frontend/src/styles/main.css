@@ -151,33 +151,20 @@ h2 {
 }
 
 /* 10. 背景图 */
-#vue-app::before,
-#vue-app::after {
+/* css */
+#vue-app::before {
     content: '';
-    position: fixed; /* 固定在视口上，不随滚动条滚动 */
-    top: 0;
-    width: 100vw; /* 覆盖屏幕的全部 */
-    height: 100vh;
+    position: fixed;
+    inset: 0;
     z-index: -1;
     background-image: url('/img/Starry-Night.jpg');
     background-size: cover;
-    opacity: 0.3;
+    background-position: center;
+    background-repeat: no-repeat;
+    opacity: 0.5;
     pointer-events: none;
 }
 
-#vue-app::before {
-    left: 0;
-    background-position: left center;
-}
-
-/* 右侧的伪元素 */
-#vue-app::after {
-    right: 0;
-    /* 让右侧图片从右边缘开始显示 (或者使用一张不同的图片) */
-    background-position: right center;
-    /* 也可以为右侧使用不同的图片 */
-    /* background-image: url('/img/shan-shui-texture.jpg'); */
-}
 .upload-limit-reached .el-upload--picture-card {
   display: none;
 }

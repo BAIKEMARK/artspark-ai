@@ -149,31 +149,30 @@ function clearHistory() {
 </script>
 
 <style scoped>
-/* 1. 根容器：玻璃卡片 */
+/* 1. 根容器：基础玻璃层 */
 .chat-page-container {
   display: flex;
   flex-direction: column;
   width: 100%;
-  min-height: 1000px;
+  /* 移除了 1000px 的固定最小高度，改为更灵活的视口高度 */
+  min-height: 75vh;
+  flex-grow: 1; /* 填充可用空间 */
 
-  /* 玻璃样式 */
-  background-color: rgba(44, 62, 80, 0.001); /* 深色底，40%透明度 */
-  backdrop-filter: blur(15px);
-  border: 1px solid rgba(255, 255, 255, 0.02);
-  border-radius: 12px; /* 匹配 .feature-panel */
-  overflow: hidden;  /* 约束圆角和模糊 */
+  /* 基础玻璃样式 (更通透) */
+  background-color: rgba(44, 62, 80, 0.1); /* 降低不透明度 */
+  backdrop-filter: blur(10px); /* 降低模糊度 */
+  border: 1px solid rgba(255, 255, 255, 0.1); /* 更微妙的边框 */
+  border-radius: 12px;
+  overflow: hidden;
 }
 
-/* 2. 页面页眉 (透明，卡片的一部分) */
+/* 2. 页面页眉 (保持不变，作为基础层的一部分) */
 .chat-page-header {
   flex-shrink: 0;
   width: 100%;
   z-index: 2;
   background: transparent;
-  /* 微妙的分隔线 */
   border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-
-  /* 内部布局 */
   padding: 15px 20px;
   display: flex;
   justify-content: space-between;
@@ -201,7 +200,7 @@ function clearHistory() {
   opacity: 1;
 }
 
-/* 3. 滚动区域 (透明) */
+/* 3. 滚动区域 */
 .chat-window {
   flex-grow: 1;
   width: 100%;
@@ -210,9 +209,8 @@ function clearHistory() {
   background: transparent;
 }
 
-/* 4. 聊天内容包装器 (居中) */
+/* 4. 聊天内容包装器 */
 .chat-content-wrapper {
-  /* 使用 960px 或 100% (取较小者) */
   max-width: 960px;
   margin: 0 auto;
   padding: 20px;
@@ -222,7 +220,7 @@ function clearHistory() {
   box-sizing: border-box;
 }
 
-/* 5. 建议卡片 (浅色玻璃) */
+/* 5. 建议卡片 (更新为 "胶囊" 样式) */
 .suggestion-chips {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -233,48 +231,57 @@ function clearHistory() {
 .suggestion-chip {
   cursor: pointer;
   font-size: 0.9rem;
+  font-weight: 500;
   transition: all 0.2s ease;
 
-  /* 浅色玻璃 (浮动在深色玻璃上) */
-  background-color: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: #FFFFFF;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+  /* "胶囊" 玻璃样式 */
+  background-color: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(5px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: rgba(255, 255, 255, 0.9);
+  text-shadow: none;
+  border-radius: 16px; /* 更圆润 */
 }
 .suggestion-chip:hover {
   transform: translateY(-2px);
-  background-color: rgba(255, 255, 255, 0.2);
+  background-color: rgba(255, 255, 255, 0.3);
+  border-color: rgba(255, 255, 255, 0.4);
 }
 .suggestion-chip :deep(.el-card__body) {
   padding: 15px;
 }
 
-/* 6. 聊天气泡 (不透明，浮动) */
+/* 6. 聊天气泡 (核心更新：次级浮动玻璃) */
 .chat-message {
   display: flex;
   flex-direction: column;
 }
 .message-bubble {
-  padding: 10px 15px;
+  padding: 12px 18px; /* 增加内边距 */
   border-radius: 12px;
-  line-height: 1.7;
+  line-height: 1.8; /* 增加行高 */
   max-width: 85%;
   word-wrap: break-word;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+
+  /* 次级玻璃质感 */
+  backdrop-filter: blur(5px);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  /* 使用更亮的边框来模拟高光 */
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
+/* AI 助手气泡 (半透明亮色) */
 .chat-message.assistant .message-bubble {
-  background-color: #FFFFFF;
-  border: 1px solid var(--border-color);
+  background-color: rgba(255, 255, 255, 0.7);
   color: var(--dark-text);
+  /* 移除旧边框 */
 }
+/* 用户气泡 (半透明暗色) */
 .chat-message.user .message-bubble {
-  background-color: var(--primary-color);
+  background-color: rgba(52, 73, 94, 0.8); /* 基于 --primary-color */
   color: white;
-  border: 1px solid var(--secondary-color);
+  /* 移除旧边框 */
 }
 .loading-bubble {
-  background-color: #FFFFFF;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -289,26 +296,19 @@ function clearHistory() {
   box-sizing: border-box;
   width: calc(100% - 40px);
   z-index: 2;
-  /* 错误提示也使用玻璃效果 */
   background-color: rgba(245, 108, 108, 0.2);
   border: 1px solid rgba(245, 108, 108, 0.5);
   color: white;
   text-shadow: 0 1px 2px rgba(0,0,0,0.3);
 }
-.chat-error-alert :deep(.el-alert__title) {
-  color: white;
-}
-.chat-error-alert :deep(.el-alert__icon) {
-  color: white !important;
-}
+.chat-error-alert :deep(.el-alert__title) { color: white; }
+.chat-error-alert :deep(.el-alert__icon) { color: white !important; }
 
-
-/* 8. 输入区域 (透明，卡片的一部分) */
+/* 8. 输入区域 */
 .chat-input-area {
   flex-shrink: 0;
   z-index: 2;
   background: transparent;
-  /* 微妙的分隔线 */
   border-top: 1px solid rgba(255, 255, 255, 0.2);
 }
 .input-wrapper {
@@ -318,27 +318,44 @@ function clearHistory() {
   position: relative;
 }
 
-/* 9. 修改输入框样式以适应玻璃 */
+/* 9. 输入框样式 */
 .input-wrapper :deep(.el-input__wrapper) {
-  background-color: rgba(255, 255, 255, 0.8) !important;
-  box-shadow: none !important;
-  border: 1px solid rgba(255, 255, 255, 0.5);
+  background-color: rgba(255, 255, 255, 0.9) !important; /* 更不透明 */
+  border: 1px solid rgba(255, 255, 255, 0.4) !important;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.05) !important; /* 增加阴影 */
 }
 .input-wrapper :deep(.el-input__inner) {
   color: var(--dark-text) !important;
   font-weight: 500;
 }
 .input-wrapper :deep(.el-input-group__append) {
-  background-color: rgba(255, 255, 255, 0.8) !important;
-  box-shadow: none !important;
-  border: 1px solid rgba(255, 255, 255, 0.5);
+  background-color: rgba(255, 255, 255, 0.9) !important; /* 同上 */
+  border: 1px solid rgba(255, 255, 255, 0.4) !important;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.05) !important; /* 同上 */
   border-left: none;
 }
+/* 确保发送按钮在悬停时颜色正确 */
+.input-wrapper :deep(.el-button) {
+  color: var(--el-text-color-regular);
+}
+.input-wrapper :deep(.el-button:hover) {
+  color: var(--el-color-primary);
+}
 
-/* 10. Markdown 样式 (保持不变) */
+
+/* 10. Markdown 样式  */
 .message-bubble :deep(p) { margin: 0.5em 0; }
 .message-bubble :deep(ul),
 .message-bubble :deep(ol) { padding-left: 20px; }
 .message-bubble :deep(p:first-child) { margin-top: 0; }
 .message-bubble :deep(p:last-child) { margin-bottom: 0; }
+
+/* 11. 滚动条 */
+.chat-window :deep(.el-scrollbar__thumb) {
+  background-color: rgba(255, 255, 255, 0.3);
+  border-radius: 4px;
+}
+.chat-window :deep(.el-scrollbar__thumb:hover) {
+  background-color: rgba(255, 255, 255, 0.5);
+}
 </style>
