@@ -16,70 +16,139 @@
       <el-form label-position="top" class="settings-form">
 
         <el-text type="info" class="setting-group-title">
+          <i class="icon ph-bold ph-plugs"></i>
+          <span>API 平台配置</span>
+        </el-text>
+        <el-divider />
+
+        <el-form-item label="默认 API 平台:">
+          <el-radio-group v-model="aiSettings.api_platform" class="platform-radio-group">
+            <el-radio-button label="modelscope">ModelScope (默认)</el-radio-button>
+            <el-radio-button label="bailian">阿里云 DashScope</el-radio-button>
+          </el-radio-group>
+        </el-form-item>
+
+        <div v-if="aiSettings.api_platform === 'bailian'" class="bailian-settings">
+          <el-form-item>
+            <template #label>
+              <span class="label-with-tooltip" @click.prevent>
+                DashScope API Key:
+                <el-tooltip
+                  effect="dark"
+                  content="用于调用阿里云 DashScope API 的访问凭证 (sk-xxx)。"
+                  placement="top"
+                >
+                  <el-icon :size="14" class="help-icon" ><QuestionFilled /></el-icon>
+                </el-tooltip>
+              </span>
+            </template>
+            <el-input
+              v-model="aiSettings.bailian_api_key"
+              placeholder="请输入您的 DashScope API Key"
+              type="password"
+              show-password
+            />
+          </el-form-item>
+
+          </div>
+
+        <el-text type="info" class="setting-group-title setting-group-spacer">
           <i class="icon ph-bold ph-robot"></i>
           <span>AI 模型配置</span>
         </el-text>
         <el-divider />
 
-        <el-form-item>
-          <template #label>
-            <span class="label-with-tooltip" @click.prevent>
-              对话模型:
-              <el-tooltip
-                effect="dark"
-                content="用于“艺术知识问答”和“创意灵感生成”。"
-                placement="top"
-              >
-                <el-icon :size="14" class="help-icon" ><QuestionFilled /></el-icon>
-              </el-tooltip>
-            </span>
-          </template>
-          <el-select v-model="aiSettings.chat_model" placeholder="请选择" style="width: 100%;">
-            <el-option label="Qwen3-30B (推荐)" value="Qwen/Qwen3-30B-A3B-Instruct-2507" />
-<!--            <el-option label="Qwen/Qwen3-32B" value="Qwen/Qwen3-32B" />-->
-            <el-option label="Qwen3-235B" value="Qwen/Qwen3-235B-A22B-Instruct-2507" />
-            <el-option label="Deepseek-V3.2" value="deepseek-ai/DeepSeek-V3.2-Exp" />
-          </el-select>
+        <div v-if="aiSettings.api_platform === 'modelscope'">
+          <el-form-item>
+            <template #label>
+              <span class="label-with-tooltip" @click.prevent>
+                对话模型 (ModelScope):
+                <el-tooltip
+                  effect="dark"
+                  content="用于“艺术知识问答”和“创意灵感生成”。"
+                  placement="top"
+                >
+                  <el-icon :size="14" class="help-icon" ><QuestionFilled /></el-icon>
+                </el-tooltip>
+              </span>
+            </template>
+            <el-select v-model="aiSettings.chat_model" placeholder="请选择" style="width: 100%;">
+              <el-option label="Qwen3-30B (推荐)" value="Qwen/Qwen3-30B-A3B-Instruct-2507" />
+  <el-option label="Qwen3-235B" value="Qwen/Qwen3-235B-A22B-Instruct-2507" />
+              <el-option label="Deepseek-V3.2" value="deepseek-ai/DeepSeek-V3.2-Exp" />
+            </el-select>
+            </el-form-item>
+
+          <el-form-item>
+            <template #label>
+              <span class="label-with-tooltip" @click.prevent>
+                识图模型 (ModelScope):
+                <el-tooltip
+                  effect="dark"
+                  content="用于所有需要“上传图片”进行分析的工具，如“AI智能上色”。"
+                  placement="top"
+                >
+                  <el-icon :size="14" class="help-icon" ><QuestionFilled /></el-icon>
+                </el-tooltip>
+              </span>
+            </template>
+            <el-select v-model="aiSettings.vl_model" placeholder="请选择" style="width: 100%;">
+              <el-option label="Qwen-VL-8B (推荐)" value="Qwen/Qwen3-VL-8B-Instruct" />
+              <el-option label="Qwen3-VL-30B" value="Qwen/Qwen3-VL-30B-A3B-Instruct" />
+            </el-select>
           </el-form-item>
 
-        <el-form-item>
-          <template #label>
-            <span class="label-with-tooltip" @click.prevent>
-              识图模型:
-              <el-tooltip
-                effect="dark"
-                content="用于所有需要“上传图片”进行分析的工具，如“AI智能上色”。"
-                placement="top"
-              >
-                <el-icon :size="14" class="help-icon" ><QuestionFilled /></el-icon>
-              </el-tooltip>
-            </span>
-          </template>
-          <el-select v-model="aiSettings.vl_model" placeholder="请选择" style="width: 100%;">
-            <el-option label="Qwen-VL-8B (推荐)" value="Qwen/Qwen3-VL-8B-Instruct" />
-            <el-option label="Qwen3-VL-30B" value="Qwen/Qwen3-VL-30B-A3B-Instruct" />
-          </el-select>
-        </el-form-item>
+          <el-form-item>
+            <template #label>
+              <span class="label-with-tooltip" @click.prevent>
+                绘图模型 (ModelScope):
+                <el-tooltip
+                  effect="dark"
+                  content="用于所有“生成图片”的工具，如“创意风格工坊”。"
+                  placement="top"
+                >
+                  <el-icon :size="14" class="help-icon" ><QuestionFilled /></el-icon>
+                </el-tooltip>
+              </span>
+            </template>
+            <el-select v-model="aiSettings.image_model" placeholder="请选择" style="width: 100%;">
+              <el-option label="FLUX.1-Krea (推荐)" value="black-forest-labs/FLUX.1-Krea-dev" />
+              <el-option label="FLUX.1-dev" value="MusePublic/489_ckpt_FLUX_1" />
+              <el-option label="Qwen-image" value="Qwen/Qwen-Image" />
+            </el-select>
+          </el-form-item>
+        </div>
 
-        <el-form-item>
-          <template #label>
-            <span class="label-with-tooltip" @click.prevent>
-              绘图模型:
-              <el-tooltip
-                effect="dark"
-                content="用于所有“生成图片”的工具，如“创意风格工坊”。"
-                placement="top"
-              >
-                <el-icon :size="14" class="help-icon" ><QuestionFilled /></el-icon>
-              </el-tooltip>
-            </span>
-          </template>
-          <el-select v-model="aiSettings.image_model" placeholder="请选择" style="width: 100%;">
-            <el-option label="FLUX.1-Krea (推荐)" value="black-forest-labs/FLUX.1-Krea-dev" />
-            <el-option label="FLUX.1-dev" value="MusePublic/489_ckpt_FLUX_1" />
-            <el-option label="Qwen-image" value="Qwen/Qwen-Image" />
-          </el-select>
-        </el-form-item>
+        <div v-if="aiSettings.api_platform === 'bailian'">
+           <el-form-item>
+            <template #label>
+              <span class="label-with-tooltip" @click.prevent>
+                对话模型 (DashScope):
+                <el-tooltip
+                  effect="dark"
+                  content="用于“艺术知识问答”和“创意灵感生成”。"
+                  placement="top"
+                >
+                  <el-icon :size="14" class="help-icon" ><QuestionFilled /></el-icon>
+                </el-tooltip>
+              </span>
+            </template>
+            <el-select v-model="aiSettings.ds_llm_id" placeholder="请选择" style="width: 100%;">
+              <el-option label="通义千问Plus (推荐)" value="qwen-plus" />
+              <el-option label="通义千问Max (最强)" value="qwen3-max" />
+              <el-option label="通义千问Flash (最快)" value="qwen-flash" />
+            </el-select>
+          </el-form-item>
+
+           <el-alert
+            title="图像模型自动选择"
+            type="info"
+            description="DashScope 平台的识图和绘图模型将根据功能在后端自动选用，暂无需在此处选择。"
+            show-icon
+            :closable="false"
+            style="margin-top: 10px;"
+          />
+        </div>
 
         <el-text type="info" class="setting-group-title setting-group-spacer">
           <i class="icon ph-bold ph-student"></i>
@@ -180,5 +249,30 @@ const { aiSettings } = storeToRefs(settingsStore);
 .help-icon {
   color: var(--el-text-color-secondary);
   cursor: help; /* 鼠标悬停时显示帮助光标 */
+}
+
+/* 百炼设置的特殊样式 */
+.bailian-settings {
+  background: #fdfdfd;
+  border: 1px dashed var(--border-color);
+  padding: 0 15px 10px 15px;
+  border-radius: 8px;
+  margin-top: -10px;
+  margin-bottom: 10px;
+}
+
+/* (新增) 平台选择器美化 */
+.platform-radio-group {
+  display: flex;
+  width: 100%;
+}
+
+:deep(.platform-radio-group .el-radio-button) {
+  flex: 1; /* 平分宽度 */
+}
+
+:deep(.platform-radio-group .el-radio-button__inner) {
+  width: 100%;
+  text-align: center;
 }
 </style>

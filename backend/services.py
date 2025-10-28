@@ -1,25 +1,25 @@
 import os
-import requests
 import json
 import boto3
 import uuid
 import base64
-import time
 from io import BytesIO
+
+import requests
 from PIL import Image
 from flask import current_app
-from prompt import PROMPTS
-from utils import get_headers  # 导入 utils 中的 get_headers
 
+from prompt import PROMPTS
+from utils import calculate_adaptive_size, ApiKeyMissingError
+import api as executors
+
+# 导入腾讯云 SDK (保持不变)
 from tencentcloud.common import credential
 from tencentcloud.common.profile.client_profile import ClientProfile
 from tencentcloud.common.profile.http_profile import HttpProfile
-from tencentcloud.common.exception.tencent_cloud_sdk_exception import (
-    TencentCloudSDKException,
-)
 from tencentcloud.tmt.v20180321 import tmt_client, models
 
-# --- R2 S3 客户端配置 ---
+# --- R2 S3 客户端配置 (保持不变) ---
 R2_ENDPOINT_URL = os.getenv("R2_ENDPOINT_URL")
 R2_ACCOUNT_ID = os.getenv("R2_ACCOUNT_ID")
 R2_ACCESS_KEY_ID = os.getenv("R2_ACCESS_KEY_ID")
@@ -35,28 +35,24 @@ s3_client = boto3.client(
     region_name="auto",
 )
 
-# ---  腾讯云翻译配置 ---
+# ---  腾讯云翻译配置 (保持不变) ---
 TENCENT_SECRET_ID = os.getenv("Tencent_SecretId")
 TENCENT_SECRET_KEY = os.getenv("Tencent_Secretkey")
 TENCENT_REGION = "ap-guangzhou"
 
-# --- 1. R2 S3 服务 ---
-
+# ==============================================================================
+# === 0. 平台无关的辅助工具 (保持不变)
+# ==============================================================================
 
 def upload_to_r2(base64_string):
-    """
-    将 base64 图像字符串上传到 R2 并返回公共 URL 和尺寸。
-    """
+    """将 base64 图像字符串上传到 R2 并返回公共 URL 和尺寸。"""
     try:
         header, encoded = base64_string.split(",", 1)
         data = base64.b64decode(encoded)
         image_bytes = BytesIO(data)
-
-        # 从字节中读取图像尺寸
         with Image.open(image_bytes) as img:
             width, height = img.size
-
-        image_bytes.seek(0)  # 重置指针
+        image_bytes.seek(0)
         mime_type = header.split(";")[0].split(":")[-1]
         extension = mime_type.split("/")[-1]
         file_name = f"uploads/{uuid.uuid4()}.{extension}"
@@ -73,223 +69,420 @@ def upload_to_r2(base64_string):
         print(f"R2 Upload Error: {e}")
         raise Exception(f"Failed to upload image to R2 OSS: {e}")
 
-
-# --- 2. 腾讯云翻译服务 ---
-
-
 def translate_text_tencent(text_list, target_lang="zh"):
-    """使用腾讯云API批量翻译文本列表"""
+    """使用腾讯云API批量翻译文本列表 (用于 MET 画廊)"""
     if not TENCENT_SECRET_ID or not TENCENT_SECRET_KEY:
         print("Warning: Tencent Cloud API keys not configured. Skipping translation.")
         return text_list
-
     try:
         cred = credential.Credential(TENCENT_SECRET_ID, TENCENT_SECRET_KEY)
         httpProfile = HttpProfile()
         httpProfile.endpoint = "tmt.tencentcloudapi.com"
-
         clientProfile = ClientProfile()
         clientProfile.httpProfile = httpProfile
         client = tmt_client.TmtClient(cred, TENCENT_REGION, clientProfile)
-
         req = models.TextTranslateBatchRequest()
         params = {
-            "Source": "auto",
-            "Target": target_lang,
-            "ProjectId": 0,
-            "SourceTextList": text_list,
+            "Source": "auto", "Target": target_lang, "ProjectId": 0, "SourceTextList": text_list
         }
         req.from_json_string(json.dumps(params))
-
         resp = client.TextTranslateBatch(req)
         translated_list = resp.TargetTextList
-
-        if len(translated_list) != len(text_list):
-            print(
-                f"Warning: Tencent translation returned {len(translated_list)} results for {len(text_list)} inputs. Returning originals."
-            )
+        # 添加长度检查，如果翻译失败则返回原文
+        if len(translated_list) == len(text_list):
+            return translated_list
+        else:
+            print(f"Warning: Tencent translation returned {len(translated_list)} results for {len(text_list)} inputs. Returning originals.")
             return text_list
-
-        return translated_list
-
-    except TencentCloudSDKException as err:
-        print(f"Tencent Cloud Translation Error: {err}")
-        # 出错时返回原始文本
-        return text_list
     except Exception as e:
-        print(f"An unexpected error occurred during translation: {e}")
+        print(f"Tencent Cloud Translation Error: {e}")
         return text_list
-
-
-# --- 3. ModelScope 服务 ---
 
 
 def validate_modelscope_key(api_key):
     """尝试调用 ModelScope 以验证 API Key 的有效性"""
+    # 这个函数需要直接调用 API，所以保留在这里
     try:
-        headers = get_headers(api_key)
+        from utils import _get_modelscope_headers # 导入内部函数
+        headers = _get_modelscope_headers(api_key)
         base_url = current_app.config["MODEL_SCOPE_BASE_URL"]
-        model_id = current_app.config["QWEN_LLM_ID"]
-
+        model_id = current_app.config["MS_QWEN_LLM_ID"]
         payload = {
-            "model": model_id,
-            "messages": [{"role": "user", "content": "Test"}],
-            "max_tokens": 1,
+            "model": model_id, "messages": [{"role": "user", "content": "Test"}], "max_tokens": 1
         }
         response = requests.post(
             f"{base_url}v1/chat/completions", headers=headers, json=payload, timeout=10
         )
-
-        if response.status_code == 401:
-            return False
-        if response.ok:
-            return True
-        return False
-
-    except requests.exceptions.RequestException as e:
+        return response.ok and response.status_code != 401
+    except Exception as e:
         print(f"Key validation request failed: {e}")
         return False
 
-
-def generate_english_prompt(headers, config, chinese_prompt, context_description):
-    """调用 Qwen 将中文提示词转为英文"""
-    base_url = current_app.config["MODEL_SCOPE_BASE_URL"]
-
-    full_user_prompt = PROMPTS["PROMPT_TRANSLATOR"].format(
-        context=context_description, chinese_description=chinese_prompt
-    )
-    messages = [{"role": "user", "content": full_user_prompt}]
-    payload = {
-        "model": config["chat_model"],
-        "messages": messages,
-        "max_tokens": 800,
-        "temperature": 0.5,
-    }
-    response = requests.post(
-        f"{base_url}v1/chat/completions", headers=headers, json=payload
-    )
-    response.raise_for_status()
-    data = response.json()
-    content = data["choices"][0]["message"]["content"]
-    return content.replace('"', "").strip()
-
-
-def get_style_prompt_from_image(headers, config, base64_image_url):
-    """调用 Qwen-VL 识图以获取风格提示词"""
-    base_url = current_app.config["MODEL_SCOPE_BASE_URL"]
-
-    system_prompt = PROMPTS["STYLE_ANALYSIS_SYSTEM"]
-    user_text = PROMPTS["STYLE_ANALYSIS_USER"]
-
-    payload = {
-        "model": config["vl_model"],
-        "messages": [
-            {
-                "role": "system",
-                "content": [{"type": "text", "text": system_prompt}],
-            },
-            {
-                "role": "user",
-                "content": [
-                    {
-                        "type": "image_url",
-                        "image_url": {"url": base64_image_url},
-                    },
-                    {"type": "text", "text": user_text},
-                ],
-            },
-        ],
-        "max_tokens": 1000,
-        "temperature": 0.6,
-    }
-    response = requests.post(
-        f"{base_url}v1/chat/completions",
-        headers=headers,
-        json=payload,
-    )
-    response.raise_for_status()
-    data = response.json()
-
-    if data.get("choices") and data["choices"][0].get("message"):
-        return data["choices"][0]["message"]["content"]
+def _parse_ideas_from_llm_json(content, is_list=False):
+    """(保持不变) 辅助函数，从 LLM 的 (可能含 markdown) 响应中提取 JSON"""
+    if is_list:
+        json_start = content.find('[')
+        json_end = content.rfind(']') + 1
+        if json_start == -1 or json_end == 0:
+            raise Exception("LLM did not return valid JSON list.")
+        json_string = content[json_start : json_end]
+        return json.loads(json_string)
     else:
-        raise Exception(f"Qwen-VL API Error: {data.get('message', 'Unknown error')}")
+        json_start = content.find('{')
+        json_end = content.rfind('}') + 1
+        if json_start == -1 or json_end == 0:
+            raise Exception("LLM did not return valid JSON object.")
+        json_string = content[json_start : json_end]
+        return json.loads(json_string).get("ideas", [])
+
+# ==============================================================================
+# === 3. 功能“管理器” (Public) - 由 app.py 调用 (已适配新的执行器)
+# ==============================================================================
+
+def generate_colorization(config, ms_key, base64_image, chinese_prompt):
+    """AI 智能上色“管理器”"""
+    platform = config.get("api_platform", "modelscope")
+
+    doodle_prompt = f"{chinese_prompt}风格。"
+    if config["age_range"] in ["6-8岁", "9-10岁"]:
+        doodle_prompt += " 色彩明亮, 卡通风格。"
+    elif config["age_range"] in ["13-16岁", "17-18岁"]:
+         doodle_prompt += " 细节丰富, 写实光影。"
+
+    if platform == "bailian":
+        print("DashScope Manager: Calling wanx2.1-imageedit (doodle) for colorization.")
+        return executors.run_image_edit_wanx21_dashscope(
+            config=config,
+            function="doodle",
+            base_image_b64=base64_image,
+            prompt=doodle_prompt,
+            is_sketch='false'
+        )
+
+    else:
+        print("ModelScope Manager: Uploading to R2 and calling LLM/ImageGen for colorization.")
+        public_url, w, h = upload_to_r2(base64_image)
+        adaptive_size = calculate_adaptive_size(w, h)
+        full_chinese_prompt_for_translator = PROMPTS["COLORIZE_PROMPT_CN"].format(
+            prompt=chinese_prompt, age_range=config["age_range"]
+        )
+        translator_prompt = PROMPTS["PROMPT_TRANSLATOR"].format(
+            context="Coloring a lineart image.",
+            chinese_description=full_chinese_prompt_for_translator
+        )
+        english_prompt = executors.run_llm_generation_modelscope(
+            config, ms_key, translator_prompt
+        )
+
+        ms_negative_prompt = "text, watermark, signature, blurry, low quality, worst quality, deformed, ugly, grayscale, monochrome, sketch, unfinished, lineart"
+        body = {
+            "model": config["ms_image_model"],
+            "prompt": english_prompt,
+            "negative_prompt": ms_negative_prompt,
+            "image_url": public_url,
+            "size": adaptive_size,
+        }
+        return executors.run_image_gen_modelscope(config, ms_key, body)
 
 
-def submit_sync_generation(headers, body, base_url):
-    """提交 ModelScope 同步图像生成"""
-    response = requests.post(
-        f"{base_url}v1/images/generations",
-        headers=headers,
-        json=body,
-    )
-    response.raise_for_status()
-    data = response.json()
-    if data.get("images") and data["images"][0].get("url"):
-        return data["images"][0]["url"]
-    raise Exception(f"API Error (Sync): {data.get('message', 'Unknown error')}")
+def generate_creative_workshop(config, ms_key, base64_content_image=None, base64_style_image=None, chinese_prompt=None):
+    """创意工坊“管理器” - 处理非人像的风格迁移"""
+    platform = config.get("api_platform", "modelscope")
+
+    if platform == "bailian":
+        if base64_style_image:
+            # --- 模式二: 图像风格 ---
+            print("DashScope Manager: Simulating style transfer using VL and wanx2.1-imageedit (stylization_all).")
+            # 1. 调用 VL 分析风格图 (获取文本描述)
+            style_analysis_content = [
+                {"image": base64_style_image},
+                {"text": PROMPTS["STYLE_ANALYSIS_USER"] + " 请用中文描述风格。"}
+            ]
+            style_description_cn = executors.run_vl_chat_dashscope(config, style_analysis_content)
+            # 2. 构造 stylization_all 的 prompt
+            stylization_prompt = f"转换成 [{style_description_cn}] 风格"
+            # 3. 调用 stylization_all
+            return executors.run_image_edit_wanx21_dashscope(
+                config=config,
+                function="stylization_all",
+                base_image_b64=base64_content_image,
+                prompt=stylization_prompt,
+                strength=0.6
+            )
+        elif chinese_prompt:
+             # --- 模式一: 文本指令 ---
+             return executors.run_image_edit_wanx21_dashscope(
+                 config=config,
+                 function="stylization_all",
+                 base_image_b64=base64_content_image,
+                 prompt=chinese_prompt
+             )
+        else:
+             raise ValueError("Creative workshop requires either a style image or a text prompt.")
+
+    else:
+        print("ModelScope Manager: Calling LLM/VL/ImageGen for creative workshop.")
+
+        public_content_url = None
+        w, h = 0, 0
+
+        if base64_content_image:
+            public_content_url, w, h = upload_to_r2(base64_content_image)
+
+        if base64_style_image:
+            # --- 模式二: 图像风格  ---
+            print("ModelScope Creative Workshop: Image Style Mode")
+            public_style_url, _, _ = upload_to_r2(base64_style_image)
+            style_analysis_content = [
+                {"type": "image_url", "image_url": {"url": public_style_url}},
+                {"type": "text", "text": PROMPTS["STYLE_ANALYSIS_USER"]}
+            ]
+            style_description_en = executors.run_vl_chat_modelscope(
+                config, ms_key, PROMPTS["STYLE_ANALYSIS_SYSTEM"], style_analysis_content
+            )
+            final_english_prompt = PROMPTS["ART_FUSION_PROMPT_EN"].format(style_description=style_description_en)
+
+        elif chinese_prompt:
+            # --- 模式一: 文本指令 ---
+            print("ModelScope Creative Workshop: Text Instruction Mode")
+            translator_prompt = PROMPTS["PROMPT_TRANSLATOR"].format(
+                context=f"Applying creative style based on user instruction.",
+                chinese_description=chinese_prompt
+            )
+            final_english_prompt = executors.run_llm_generation_modelscope(
+                 config, ms_key, translator_prompt
+            )
+        else:
+             raise ValueError("Creative workshop requires either a style image or a text prompt.")
+
+        ms_negative_prompt = "text, watermark, signature, blurry, low quality, worst quality, deformed, ugly, bad anatomy"
+        body = {
+            "model": config["ms_image_model"],
+            "prompt": final_english_prompt,
+            "negative_prompt": ms_negative_prompt,
+        }
+        adaptive_size = calculate_adaptive_size(w, h) if w > 0 else "1024x1024"
+        body["size"] = adaptive_size
+        if public_content_url:
+            body["image_url"] = public_content_url
+            body["strength"] = 0.6
+
+        return executors.run_image_gen_modelscope(config, ms_key, body)
 
 
-def submit_async_generation_task(headers, body):
-    """提交 ModelScope 异步图像生成任务"""
-    base_url = current_app.config["MODEL_SCOPE_BASE_URL"]
-    async_headers = {**headers, "X-ModelScope-Async-Mode": "true"}
+def generate_portrait_workshop(config, base64_portrait_image, base64_style_image=None, preset_style_index=None):
+    """人像工坊“管理器”"""
+    platform = config.get("api_platform", "modelscope")
+    ms_key = config.get("modelscope_key")
 
-    response = requests.post(
-        f"{base_url}v1/images/generations", headers=async_headers, json=body
-    )
-    response.raise_for_status()
-    return response.json()["task_id"]
+    if platform == "bailian":
+        print("DashScope Manager: Calling wanx-style-cosplay for portrait workshop.")
 
+        if base64_style_image is not None:
+            # --- 自定义风格模式 ---
+            print("DashScope Manager: Custom style mode selected.")
+            return executors.run_portrait_stylization_dashscope(
+                config=config,
+                base_image_b64=base64_portrait_image,
+                style_image_b64=base64_style_image, # 传递风格图
+                style_index=-1                      # 明确 style_index 为 -1
+            )
+        elif preset_style_index is not None:
+            # --- 预设风格模式 ---
+            print(f"DashScope Manager: Preset style mode selected (Index: {preset_style_index}).")
+            return executors.run_portrait_stylization_dashscope(
+                config=config,
+                base_image_b64=base64_portrait_image,
+                style_image_b64=None,               # 确保风格图为 None
+                style_index=preset_style_index      # 传递预设索引
+            )
+        else:
+             # 此情况理论上已被 app.py 捕获，但作为防御添加
+             raise ValueError("Portrait workshop requires either a style image or a preset style index.")
 
-def poll_generation_result(headers, task_id):
-    """轮询 ModelScope 异步任务结果"""
-    base_url = current_app.config["MODEL_SCOPE_BASE_URL"]
-    poll_headers = {**headers, "X-ModelScope-Task-Type": "image_generation"}
+    else: # ModelScope 平台逻辑 (保持不变)
+        # ... (省略 ModelScope 的模拟逻辑) ...
+        print("ModelScope Manager: Simulating portrait workshop using LLM/ImageGen.")
+        if not ms_key: raise ApiKeyMissingError("ModelScope Key not found in config for portrait workshop.")
 
-    while True:
-        result = requests.get(f"{base_url}v1/tasks/{task_id}", headers=poll_headers)
-        result.raise_for_status()
-        data = result.json()
-        if data["task_status"] == "SUCCEED":
-            return data["output_images"][0]
-        elif data["task_status"] == "FAILED":
-            raise Exception(f"Task failed: {data.get('task_message', 'Unknown error')}")
-        time.sleep(3)
+        if preset_style_index is not None:
+             style_map = {
+                0: "复古漫画", 1: "3D童话", 2: "二次元", 3: "小清新", 4: "未来科技",
+                5: "国画古风", 6: "将军百战", 7: "炫彩卡通", 8: "清雅国风",
+                9: "喜迎新年", 14: "国风工笔", 15: "恭贺新禧", 30: "童话世界",
+                31: "黏土世界", 32: "像素世界", 33: "冒险世界", 34: "日漫世界",
+                35: "3D世界", 36: "二次元世界", 37: "手绘世界", 38: "蜡笔世界",
+                39: "冰箱贴世界", 40: "吧唧世界"
+             }
+             style_name = style_map.get(preset_style_index, f"预设风格{preset_style_index}")
+             chinese_prompt = PROMPTS["SELF_PORTRAIT_PROMPT_CN"].format(style_prompt=style_name)
+             context_desc = f"Stylizing a portrait into preset style {style_name}."
 
+             translator_prompt = PROMPTS["PROMPT_TRANSLATOR"].format(
+                 context=context_desc, chinese_description=chinese_prompt
+             )
+             final_english_prompt = executors.run_llm_generation_modelscope(
+                 config, ms_key, translator_prompt
+             )
 
-def run_llm_chat(headers, config, messages, system_prompt):
-    """运行 LLM 聊天"""
-    base_url = current_app.config["MODEL_SCOPE_BASE_URL"]
+        elif base64_style_image:
+             public_style_url, _, _ = upload_to_r2(base64_style_image)
+             style_analysis_content = [
+                 {"type": "image_url", "image_url": {"url": public_style_url}},
+                 {"type": "text", "text": PROMPTS["STYLE_ANALYSIS_USER"]}
+             ]
+             style_description_en = executors.run_vl_chat_modelscope(
+                 config, ms_key, PROMPTS["STYLE_ANALYSIS_SYSTEM"], style_analysis_content
+             )
+             final_english_prompt = f"A portrait in the style of [{style_description_en}], masterpiece, best quality. Must preserve face features."
+        else:
+            raise ValueError("Portrait workshop requires either a style image or a preset style index.")
 
-    payload = {
-        "model": config["chat_model"],
-        "messages": [{"role": "system", "content": system_prompt}] + messages,
-        "max_tokens": 500,
-        "temperature": 0.7,
+        return _execute_modelscope_portrait_simulation(
+            config,
+            base64_portrait_image,
+            final_english_prompt
+        )
+
+def _execute_modelscope_portrait_simulation(config, base64_portrait_image, english_prompt):
+    """
+     辅助函数，执行 ModelScope 的人像风格化模拟。
+    从 config 获取 ms_key。
+    """
+    ms_key = config.get("modelscope_key")
+    if not ms_key:
+        raise ApiKeyMissingError("Internal Error: ModelScope Key not found in config for simulation.")
+
+    public_portrait_url, w, h = upload_to_r2(base64_portrait_image)
+    adaptive_size = calculate_adaptive_size(w, h)
+    ms_negative_prompt = "text, watermark, signature, blurry, ugly, deformed, disfigured, worst quality, low quality, multiple heads, bad anatomy, extra limbs, mutation, gender swap"
+
+    body = {
+        "model": config["ms_image_model"],
+        "prompt": english_prompt,
+        "negative_prompt": ms_negative_prompt,
+        "image_url": public_portrait_url,
+        "size": adaptive_size,
+        "strength": 0.65
     }
-    response = requests.post(
-        f"{base_url}v1/chat/completions", headers=headers, json=payload
+    return executors.run_image_gen_modelscope(config, ms_key, body)
+
+def run_chat_completion(config, ms_key, messages):
+    """艺术知识问答“管理器” (多轮对话)"""
+    platform = config.get("api_platform", "modelscope")
+    system_prompt = PROMPTS["ART_QA_USER"].format(age_range=config["age_range"])
+
+    if platform == "bailian":
+        print("DashScope Manager: Running LLM Chat.")
+        message_obj = executors.run_llm_chat_dashscope(config, messages, system_prompt)
+        return { "choices": [{"message": {"role": message_obj.role, "content": message_obj.content}}] }
+    else:
+        print("ModelScope Manager: Running LLM Chat.")
+        return executors.run_llm_chat_modelscope(config, ms_key, messages, system_prompt)
+
+
+def generate_ideas(config, ms_key, theme):
+    """创意灵感生成器“管理器”"""
+    platform = config.get("api_platform", "modelscope")
+
+    # 1. 生成创意文本
+    text_prompt = PROMPTS["IDEA_GENERATOR_USER"].format(
+        theme=theme,
+        age_range=config["age_range"]
     )
-    response.raise_for_status()
-    return response.json()
+    ideas = []
+    if platform == "bailian":
+        print("DashScope Manager: Generating idea text...")
+        content = executors.run_llm_generation_dashscope(config, text_prompt)
+        ideas = _parse_ideas_from_llm_json(content)
+    else:
+        print("ModelScope Manager: Generating idea text...")
+        content = executors.run_llm_generation_modelscope(config, ms_key, text_prompt)
+        ideas = _parse_ideas_from_llm_json(content)
+
+    # 2. 并发生成图像
+    processed_ideas = []
+    # TODO: 并发处理
+    for idea in ideas:
+        try:
+            img_prompt_cn = PROMPTS["IDEA_IMAGE_PROMPT_CN"].format(
+                name=idea['name'],
+                description=idea['description'],
+                elements=idea['elements'],
+                age_range=config["age_range"]
+            )
+            ms_negative_prompt = "text, watermark, signature, blurry, low quality, ugly, deformed"
+
+            if platform == "bailian":
+                 print(f"DashScope Manager: Generating image for idea '{idea['name']}'...")
+                 idea["exampleImage"] = executors.run_text_to_image_dashscope(
+                     config,
+                     prompt=img_prompt_cn,
+                 )
+            else:
+                 print(f"ModelScope Manager: Generating image for idea '{idea['name']}'...")
+                 translator_prompt = PROMPTS["PROMPT_TRANSLATOR"].format(
+                     context=f"Generating an image for creative idea: {idea['name']}",
+                     chinese_description=img_prompt_cn
+                 )
+                 english_prompt = executors.run_llm_generation_modelscope(config, ms_key, translator_prompt)
+                 img_body = {
+                     "model": config["ms_image_model"],
+                     "prompt": english_prompt,
+                     "negative_prompt": ms_negative_prompt,
+                     "size": "1024x1024",
+                 }
+                 idea["exampleImage"] = executors.run_image_gen_modelscope(config, ms_key, img_body, sync=True)
+
+        except Exception as img_err:
+            print(f"{platform.capitalize()} Manager: Failed to generate image for idea '{idea['name']}': {img_err}")
+            idea["exampleImage"] = None
+        processed_ideas.append(idea)
+
+    return processed_ideas
 
 
-def run_llm_generation(headers, config, text_prompt, max_tokens=800, temp=0.8):
-    """运行 LLM 生成（用于灵感生成器）"""
-    base_url = current_app.config["MODEL_SCOPE_BASE_URL"]
+def generate_artwork_explanation(config, ms_key, art_info_en):
+    """名画鉴赏室“管理器” (AI 讲解)"""
+    platform = config.get("api_platform", "modelscope")
 
-    payload = {
-        "model": config["chat_model"],
-        "messages": [{"role": "user", "content": text_prompt}],
-        "max_tokens": max_tokens,
-        "temperature": temp,
+    # 1. 获取 AI 讲解 (使用对应平台 LLM)
+    ai_user_prompt = PROMPTS["ARTWORK_EXPLAINER"].format(
+        age_range=config["age_range"],
+        **art_info_en
+    )
+    ai_explanation = {}
+    if platform == "bailian":
+        print("DashScope Manager: Generating artwork explanation...")
+        content = executors.run_llm_generation_dashscope(config, ai_user_prompt)
+        ai_explanation = {"role": "assistant", "content": content}
+    else:
+        print("ModelScope Manager: Generating artwork explanation...")
+        response_json = executors.run_llm_chat_modelscope(config, ms_key, [], ai_user_prompt)
+        ai_explanation = response_json["choices"][0]["message"]
+
+    # 2. 翻译原文信息 (平台无关, 使用腾讯云)
+    try:
+        to_translate = [
+            f"作品名称: {art_info_en['title']}",
+            f"艺术家: {art_info_en['artist']}",
+            f"媒介: {art_info_en['medium']}",
+            f"创作日期: {art_info_en['date']}"
+        ]
+        translated_list = translate_text_tencent(to_translate)
+        if translated_list and len(translated_list) == len(to_translate):
+            original_description_zh = "\n".join(translated_list)
+        else:
+            raise Exception("Translation list length mismatch")
+    except Exception as e:
+        print(f"Error translating original artwork info: {e}")
+        original_description_zh = "\n".join([ # Fallback to English
+            f"Title: {art_info_en['title']}", f"Artist: {art_info_en['artist']}",
+            f"Medium: {art_info_en['medium']}", f"Date: {art_info_en['date']}"
+        ])
+
+    # 3. 返回结果
+    return {
+        "ai_explanation": ai_explanation,
+        "original_description_zh": original_description_zh
     }
-
-    text_response = requests.post(
-        f"{base_url}v1/chat/completions",
-        headers=headers,
-        json=payload
-    )
-    text_response.raise_for_status()
-    return text_response.json()
