@@ -60,6 +60,7 @@ import { useUploadLimiter } from '../composables/useUploadLimiter.js';
 const prompt = ref('');
 
 const {
+  file: lineartFile,
   handleChange: handleFileChange,
   handleRemove,
   uploadClass
