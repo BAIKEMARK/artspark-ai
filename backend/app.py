@@ -2,108 +2,67 @@ import os
 import time
 import requests
 import json
-import boto3
-import uuid
 import base64
 from io import BytesIO
-from flask import Flask, request, jsonify, send_file, send_from_directory
+from flask import Flask, request, jsonify, send_file, send_from_directory, current_app
 from dotenv import load_dotenv
 from flask_cors import CORS
-from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadTimeSignature
+from itsdangerous import URLSafeTimedSerializer
 from requests.exceptions import HTTPError
 from PIL import Image
-from prompt import PROMPTS
 from concurrent.futures import ThreadPoolExecutor
+from functools import partial
 
-from tencentcloud.common import credential
-from tencentcloud.common.profile.client_profile import ClientProfile
-from tencentcloud.common.profile.http_profile import HttpProfile
-from tencentcloud.common.exception.tencent_cloud_sdk_exception import TencentCloudSDKException
-from tencentcloud.tmt.v20180321 import tmt_client, models
+# --- 1. 导入本地模块 ---
+from prompt import PROMPTS
+from utils import (
+    ApiKeyMissingError,
+    get_api_key,
+    get_headers,
+    handle_api_errors,
+    get_ai_config,
+    calculate_adaptive_size
+)
+from services import (
+    validate_modelscope_key,
+    upload_to_r2,
+    translate_text_tencent,
+    generate_english_prompt,
+    get_style_prompt_from_image,
+    submit_sync_generation,
+    submit_async_generation_task,
+    poll_generation_result,
+    run_llm_chat,
+    run_llm_generation
+)
 
-
-class ApiKeyMissingError(Exception):
-    """当 session 中缺少 API key 时引发"""
-    pass
-
-# --- 1. 配置 ---
+# --- 2. 配置 ---
 load_dotenv()
 
 app = Flask(__name__, static_folder='../frontend/dist', static_url_path='/')
 
-
 CORS(
     app,
     supports_credentials=True,
-    resources={r"/api/*": {"origins": "*" }} # 允许所有源，或更具体的生产环境源
+    resources={r"/api/*": {"origins": "*" }}
 )
 
+# --- 2.1 应用配置 ---
 app.config["SECRET_KEY"] = os.getenv("FLASK_SECRET_KEY")
-API_KEY_SALT = os.getenv("API_KEY_SALT")
-ts = URLSafeTimedSerializer(app.config["SECRET_KEY"])
+app.config["API_KEY_SALT"] = os.getenv("API_KEY_SALT")
 
-MODEL_SCOPE_BASE_URL = "https://api-inference.modelscope.cn/"
-FLUX_MODEL_ID = "black-forest-labs/FLUX.1-Krea-dev"
-QWEN_LLM_ID = "Qwen/Qwen3-30B-A3B-Instruct-2507"
-QWEN_VL_ID = "Qwen/Qwen3-VL-8B-Instruct"
+# 将 ts 序列化器放入 app config，以便 utils 可以访问
+app.config["ts"] = URLSafeTimedSerializer(app.config["SECRET_KEY"])
 
-# --- R2 S3 客户端配置 ---
-R2_ENDPOINT_URL = os.getenv("R2_ENDPOINT_URL")
-R2_ACCOUNT_ID = os.getenv("R2_ACCOUNT_ID")
-R2_ACCESS_KEY_ID = os.getenv("R2_ACCESS_KEY_ID")
-R2_SECRET_ACCESS_KEY = os.getenv("R2_SECRET_ACCESS_KEY")
-R2_BUCKET_NAME = os.getenv("R2_BUCKET_NAME")
-R2_PUBLIC_URL_BASE = os.getenv("R2_PUBLIC_URL_BASE")
+# --- 2.2 模型和 API 配置 ---
+app.config["MODEL_SCOPE_BASE_URL"] = "https://api-inference.modelscope.cn/"
+app.config["FLUX_MODEL_ID"] = "black-forest-labs/FLUX.1-Krea-dev"
+app.config["QWEN_LLM_ID"] = "Qwen/Qwen3-30B-A3B-Instruct-2507"
+app.config["QWEN_VL_ID"] = "Qwen/Qwen3-VL-8B-Instruct"
+app.config["MET_API_BASE"] = "https://collectionapi.metmuseum.org/public/collection/v1"
 
-s3_client = boto3.client(
-    's3',
-    endpoint_url=R2_ENDPOINT_URL,
-    aws_access_key_id=R2_ACCESS_KEY_ID,
-    aws_secret_access_key=R2_SECRET_ACCESS_KEY,
-    region_name='auto'
-)
-# ---  腾讯云翻译配置 ---
-TENCENT_SECRET_ID = os.getenv("Tencent_SecretId")
-TENCENT_SECRET_KEY = os.getenv("Tencent_Secretkey")
-TENCENT_REGION = "ap-guangzhou" # 或者你选择的地域
 
-# --- 2. 核心：API 密钥管理 ---
-
-def get_headers(token):
-    """辅助函数，验证和后续调用都需要用到"""
-    return {
-        "Authorization": f"Bearer {token}",
-        "Content-Type": "application/json",
-    }
-
-def validate_modelscope_key(api_key):
-    """尝试调用 ModelScope 以验证 API Key 的有效性"""
-    try:
-        headers = get_headers(api_key)
-        # 使用 Qwen LLM 进行一个轻量级的“测试”调用
-        payload = {
-            "model": QWEN_LLM_ID,
-            "messages": [{"role": "user", "content": "Test"}],
-            "max_tokens": 1,
-        }
-        response = requests.post(
-            f"{MODEL_SCOPE_BASE_URL}v1/chat/completions",
-            headers=headers,
-            json=payload,
-            timeout=10  # 设置10秒超时
-        )
-
-        # 401 = Unauthorized. Key是无效的。
-        if response.status_code == 401:
-            return False
-        if response.ok:
-            return True
-        return False
-
-    except requests.exceptions.RequestException as e:
-        print(f"Key validation request failed: {e}")
-        return False
-
+# --- 3. 核心路由 (认证与代理) ---
 
 @app.route("/api/set_key", methods=["POST"])
 def set_key():
@@ -112,9 +71,15 @@ def set_key():
         api_key = data.get("api_key")
         if not api_key:
             return jsonify({"error": "API key is required"}), 400
+
+        # 调用 services 中的验证函数
         if not validate_modelscope_key(api_key):
             return jsonify({"error": "API Key 无效、已过期或网络错误"}), 401
-        token = ts.dumps(api_key, salt=API_KEY_SALT) # 加密 API Key
+
+        # 使用 utils 中的序列化器
+        ts = current_app.config["ts"]
+        token = ts.dumps(api_key, salt=current_app.config["API_KEY_SALT"])
+
         return jsonify({"message": "API key set successfully", "token": token}), 200
     except UnicodeEncodeError:
         return jsonify({"error": "API Key 包含非法字符，请输入有效的Key"}), 400
@@ -129,10 +94,9 @@ def check_key():
         get_api_key() # 尝试解密
         return jsonify({"status": "ok"}), 200
     except Exception as e:
-        return jsonify({"error": str(e)}), 401
+        return handle_api_errors(e)
 
 
-# --- 路由：用于解决CORS的图片下载代理 ---
 @app.route("/api/proxy-download")
 def proxy_download():
     image_url = request.args.get("url")
@@ -142,281 +106,26 @@ def proxy_download():
     try:
         response = requests.get(image_url, stream=True)
         response.raise_for_status()
-
         image_data = BytesIO(response.content)
         mime_type = response.headers.get('Content-Type', 'image/png')
-
         return send_file(
             image_data,
             mimetype=mime_type,
             as_attachment=True,
             download_name='art-ai-image.png'
         )
-
     except requests.exceptions.RequestException as e:
         print(f"Proxy download error: {e}")
         return jsonify({"error": f"Failed to fetch image: {e}"}), 500
 
 
-# --- 3. 内部辅助函数 ---
+# --- 4. AI 功能路由 ---
 
-def get_api_key():
-    # 从 URL Query 参数中获取 token，以兼容创空间环境
-    token = request.args.get("token")
-
-    if not token:
-        # 更新错误信息
-        raise ApiKeyMissingError("Token is missing from query parameters. (token=...).")
-
-    try:
-        # 解密 Token，设置有效期为 30 天 (2592000 秒)
-        api_key = ts.loads(token, salt=API_KEY_SALT, max_age=2592000)
-        return api_key
-    except SignatureExpired:
-        raise ApiKeyMissingError("Token has expired. Please re-enter API Key.")
-    except BadTimeSignature:
-        raise ApiKeyMissingError("Invalid token. Please re-enter API Key.")
-    except Exception as e:
-        print(f"Token decryption error: {e}")
-        raise ApiKeyMissingError("Invalid token.")
-
-def get_ai_config(data):
-    """从请求数据中提取 AI 配置，并提供默认值"""
-    config = {
-        "chat_model": data.get("chat_model", QWEN_LLM_ID),
-        "vl_model": data.get("vl_model", QWEN_VL_ID),
-        "image_model": data.get("image_model", FLUX_MODEL_ID),
-        "age_range": data.get("age_range", "6-8岁"),
-    }
-    return config
-
-# 尺寸计算辅助函数
-def round_to_64(x):
-    """将尺寸调整为 64 的最接近倍数，最小为 64"""
-    return max(64, int(round(x / 64.0)) * 64)
-
-# 辅助函数：计算自适应尺寸
-def calculate_adaptive_size(width, height, target_dim=1024):
-    """根据原始宽高比计算新的尺寸，使最长边为 target_dim，并圆整到 64"""
-    if width == 0 or height == 0:
-        return f"{target_dim}x{target_dim}" # 备用
-
-    if width > height:
-        # 横向 (Landscape)
-        aspect_ratio = height / width
-        new_width = target_dim
-        new_height = int(new_width * aspect_ratio)
-    else:
-        # 纵向或方形 (Portrait or Square)
-        aspect_ratio = width / height
-        new_height = target_dim
-        new_width = int(new_height * aspect_ratio)
-    # 圆整到 64 的倍数
-    final_width = round_to_64(new_width)
-    final_height = round_to_64(new_height)
-    # 避免返回 0
-    if final_width == 0: final_width = 64
-    if final_height == 0: final_height = 64
-
-    return f"{final_width}x{final_height}"
-
-# R2 上传辅助函数
-def upload_to_r2(base64_string):
-    try:
-        header, encoded = base64_string.split(",", 1)
-        data = base64.b64decode(encoded)
-        image_bytes = BytesIO(data)
-        # 从字节中读取图像尺寸
-        with Image.open(image_bytes) as img:
-            width, height = img.size
-        image_bytes.seek(0)
-        mime_type = header.split(";")[0].split(":")[-1]
-        extension = mime_type.split("/")[-1]
-        file_name = f"uploads/{uuid.uuid4()}.{extension}"
-        s3_client.upload_fileobj(
-            image_bytes,
-            R2_BUCKET_NAME,
-            file_name,
-            ExtraArgs={
-                'ContentType': mime_type,
-                'ACL': 'public-read'
-            }
-        )
-        public_url = f"{R2_PUBLIC_URL_BASE}/{file_name}"
-        return public_url, width, height
-    except Exception as e:
-        print(f"R2 Upload Error: {e}")
-        raise Exception(f"Failed to upload image to R2 OSS: {e}")
-
-def generate_english_prompt(token, chinese_prompt, context_description):
-    """调用 Qwen 将中文提示词转为英文"""
-
-    full_user_prompt = PROMPTS["PROMPT_TRANSLATOR"].format(
-        context=context_description,
-        chinese_description=chinese_prompt
-    )
-    data = request.json
-    config=get_ai_config(data)
-    messages = [{"role": "user", "content": full_user_prompt}]
-    payload = {
-        "model": config["chat_model"],
-        "messages": messages,
-        "max_tokens": 800,
-        "temperature": 0.5,
-    }
-    response = requests.post(
-        f"{MODEL_SCOPE_BASE_URL}v1/chat/completions",
-        headers=get_headers(token),
-        json=payload
-    )
-    response.raise_for_status()
-    data = response.json()
-    content = data["choices"][0]["message"]["content"]
-    return content.replace('"', "").strip()
-
-
-def get_style_prompt_from_image(token, base64_image_url, vl_model_id):
-    system_prompt = PROMPTS["STYLE_ANALYSIS_SYSTEM"]
-    user_text = PROMPTS["STYLE_ANALYSIS_USER"]
-
-    payload = {
-        "model": vl_model_id,
-        "messages": [
-            {
-                "role": "system",
-                "content": [{"type": "text", "text": system_prompt}],
-            },
-            {
-                "role": "user",
-                "content": [
-                    {
-                        "type": "image_url",
-                        "image_url": {"url": base64_image_url},
-                    },
-                    {"type": "text", "text": user_text},
-                ],
-            },
-        ],
-        "max_tokens": 1000,
-        "temperature": 0.6,
-    }
-    response = requests.post(
-        f"{MODEL_SCOPE_BASE_URL}v1/chat/completions",
-        headers=get_headers(token),
-        json=payload,
-    )
-    response.raise_for_status()
-    data = response.json()
-
-    if data.get("choices") and data["choices"][0].get("message"):
-        return data["choices"][0]["message"]["content"]
-    else:
-        raise Exception(f"Qwen-VL API Error: {data.get('message', 'Unknown error')}")
-
-def submit_sync_generation(token, body):
-    response = requests.post(
-        f"{MODEL_SCOPE_BASE_URL}v1/images/generations",
-        headers=get_headers(token),
-        json=body,
-    )
-    response.raise_for_status()
-    data = response.json()
-    if data.get("images") and data["images"][0].get("url"):
-        return data["images"][0]["url"]
-    raise Exception(f"API Error (Sync): {data.get('message', 'Unknown error')}")
-
-
-def submit_async_generation_task(token, body):
-    async_headers = {**get_headers(token), "X-ModelScope-Async-Mode": "true"}
-    response = requests.post(
-        f"{MODEL_SCOPE_BASE_URL}v1/images/generations", headers=async_headers, json=body
-    )
-    response.raise_for_status()
-    return response.json()["task_id"]
-
-
-def poll_generation_result(token, task_id):
-    poll_headers = {**get_headers(token), "X-ModelScope-Task-Type": "image_generation"}
-    while True:
-        result = requests.get(
-            f"{MODEL_SCOPE_BASE_URL}v1/tasks/{task_id}", headers=poll_headers
-        )
-        result.raise_for_status()
-        data = result.json()
-        if data["task_status"] == "SUCCEED":
-            return data["output_images"][0]
-        elif data["task_status"] == "FAILED":
-            raise Exception(f"Task failed: {data.get('task_message', 'Unknown error')}")
-        time.sleep(3)
-def translate_text_tencent(text_list, target_lang="zh"):
-    """使用腾讯云API批量翻译文本列表"""
-    if not TENCENT_SECRET_ID or not TENCENT_SECRET_KEY:
-        print("Warning: Tencent Cloud API keys not configured. Skipping translation.")
-        # 返回原始文本，避免程序崩溃
-        return text_list
-
-    try:
-        cred = credential.Credential(TENCENT_SECRET_ID, TENCENT_SECRET_KEY)
-        httpProfile = HttpProfile()
-        httpProfile.endpoint = "tmt.tencentcloudapi.com"
-
-        clientProfile = ClientProfile()
-        clientProfile.httpProfile = httpProfile
-        client = tmt_client.TmtClient(cred, TENCENT_REGION, clientProfile)
-
-        req = models.TextTranslateBatchRequest()
-        params = {
-            "Source": "auto",
-            "Target": target_lang,
-            "ProjectId": 0,
-            "SourceTextList": text_list
-        }
-        req.from_json_string(json.dumps(params))
-
-        resp = client.TextTranslateBatch(req)
-        # 提取翻译结果
-        translated_list = resp.TargetTextList
-
-        # 确保返回列表长度一致
-        if len(translated_list) != len(text_list):
-            print(f"Warning: Tencent translation returned {len(translated_list)} results for {len(text_list)} inputs. Returning originals.")
-            return text_list
-
-        return translated_list
-
-    except TencentCloudSDKException as err:
-        print(f"Tencent Cloud Translation Error: {err}")
-        # 出错时返回原始文本
-        return text_list
-    except Exception as e:
-        print(f"An unexpected error occurred during translation: {e}")
-        return text_list
-
-
-# --- 4. 面向前端的 API 路由  ---
-
-# 定义一个通用的错误处理函数
-def handle_api_errors(e):
-    if isinstance(e, ApiKeyMissingError):
-        # Token 解密失败或过期
-        return jsonify({"error": str(e)}), 401
-    if isinstance(e, HTTPError):
-        # ModelScope 返回了 4xx 或 5xx 错误
-        if e.response.status_code == 401:
-            # 将 ModelScope 的 401 错误传递给前端
-            return jsonify({"error": "API Key 无效或已过期 (来自 ModelScope)"}), 401
-        else:
-            # ModelScope 的其他错误 (如 500, 400)
-            return jsonify({"error": f"ModelScope API 错误 (HTTP {e.response.status_code}): {str(e)}"}), 502
-    print(f"An unexpected error occurred: {e}")
-    return jsonify({"error": f"服务器内部错误: {str(e)}"}), 500
-
-
-# 路由一：AI智能上色
 @app.route("/api/colorize-lineart", methods=["POST"])
 def handle_colorize_lineart():
     try:
         api_key = get_api_key()
+        headers = get_headers(api_key)
         data = request.json
         config = get_ai_config(data)
         base64_image = data.get("base64_image")
@@ -427,47 +136,47 @@ def handle_colorize_lineart():
 
         public_url, w, h = upload_to_r2(base64_image)
         adaptive_size = calculate_adaptive_size(w, h)
+
         full_prompt = PROMPTS["COLORIZE_PROMPT_CN"].format(
             prompt=prompt,
             age_range=config["age_range"]
         )
         english_prompt = generate_english_prompt(
-            api_key, full_prompt, "Coloring a lineart image."
+            headers, config, full_prompt, "Coloring a lineart image."
         )
+
         body = {
-            "model": config["image_model"], # [V17]
+            "model": config["image_model"],
             "prompt": english_prompt,
             "negative_prompt": "text, watermark, signature, blurry, low quality, worst quality, deformed, ugly, grayscale, monochrome, sketch, unfinished, lineart",
             "image_url": public_url,
             "size": adaptive_size,
         }
 
-        task_id = submit_async_generation_task(api_key, body)
-        image_url = poll_generation_result(api_key, task_id)
+        task_id = submit_async_generation_task(headers, body)
+        image_url = poll_generation_result(headers, task_id)
 
         return jsonify({"imageUrl": image_url})
-
     except Exception as e:
         return handle_api_errors(e)
 
 
-# 路由二：创意风格工坊
 @app.route("/api/generate-style", methods=["POST"])
 def handle_generate_style():
     try:
         api_key = get_api_key()
+        headers = get_headers(api_key)
         data = request.json
-        config = get_ai_config(data) # [V17]
+        config = get_ai_config(data)
         style = data.get("style")
         content = data.get("content", "")
         base64_image = data.get("base64_image")
 
         style_prompts = PROMPTS["STYLE_PROMPTS_CN"]
         style_desc = PROMPTS["STYLE_DESCRIPTIONS_CN"]
-
         style_prompt_text = style_prompts.get(style, f"{style}风格")
-
         quality_boost = PROMPTS["STYLE_QUALITY_BOOST_CN"]
+
         if content:
             full_chinese_prompt = PROMPTS["STYLE_PROMPT_WITH_CONTENT_CN"].format(
                 style_text=style_prompt_text,
@@ -481,7 +190,7 @@ def handle_generate_style():
             )
 
         english_prompt = generate_english_prompt(
-            api_key,
+            headers, config,
             full_chinese_prompt,
             f"A beautiful artwork in the style of {style}."
         )
@@ -500,8 +209,8 @@ def handle_generate_style():
 
         body["size"] = adaptive_size
 
-        task_id = submit_async_generation_task(api_key, body)
-        image_url = poll_generation_result(api_key, task_id)
+        task_id = submit_async_generation_task(headers, body)
+        image_url = poll_generation_result(headers, task_id)
 
         return jsonify(
             {
@@ -513,11 +222,11 @@ def handle_generate_style():
         return handle_api_errors(e)
 
 
-# 路由三：AI自画像
 @app.route("/api/self-portrait", methods=["POST"])
 def handle_self_portrait():
     try:
         api_key = get_api_key()
+        headers = get_headers(api_key)
         data = request.json
         config = get_ai_config(data)
         base64_image = data.get("base64_image")
@@ -530,11 +239,9 @@ def handle_self_portrait():
 
         public_url, w, h = upload_to_r2(base64_image)
         adaptive_size = calculate_adaptive_size(w, h)
-
         full_prompt = PROMPTS["SELF_PORTRAIT_PROMPT_CN"].format(style_prompt=style_prompt)
-
         english_prompt = generate_english_prompt(
-            api_key,
+            headers, config,
             full_prompt,
             "A stylized portrait, maintaining likeness to the original photo."
         )
@@ -547,19 +254,18 @@ def handle_self_portrait():
             "size": adaptive_size,
             "strength": 0.65
         }
-        task_id = submit_async_generation_task(api_key, body)
-        image_url = poll_generation_result(api_key, task_id)
+        task_id = submit_async_generation_task(headers, body)
+        image_url = poll_generation_result(headers, task_id)
         return jsonify({"imageUrl": image_url})
-
     except Exception as e:
         return handle_api_errors(e)
 
 
-# 路由四：艺术融合
 @app.route("/api/art-fusion", methods=["POST"])
 def handle_art_fusion():
     try:
         api_key = get_api_key()
+        headers = get_headers(api_key)
         data = request.json
         config = get_ai_config(data)
         content_image_b64 = data.get("content_image")
@@ -571,13 +277,13 @@ def handle_art_fusion():
         content_url, w, h = upload_to_r2(content_image_b64)
         adaptive_size = calculate_adaptive_size(w, h)
 
-        # 识图使用动态 VL 模型
-        style_description = get_style_prompt_from_image(api_key, style_image_b64, config["vl_model"])
-
+        style_description = get_style_prompt_from_image(
+            headers, config, style_image_b64
+        )
         full_prompt = PROMPTS["ART_FUSION_PROMPT_EN"].format(style_description=style_description)
 
         body = {
-            "model": config["image_model"], # [V17]
+            "model": config["image_model"],
             "prompt": full_prompt,
             "negative_prompt": "text, watermark, signature, blurry, ugly, deformed, disfigured, worst quality, low quality, bad anatomy",
             "image_url": content_url,
@@ -585,20 +291,18 @@ def handle_art_fusion():
             "strength": 0.6
         }
 
-        task_id = submit_async_generation_task(api_key, body)
-        image_url = poll_generation_result(api_key, task_id)
-
+        task_id = submit_async_generation_task(headers, body)
+        image_url = poll_generation_result(headers, task_id)
         return jsonify({"imageUrl": image_url})
-
     except Exception as e:
         return handle_api_errors(e)
 
 
-# 路由五：艺术问答
 @app.route("/api/ask-question", methods=["POST"])
 def handle_ask_question():
     try:
         api_key = get_api_key()
+        headers = get_headers(api_key)
         data = request.json
         config = get_ai_config(data)
         messages = data.get("messages")
@@ -610,62 +314,74 @@ def handle_ask_question():
             age_range=config["age_range"]
         )
 
-        payload = {
-            "model": config["chat_model"],
-            "messages": [{"role": "system", "content": system_prompt}] + messages,
-            "max_tokens": 500,
-            "temperature": 0.7,
-        }
-        response = requests.post(
-            f"{MODEL_SCOPE_BASE_URL}v1/chat/completions",
-            headers=get_headers(api_key),
-            json=payload
-        )
-        response.raise_for_status()
-        return jsonify(response.json())
-
+        response_json = run_llm_chat(headers, config, messages, system_prompt)
+        return jsonify(response_json)
     except Exception as e:
         return handle_api_errors(e)
 
+def _process_idea_image_worker(idea, api_key, image_model, base_url):
+    """
+    (工作线程) 在单独的线程中为单个 "idea" 生成图像。
+    接收所有必需的上下文作为参数。
+    """
+    img_prompt_en = idea.get("img_prompt_en")
+    if not img_prompt_en:
+        idea["exampleImage"] = None
+        return idea
+    try:
+        img_body = {
+            "model": image_model,
+            "prompt": img_prompt_en,
+            "negative_prompt": "text, watermark, signature, blurry, low quality, ugly, deformed",
+            "size": "1024x1024",
+        }
+        idea_headers = get_headers(api_key)
 
-# 路由六：创意灵感
+        idea["exampleImage"] = submit_sync_generation(
+            idea_headers,
+            img_body,
+            base_url
+        )
+    except Exception as img_err:
+        print(f"Failed to generate image for idea '{idea['name']}': {img_err}")
+        idea["exampleImage"] = None
+        if (
+            isinstance(img_err, HTTPError)
+            and img_err.response.status_code == 401
+        ):
+            # 向上抛出认证错误，以便主线程捕获
+            raise ApiKeyMissingError("Auth failed during parallel image gen.")
+    idea.pop("img_prompt_en", None)
+    return idea
+
 @app.route("/api/generate-ideas", methods=["POST"])
 def handle_generate_ideas():
     try:
         api_key = get_api_key()
+        headers = get_headers(api_key)
         data = request.json
         config = get_ai_config(data)
         theme = data.get("theme")
+
+        image_model = config["image_model"]
+        base_url = current_app.config["MODEL_SCOPE_BASE_URL"]
+
+        # 1. 生成创意文本
         text_prompt = PROMPTS["IDEA_GENERATOR_USER"].format(
             theme=theme,
             age_range=config["age_range"]
         )
-        payload = {
-            "model": config["chat_model"],
-            "messages": [{"role": "user", "content": text_prompt}],
-            "max_tokens": 800,
-            "temperature": 0.8,
-        }
-
-        text_response = requests.post(
-            f"{MODEL_SCOPE_BASE_URL}v1/chat/completions",
-            headers=get_headers(api_key),
-            json=payload
-        )
-        text_response.raise_for_status()
-        ideas_data = text_response.json()
+        ideas_data = run_llm_generation(headers, config, text_prompt)
         content = ideas_data["choices"][0]["message"]["content"]
 
-        # 增加健壮性，防止 JSON.loads 失败
         json_start = content.find('{')
         json_end = content.rfind('}') + 1
         if json_start == -1 or json_end == 0:
             raise Exception("LLM did not return valid JSON.")
-
         json_string = content[json_start : json_end]
         ideas = json.loads(json_string).get("ideas", [])
 
-        # 2.1. 准备中文提示词列表
+        # 2. 批量翻译提示词
         chinese_prompts_list = []
         for idea in ideas:
             img_prompt_cn = PROMPTS["IDEA_IMAGE_PROMPT_CN"].format(
@@ -676,30 +392,19 @@ def handle_generate_ideas():
             )
             chinese_prompts_list.append(img_prompt_cn)
 
-        # 2.2. 构建批量翻译请求
         batch_translator_prompt = PROMPTS["BATCH_PROMPT_TRANSLATOR"].format(
             json_input_list=json.dumps(chinese_prompts_list)
         )
 
-        payload = {
-            "model": config["chat_model"],
-            "messages": [{"role": "user", "content": batch_translator_prompt}],
-            "max_tokens": 1000,
-            "temperature": 0.5,
-        }
-        translate_response = requests.post(
-            f"{MODEL_SCOPE_BASE_URL}v1/chat/completions",
-            headers=get_headers(api_key),
-            json=payload
+        translate_response = run_llm_generation(
+            headers, config, batch_translator_prompt, max_tokens=1000, temp=0.5
         )
-        translate_response.raise_for_status()
 
-        content = translate_response.json()["choices"][0]["message"]["content"]
+        content = translate_response["choices"][0]["message"]["content"]
         json_start = content.find('[')
         json_end = content.rfind(']') + 1
         if json_start == -1 or json_end == 0:
             raise Exception("LLM did not return valid JSON list for translation.")
-
         translated_prompts_list = json.loads(content[json_start : json_end])
 
         if len(translated_prompts_list) != len(ideas):
@@ -710,73 +415,47 @@ def handle_generate_ideas():
             idea["img_prompt_en"] = translated_prompts_list[i]
             ideas_with_prompts.append(idea)
 
-        def _process_idea_image_worker(idea):
-            """(工作线程) 在单独的线程中为单个 "idea" 生成图像。"""
-            img_prompt_en = idea.get("img_prompt_en")
-            if not img_prompt_en:
-                idea["exampleImage"] = None
-                return idea
-
-            try:
-                img_body = {
-                    "model": config["image_model"],
-                    "prompt": img_prompt_en,
-                    "negative_prompt": "text, watermark, signature, blurry, low quality, ugly, deformed",
-                    "size": "1024x1024",
-                }
-                idea["exampleImage"] = submit_sync_generation(api_key, img_body)
-            except Exception as img_err:
-                print(f"Failed to generate image for idea '{idea['name']}': {img_err}")
-                idea["exampleImage"] = None
-                if (
-                    isinstance(img_err, HTTPError)
-                    and img_err.response.status_code == 401
-                ):
-                    raise ApiKeyMissingError("Auth failed during parallel image gen.")
-            idea.pop("img_prompt_en", None)
-            return idea
+        # --- 3. 并发生成图像 ---
+        worker_with_context = partial(
+            _process_idea_image_worker,
+            api_key=api_key,
+            image_model=image_model,
+            base_url=base_url
+        )
 
         processed_ideas = []
         with ThreadPoolExecutor(max_workers=5) as executor:
-            results = executor.map(_process_idea_image_worker, ideas_with_prompts)
+            results = executor.map(worker_with_context, ideas_with_prompts)
             processed_ideas = list(results)
+
         return jsonify(processed_ideas)
     except Exception as e:
         return handle_api_errors(e)
 
 
-MET_API_BASE = "https://collectionapi.metmuseum.org/public/collection/v1"
+# --- 5. 名画鉴赏室路由 (MET API) ---
 
-
-# 路由七：名画鉴赏室搜索
 @app.route("/api/gallery/search", methods=["POST"])
 def handle_gallery_search():
     try:
         data = request.json
+        met_api_base = current_app.config["MET_API_BASE"]
 
         # 1. 构建搜索参数
         search_params = {
-            "q": data.get("q", "*"), # 从辅助搜索框获取
+            "q": data.get("q", "*"),
             "hasImages": "true",
             "isPublicDomain": "true"
         }
+        if data.get("departmentId"): search_params["departmentId"] = data.get("departmentId")
+        if data.get("isHighlight"): search_params["isHighlight"] = data.get("isHighlight")
+        if data.get("medium"): search_params["medium"] = data.get("medium")
+        if data.get("geoLocation"): search_params["geoLocation"] = data.get("geoLocation")
+        if data.get("dateBegin"): search_params["dateBegin"] = data.get("dateBegin")
+        if data.get("dateEnd"): search_params["dateEnd"] = data.get("dateEnd")
 
-        # 动态添加所有筛选条件
-        if data.get("departmentId"):
-            search_params["departmentId"] = data.get("departmentId")
-        if data.get("isHighlight"):
-            search_params["isHighlight"] = data.get("isHighlight")
-        if data.get("medium"):
-            search_params["medium"] = data.get("medium")
-        if data.get("geoLocation"):
-            search_params["geoLocation"] = data.get("geoLocation")
-        if data.get("dateBegin"):
-            search_params["dateBegin"] = data.get("dateBegin")
-        if data.get("dateEnd"):
-            search_params["dateEnd"] = data.get("dateEnd")
-
-        # 2. 调用搜索 API (获取 Object IDs)
-        search_url = f"{MET_API_BASE}/search"
+        # 2. 调用搜索 API
+        search_url = f"{met_api_base}/search"
         search_res = requests.get(search_url, params=search_params, timeout=10)
         search_res.raise_for_status()
         search_data = search_res.json()
@@ -785,15 +464,14 @@ def handle_gallery_search():
         if not object_ids:
             return jsonify({"artworks": [], "total": 0})
 
-        # 3. 只获取前 20 个作品的详细信息
+        # 3. 获取前 20 个作品详情
         artworks_raw = []
         for obj_id in object_ids[:20]:
             try:
-                obj_url = f"{MET_API_BASE}/objects/{obj_id}"
+                obj_url = f"{met_api_base}/objects/{obj_id}"
                 obj_res = requests.get(obj_url, timeout=5)
                 obj_res.raise_for_status()
                 obj_data = obj_res.json()
-
                 if obj_data.get("primaryImageSmall"):
                     artworks_raw.append({
                         "id": obj_data.get("objectID"),
@@ -807,26 +485,21 @@ def handle_gallery_search():
                         "original_title": obj_data.get("title", "N/A"),
                         "original_artist": obj_data.get("artistDisplayName", "Unknown"),
                         "original_medium": obj_data.get("medium", "N/A"),
-                        "original_department": obj_data.get("department", "N/A"),
-                        "original_classification": obj_data.get("classification", "N/A"),
                     })
             except requests.exceptions.RequestException as e:
                 print(f"Failed to fetch object {obj_id}: {e}")
                 continue
 
-        # --- [关键修改]：使用腾讯云批量翻译 ---
+        # 4. 批量翻译
         if artworks_raw:
-            # 1. 准备待翻译的列表
             titles_en = [art.get("original_title", "") for art in artworks_raw]
             artists_en = [art.get("original_artist", "") for art in artworks_raw]
             mediums_en = [art.get("original_medium", "") for art in artworks_raw]
 
-            # 2. 调用翻译 API (可以考虑并发或合并调用，这里为简单起见分开调用)
             titles_zh = translate_text_tencent(titles_en)
             artists_zh = translate_text_tencent(artists_en)
             mediums_zh = translate_text_tencent(mediums_en)
 
-            # 3. 将翻译结果合并回 artworks 列表
             for i, art in enumerate(artworks_raw):
                 art["title"] = titles_zh[i] if i < len(titles_zh) else art["original_title"]
                 art["artist"] = artists_zh[i] if i < len(artists_zh) else art["original_artist"]
@@ -837,31 +510,29 @@ def handle_gallery_search():
     except requests.exceptions.RequestException as http_err:
         return jsonify({"error": f"Met API 错误: {str(http_err)}"}), 502
     except Exception as e:
-        print(f"An unexpected error occurred in gallery search: {e}")
-        return jsonify({"error": f"服务器内部错误: {str(e)}"}), 500
+        return handle_api_errors(e)
 
 
-# 路由八：获取所有展厅
 @app.route("/api/gallery/departments", methods=["GET"])
 def handle_gallery_departments():
     try:
-        dept_url = f"{MET_API_BASE}/departments"
+        met_api_base = current_app.config["MET_API_BASE"]
+        dept_url = f"{met_api_base}/departments"
         dept_res = requests.get(dept_url, timeout=10)
         dept_res.raise_for_status()
         return jsonify(dept_res.json())
     except Exception as e:
         return jsonify({"error": f"Met API 错误: {str(e)}"}), 502
 
-# 路由九：AI讲解展品
 @app.route("/api/gallery/explain", methods=["POST"])
 def handle_gallery_explain():
     try:
         api_key = get_api_key()
+        headers = get_headers(api_key)
         data = request.json
         config = get_ai_config(data)
 
-
-        # 1. 从前端获取作品信息 (英文原文，用于AI和翻译)
+        # 1. 获取作品信息 (英文原文)
         art_info_en = {
             "title": data.get("title", "N/A"),
             "artist": data.get("artist", "N/A"),
@@ -869,53 +540,32 @@ def handle_gallery_explain():
             "date": data.get("date", "N/A"),
         }
 
-        # --- 2. 获取 AI 讲解  ---
+        # 2. 获取 AI 讲解
         ai_user_prompt = PROMPTS["ARTWORK_EXPLAINER"].format(
             age_range=config["age_range"],
             **art_info_en
         )
-        ai_payload = {
-            "model": config["chat_model"],
-            "messages": [{"role": "user", "content": ai_user_prompt}],
-            "max_tokens": 500, "temperature": 0.7,
-        }
-        explain_response = requests.post(
-            f"{MODEL_SCOPE_BASE_URL}v1/chat/completions",
-            headers=get_headers(api_key),
-            json=ai_payload
-        )
-        explain_response.raise_for_status()
-        ai_explanation = explain_response.json()["choices"][0]["message"]
+        ai_explanation = run_llm_chat(
+            headers, config, [], ai_user_prompt
+        )["choices"][0]["message"]
 
-        # --- 3. 翻译提供给 AI 的原始信息 ---
+        # 3. 翻译原文信息
         try:
-            # 3.1 准备待翻译的文本列表
             to_translate = [
                 f"作品名称: {art_info_en['title']}",
                 f"艺术家: {art_info_en['artist']}",
                 f"媒介: {art_info_en['medium']}",
                 f"创作日期: {art_info_en['date']}"
             ]
-
-            # 3.2 使用腾讯云批量翻译
             translated_list = translate_text_tencent(to_translate)
 
-            # 3.3 将翻译结果格式化为字符串
             if translated_list and len(translated_list) == len(to_translate):
-                 # 用换行符连接翻译后的各个字段
                 original_description_zh = "\n".join(translated_list)
             else:
-                # 如果翻译失败，至少显示英文原文
-                original_description_zh = "\n".join([
-                    f"Title: {art_info_en['title']}",
-                    f"Artist: {art_info_en['artist']}",
-                    f"Medium: {art_info_en['medium']}",
-                    f"Date: {art_info_en['date']}"
-                ])
+                original_description_zh = "\n".join([f"Title: {art_info_en['title']}", ...])
 
         except Exception as e:
             print(f"Error translating original artwork info: {e}")
-            # 出错时也尝试显示英文原文
             original_description_zh = "\n".join([
                 f"Title: {art_info_en['title']}",
                 f"Artist: {art_info_en['artist']}",
@@ -923,16 +573,15 @@ def handle_gallery_explain():
                 f"Date: {art_info_en['date']}"
             ])
 
-        # --- 4. 返回两个结果 ---
+        # 4. 返回结果
         return jsonify({
             "ai_explanation": ai_explanation,
             "original_description_zh": original_description_zh
         })
-
     except Exception as e:
         return handle_api_errors(e)
 
-# --- 4.5. 静态文件服务 (为生产环境和Docker部署修改) ---
+# --- 6. 静态文件服务与启动 ---
 @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')
 def serve(path):
@@ -942,6 +591,5 @@ def serve(path):
         return send_from_directory(app.static_folder, 'index.html')
 
 
-# --- 5. 启动服务器 ---
 if __name__ == '__main__':
     app.run(debug=True, host='localhost', port=7860)
