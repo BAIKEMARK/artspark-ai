@@ -7,8 +7,10 @@
           action="#"
           :auto-upload="false"
           :on-change="handleContentFileChange"
+          :on-remove="handleContentFileRemove"
           :limit="1"
           list-type="picture-card"
+          :class="contentUploadClass"
         >
           <div class="upload-demo-box">
             <el-icon :size="28"><Upload /></el-icon>
@@ -21,8 +23,10 @@
           action="#"
           :auto-upload="false"
           :on-change="handleStyleFileChange"
+          :on-remove="handleStyleFileRemove"
           :limit="1"
           list-type="picture-card"
+          :class="styleUploadClass"
         >
           <div class="upload-demo-box">
             <el-icon :size="28"><Upload /></el-icon>
@@ -60,19 +64,25 @@ import { ref } from 'vue';
 import { useAIApi } from '../composables/useAIApi.js';
 import ImageResult from '../components/ImageResult.vue';
 import { Upload } from '@element-plus/icons-vue'
+import { useUploadLimiter } from '../composables/useUploadLimiter.js';
 
-const contentFile = ref(null);
-const styleFile = ref(null);
+// 1. 为 "内容图片" 调用
+const {
+  file: contentFile,
+  handleChange: handleContentFileChange,
+  handleRemove: handleContentFileRemove,
+  uploadClass: contentUploadClass
+} = useUploadLimiter();
+
+// 2. 为 "风格图片" 调用
+const {
+  file: styleFile,
+  handleChange: handleStyleFileChange,
+  handleRemove: handleStyleFileRemove,
+  uploadClass: styleUploadClass
+} = useUploadLimiter();
 
 const { isLoading, error, result, execute, fileToBase64 } = useAIApi('/api/art-fusion', { initialResult: { imageUrl: null } });
-
-function handleContentFileChange(file) {
-  contentFile.value = file.raw;
-}
-
-function handleStyleFileChange(file) {
-  styleFile.value = file.raw;
-}
 
 async function generate() {
   if (!contentFile.value) {

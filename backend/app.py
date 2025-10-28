@@ -600,17 +600,19 @@ def handle_ask_question():
     try:
         api_key = get_api_key()
         data = request.json
-        config = get_ai_config(data) # [V17]
-        question = data.get("question")
+        config = get_ai_config(data)
+        messages = data.get("messages")
 
-        user_prompt = PROMPTS["ART_QA_USER"].format(
-            question=question,
+        if not messages:
+            return jsonify({"error": "Messages are required"}), 400
+
+        system_prompt = PROMPTS["ART_QA_USER"].format(
             age_range=config["age_range"]
         )
 
         payload = {
             "model": config["chat_model"],
-            "messages": [{"role": "user", "content": user_prompt}],
+            "messages": [{"role": "system", "content": system_prompt}] + messages,
             "max_tokens": 500,
             "temperature": 0.7,
         }
@@ -746,7 +748,7 @@ def handle_generate_ideas():
 MET_API_BASE = "https://collectionapi.metmuseum.org/public/collection/v1"
 
 
-# 路由七：艺术画廊搜索
+# 路由七：名画鉴赏室搜索
 @app.route("/api/gallery/search", methods=["POST"])
 def handle_gallery_search():
     try:

@@ -1,6 +1,6 @@
 <template>
   <section id="art-gallery" class="feature-panel">
-    <h2>艺术画廊 </h2>
+    <h2>名画鉴赏室 </h2>
 
     <el-form label-position="top">
       <el-form-item label="第一步：选择一个展厅">

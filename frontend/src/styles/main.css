@@ -178,3 +178,6 @@ h2 {
     /* 也可以为右侧使用不同的图片 */
     /* background-image: url('/img/shan-shui-texture.jpg'); */
 }
+.upload-limit-reached .el-upload--picture-card {
+  display: none;
+}
