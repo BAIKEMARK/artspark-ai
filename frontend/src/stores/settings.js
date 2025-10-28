@@ -8,7 +8,16 @@ export const useSettingsStore = defineStore('settings', () => {
     try {
       const savedSettings = localStorage.getItem(STORAGE_KEY);
       if (savedSettings) {
-        return JSON.parse(savedSettings);
+        const parsed = JSON.parse(savedSettings);
+        return {
+          chat_model: parsed.chat_model || 'Qwen/Qwen3-30B-A3B-Instruct-2507',
+          vl_model: parsed.vl_model || 'Qwen/Qwen3-VL-8B-Instruct',
+          image_model: parsed.image_model || 'black-forest-labs/FLUX.1-Krea-dev',
+          age_range: parsed.age_range || '6-8岁',
+          api_platform: parsed.api_platform || 'modelscope',
+          bailian_api_key: parsed.bailian_api_key || '',
+          ds_llm_id: parsed.ds_llm_id || 'qwen-plus',
+        };
       }
     } catch (e) {
       console.error("Failed to parse settings from localStorage", e);
@@ -18,6 +27,9 @@ export const useSettingsStore = defineStore('settings', () => {
       vl_model: 'Qwen/Qwen3-VL-8B-Instruct',
       image_model: 'black-forest-labs/FLUX.1-Krea-dev',
       age_range: '6-8岁',
+      api_platform: 'modelscope',
+      bailian_api_key: '',
+      ds_llm_id: 'qwen-plus',
     };
   };
 
