@@ -7,9 +7,11 @@
           action="#"
           :auto-upload="false"
           :on-change="handleFileChange"
+          :on-remove="handleRemove"
           :show-file-list="true"
           :limit="1"
           list-type="picture-card"
+          :class="uploadClass"
         >
           <div class="upload-demo-box">
             <el-icon :size="28"><Upload /></el-icon>
@@ -54,15 +56,19 @@ import { ref } from 'vue';
 import { useAIApi } from '../composables/useAIApi.js';
 import ImageResult from '../components/ImageResult.vue';
 import { Upload } from '@element-plus/icons-vue'
+import { useUploadLimiter } from '../composables/useUploadLimiter.js';
 
 const style = ref('');
-const portraitFile = ref(null);
+
+const {
+  file: portraitFile,
+  handleChange: handleFileChange,
+  handleRemove,
+  uploadClass
+} = useUploadLimiter();
 
 const { isLoading, error, result, execute, fileToBase64 } = useAIApi('/api/self-portrait', { initialResult: { imageUrl: null } });
 
-function handleFileChange(file) {
-  portraitFile.value = file.raw;
-}
 
 async function generate() {
   if (!portraitFile.value) {

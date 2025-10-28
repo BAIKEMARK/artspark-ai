@@ -7,9 +7,11 @@
           action="#"
           :auto-upload="false"
           :on-change="handleFileChange"
+          :on-remove="handleRemove"
           :show-file-list="true"
           :limit="1"
           list-type="picture-card"
+          :class="uploadClass"
         >
           <div class="upload-demo-box">
             <el-icon :size="28"><Upload /></el-icon>
@@ -53,16 +55,18 @@ import { ref } from 'vue';
 import { useAIApi } from '../composables/useAIApi.js';
 import ImageResult from '../components/ImageResult.vue';
 import { Upload } from '@element-plus/icons-vue'
+import { useUploadLimiter } from '../composables/useUploadLimiter.js';
 
 const prompt = ref('');
-const lineartFile = ref(null);
+
+const {
+  handleChange: handleFileChange,
+  handleRemove,
+  uploadClass
+} = useUploadLimiter();
 
 const { isLoading, error, result, execute, fileToBase64 } = useAIApi('/api/colorize-lineart', { initialResult: { imageUrl: null } });
 
-function handleFileChange(file) {
-  // ElUpload's file object is nested under `raw`
-  lineartFile.value = file.raw;
-}
 
 async function generate() {
   if (!lineartFile.value) {
@@ -78,7 +82,6 @@ async function generate() {
     const base64_image = await fileToBase64(lineartFile.value);
     await execute({ base64_image, prompt: prompt.value });
   } catch (e) {
-    // Error is already handled by useAIApi, but we catch to prevent unhandled promise rejections
     console.error(e);
   }
 }

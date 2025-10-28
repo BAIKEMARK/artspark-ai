@@ -22,14 +22,14 @@
                   :feature-cards="featureCards"
                   @navigate="navigateTo"
         />
-        <div id="tool-content" class="view-panel" v-else>
+        <div id="tool-content" :class="{ 'view-panel': activeView !== 'home-view' }" v-else>
           <KeepAlive>
             <component :is="currentToolComponent" />
           </KeepAlive>
         </div>
       </el-main>
 
-      <el-aside width="300px" class="contextual-sidebar" v-if="activeView !== 'home-view'" style="padding: 20px 20px 0 0;">
+      <el-aside width="300px" class="contextual-sidebar" v-if="activeView !== 'home-view' && activeView !== 'art-qa'" style="padding: 20px 20px 0 0;">
         <div id="dynamic-sidebar-content" v-html="sidebarContentHTML"></div>
       </el-aside>
     </el-container>
@@ -107,12 +107,12 @@ const heroSlides = [
 ];
 const navItems = [
   { id: 'home-view', text: '首页', icon: 'ph-house' },
-  { id: 'art-gallery', text: '艺术画廊', icon: 'ph-palette' },
+  { id: 'art-gallery', text: '名画鉴赏室', icon: 'ph-palette' },
   { id: 'line-coloring', text: 'AI智能上色', icon: 'ph-paint-brush' },
   { id: 'style-workshop', text: '创意风格工坊', icon: 'ph-sparkle' },
   { id: 'self-portrait', text: 'AI自画像', icon: 'ph-user-square' },
   { id: 'art-fusion', text: '艺术融合', icon: 'ph-paint-roller' },
-  { id: 'art-qa', text: '艺术知识问答', icon: 'ph-question' },
+  { id: 'art-qa', text: '艺术小百科', icon: 'ph-question' },
   { id: 'idea-generator', text: '创意灵感生成', icon: 'ph-lightbulb' },
 ];
 const featureCards = [
@@ -125,9 +125,9 @@ const sidebarContentData = {
     'default': { tips: `<h3><i class="icon ph-bold ph-lightbulb-filament"></i> 教学小贴士</h3><p>欢迎来到“艺启智AI”！从左侧导航栏选择一个工具，开始您的创意之旅。</p><p>您可以利用这些工具，帮助学生们理解色彩、风格和构图。</p>`, examples: `<h3><i class="icon ph-bold ph-image"></i> 示例作品</h3><div class="example-images"><img src="/img/Starry-Night.jpg" alt="示例1"><img src="/img/千里江山图.jpg" alt="示例2"></div>` },
     'line-coloring': { tips: `<h3><i class="icon ph-bold ph-paint-brush"></i> 上色小贴士</h3><ul><li><strong>风格多样：</strong> 尝试“水彩画”、“油画”、“动漫风格”或“赛博朋克”等关键词。</li><li><strong>色彩词：</strong> 使用“明亮的颜色”、“柔和的色调”或“复古色”来引导AI。</li><li><strong>教学应用：</strong> 让学生上传同一张线稿，但使用不同的风格提示词，比较结果。</li></ul>`, examples: `<h3><i class="icon ph-bold ph-image"></i> 上色示例</h3><div class="example-images"><img src="/img/Starry-Night.jpg" alt="上色示例1"><img src="/img/Starry-Night.jpg" alt="上色示例2"></div>` },
     'style-workshop': { tips: `<h3><i class="icon ph-bold ph-sparkle"></i> 风格小贴士</h3><ul><li><strong>上传草图：</strong> 上传一张简单的草图（比如一只猫），再选择“梵高”风格，效果惊人。</li><li><strong>内容描述：</strong> 即使不上传草图，也可以只通过描述来创作，例如“一只戴帽子的狗”。</li></ul>`, examples: `<h3><i class="icon ph-bold ph-image"></i> 风格示例</h3><div class="example-images"><img src="/img/Starry-Night.jpg" alt="梵高"><img src="/img/千里江山图.jpg" alt="水墨画"></div>` },
-    'self-portrait': { tips: `<h3><i class="icon ph-bold ph-user-square"></i> 自画像小贴士</h3><ul><li><strong>风格探索：</strong> 尝试“迪士尼卡通风格”、“像素风”、“超级英雄漫画”或“黏土动画”。</li><li><strong>清晰照片：</strong> 使用面部清晰、光线明亮的照片，AI更容易识别特征。</li></ul>`, examples: `<h3><i class="icon ph-bold ph-image"></i> 风格示例</h3><div class="example-images"><img src="/img/Starry-Night.jpg" alt="自画像1"><img src="/img/Starry-Night.jpg" alt="自画像2"></div>` },
+    'self-portrait': { tips: `<h3><i class="icon ph-bold ph-user-square"></i> 自画像小贴士</h3><ul><li><strong>风格探索：</strong> 尝试“迪士尼卡通风格”、“像素风”、“超级英雄漫画”或“黏土动画”。</li><li><strong>清晰照片：</strong> 使用面部清晰、光线明亮的照片，AI更容易识别特征。</li></ul>`, examples: `<h3><i class="icon ph-bold ph-image"></i> 示例作品</h3><div class="example-images"><img src="/img/Starry-Night.jpg" alt="自画像1"><img src="/img/Starry-Night.jpg" alt="自画像2"></div>` },
     'art-fusion': { tips: `<h3><i class="icon ph-bold ph-paint-roller"></i> 融合小贴士</h3><ul><li><strong>内容为王：</strong> “内容图片”决定了画面的主体结构（如人物、建筑）。</li><li><strong>风格至上：</strong> “风格图片”决定了颜色和笔触（如《星空》或一张火焰图片）。</li><li><strong>大胆尝试：</strong> 试试用一张电路板的图片作为“风格”来融合你的宠物照片！</li></ul>`, examples: `<h3><i class="icon ph-bold ph-image"></i> 融合示例</h3><div class="example-images"><img src="/img/Starry-Night.jpg" alt="融合1"><img src="/img/Starry-Night.jpg" alt="融合2"></div>` },
-    'art-qa': { tips: `<h3><i class="icon ph-bold ph-question"></i> 提问小贴士</h3><ul><li><strong>保持好奇：</strong> 你可以问任何关于艺术的问题，比如“什么是印象派？”</li><li><strong>艺术家：</strong> “文森特·梵高是谁？”</li><li><strong>技巧：</strong> “怎么画透视？”</li></ul>`, examples: `` },
+    'art-qa': { tips: `<h3><i class="icon ph-bold ph-question"></i> 提问小贴士</h3><ul><li><strong>开始对话：</strong> 你可以问任何艺术问题，比如“什么是印象派？”</li><li><strong>深入追问：</strong> “小艺”老师记住了你们的对话。你可以继续追问，例如“那印象派有哪些著名的画家呢？”</li><li><strong>清空历史：</strong> 如果你想开始一个全新的话题，可以点击输入框下方的“清空对话”按钮。</li></ul>`, examples: `` },
     'idea-generator': { tips: `<h3><i class="icon ph-bold ph-lightbulb"></i> 灵感小贴士</h3><ul><li><strong>激发创意：</strong> 当你不知道画什么时，这是最好的起点。</li><li><strong>主题词：</strong> 尝试输入“节日”、“动物”、“太空”或“梦想”等主题。</li><li><strong>再创作：</strong> AI生成的示例图只是参考，鼓励学生在此基础上进行自己的创作！</li></ul>`, examples: `` },
     'art-gallery': { tips: `<h3><i class="icon ph-bold ph-palette"></i> 画廊小贴士</h3><ul><li><strong>探索艺术史：</strong> 这是探索世界顶级博物馆藏品的绝佳方式。</li><li><strong>组合筛选：</strong> 尝试组合不同的筛选条件，例如“19世纪”、“绘画”和“欧洲”，看看印象派大师们的作品。</li><li><strong>关键词搜索：</strong> 使用“辅助搜索”来寻找特定主题，如“cat”、“boat”或“sunflower”。</li></ul>`, examples: `` }
 };
@@ -152,7 +152,7 @@ const sidebarContentHTML = computed(() => {
   const content = sidebarContentData[contentKey];
   let html = '';
   if (content.tips) html += `<div class="sidebar-widget">${content.tips}</div>`;
-  if (content.examples) html += `<div class="sidebar-widget">${content.examples}</div>`;
+  if (content.examples) html += `<div class_content="sidebar-widget">${content.examples}</div>`;
   return html;
 });
 
@@ -214,5 +214,8 @@ onMounted(() => {
 }
 #tool-content {
   padding: 0;
+}
+#tool-content:not(.view-panel) {
+  height: 100%;
 }
 </style>

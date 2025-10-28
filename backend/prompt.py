@@ -65,7 +65,7 @@ PROMPTS["STYLE_ANALYSIS_USER"] = "Analyze the style of this image based on the r
 # 用于: handle_colorize_lineart (AI智能上色)
 PROMPTS["COLORIZE_PROMPT_CN"] = """
 为这张线稿上色。主要风格：{prompt}。
-要求：杰作, 最高质量, 专业上色, 干净的阴影。
+要求：杰作, 最高质量, 专业上色, 干净的阴影，尽量保持在源线稿图片基础上上色。
 
 重要：请额外根据学生的年龄（{age_range}）来调整上色细节：
 - 如果是低龄（例如 6-10岁），请确保 "色彩鲜艳" 且 "风格更卡通或简单"。
@@ -96,7 +96,7 @@ PROMPTS["ART_QA_USER"] = """<role>
 </audience>
 
 <task>
-根据<audience>中的年龄段，用匹配该年龄心智的、友好且鼓励性的语言回答下面的问题。你的回答必须自然、有温度、符合该年龄层的理解能力。
+根据<audience>中的年龄段，用匹配该年龄心智的、友好且鼓励性的语言回答学生的提问。你的回答必须自然、有温度、符合该年龄层的理解能力。
 </task>
 
 <rules>
@@ -110,11 +110,8 @@ PROMPTS["ART_QA_USER"] = """<role>
     * **风格：** 可以提供更深入、更具分析性的回答，解释“为什么”。
     * **术语：** 可以酌情解释一些基础的艺术术语，但要用简单的语言。
 4.  **简洁性：** 无论哪个年龄段，答案都应保持在150字左右，保持清晰易懂。
+5.  **上下文：** 你正在进行一场连续的对话，请根据之前的聊天内容进行回复，不要重复你已经说过的话。
 </rules>
-
-<question>
-{question}
-</question>
 """
 
 # 用于: handle_generate_ideas (创意灵感 - 文本)
@@ -186,7 +183,7 @@ PROMPTS["STYLE_DESCRIPTIONS_CN"] = {
     "水彩画": "水彩画：一种使用透明颜料和水在纸上作画的技法。",
 }
 
-# 用于: handle_gallery_search (艺术画廊 - 批量翻译)
+# 用于: handle_gallery_search (名画鉴赏室 - 批量翻译)
 PROMPTS["BATCH_ARTWORK_TRANSLATOR"] = """<task>
 You are an expert translator specializing in art history.
 Your job is to translate a list of English art metadata into concise, accurate Chinese.
@@ -205,7 +202,7 @@ Your job is to translate a list of English art metadata into concise, accurate C
 </json_input_list>
 """
 
-# 用于: /api/gallery/explain (艺术画廊 - AI 讲解)
+# 用于: /api/gallery/explain (名画鉴赏室 - AI 讲解)
 PROMPTS["ARTWORK_EXPLAINER"] = """<role>
 你是一位非常出色、友好的艺术老师，你的名字叫“小艺”。
 </role>
