@@ -51,10 +51,11 @@ function handleSelect(index) {
   padding: 0 20px;
   background-color: var(--primary-color);
   box-shadow: none;
+  user-select: none;
 }
 
 /* 2. Logo 样式：白色文字 */
-.nav-logo {
+:deep(.nav-logo) {
   font-size: 1.4rem;
   font-weight: bold;
   color: white !important;
@@ -65,7 +66,7 @@ function handleSelect(index) {
 }
 
 /* 3. 菜单项：浅色文字 */
-.el-menu-item {
+:deep(.el-menu-item) {
   font-size: 1rem;
   display: flex;
   align-items: center;
@@ -76,29 +77,29 @@ function handleSelect(index) {
   transition: all 0.2s ease;
 }
 
-.el-menu-item .icon {
+:deep(.el-menu-item .icon) {
   font-size: 1.2rem;
 }
 
 /* 4. 菜单项 悬停 样式 */
-.el-menu-item:hover {
+:deep(.el-menu-item:hover) {
   color: white !important;
   background-color: var(--secondary-color) !important;
 }
 
 /* 5. 菜单项 激活 样式：金色下划线 */
-.el-menu-item.is-active {
+:deep(.el-menu-item.is-active) {
   color: white !important;
   border-bottom: 3px solid var(--accent-color) !important;
 }
 
 /* 6. 特殊处理Logo的激活态 */
-.nav-logo.is-active {
+:deep(.nav-logo.is-active) {
   color: white !important;
   border-bottom-color: transparent !important;
 }
 /* 7. 特殊处理设置按钮的激活态 */
-.settings-trigger.is-active {
+:deep(.settings-trigger.is-active) {
   border-bottom-color: transparent !important;
 }
 
@@ -106,12 +107,12 @@ function handleSelect(index) {
 
 /* 屏幕宽度 <= 1200px (对应我们内容区的 1260px 断点) */
 @media (max-width: 1200px) {
-  .el-menu-item:not(.nav-logo) span {
+  :deep(.el-menu-item:not(.nav-logo) span) {
     display: none;
   }
 
   /* 调整一下间距，让图标更紧凑 */
-  .el-menu-item:not(.nav-logo) {
+  :deep(.el-menu-item:not(.nav-logo)) {
     padding: 0 15px;
     min-width: auto;
   }
@@ -120,16 +121,16 @@ function handleSelect(index) {
 /* 屏幕宽度 <= 768px (手机) */
 @media (max-width: 768px) {
    /* 在手机上，隐藏所有文字 */
-   .el-menu-item span {
+   :deep(.el-menu-item span) {
      display: none;
    }
 
-   .nav-logo {
+   :deep(.nav-logo) {
      font-size: 1.4rem; /* 保持 Logo 图标大小 */
      padding-left: 10px; /* 手机上左边距小一点 */
    }
 
-   .el-menu-item {
+   :deep(.el-menu-item) {
      padding: 0 10px; /* 手机上间距更小 */
    }
 
