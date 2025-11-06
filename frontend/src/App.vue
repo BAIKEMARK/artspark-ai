@@ -47,7 +47,6 @@
 <script setup>
 import { ref, computed, onMounted, defineAsyncComponent } from 'vue';
 import { useAuthStore } from './stores/auth';
-import { useSettingsStore } from './stores/settings';
 import { storeToRefs } from 'pinia';
 
 // 导入组件
@@ -59,8 +58,6 @@ import SettingsSidebar from './components/SettingsSidebar.vue';
 
 const authStore = useAuthStore();
 const { isLoggedIn } = storeToRefs(authStore);
-
-const settingsStore = useSettingsStore(); // 未使用，但保留
 
 const isVerifyingApiKey = ref(false);
 const apiKeyError = ref('');
@@ -97,44 +94,42 @@ async function saveApiKey(apiKey) {
   }
 }
 
-// --- (已修改) 静态数据 ---
+// --- 静态数据 ---
 const heroSlides = [
   { image: '/img/Starry-Night.jpg' }, { image: '/img/千里江山图.jpg' },
   { image: '/img/Мона-Лиза.jpg' }, { image: '/img/五牛图.jpeg' },
   { image: '/img/Monet-Impression-Sunrise.jpg' }, { image: '/img/步辇图.jpeg' },
 ];
 
-// (已修改) 更新导航项
+// 更新导航项
 const navItems = [
   { id: 'home-view', text: '首页', icon: 'ph-house' },
   { id: 'art-gallery', text: '名画鉴赏室', icon: 'ph-palette' },
   { id: 'line-coloring', text: 'AI智能上色', icon: 'ph-paint-brush' },
-  { id: 'creative-workshop', text: '创意工坊', icon: 'ph-paint-brush-broad' }, // 新增
-  { id: 'portrait-workshop', text: '人像工坊', icon: 'ph-user-focus' },     // 新增
+  { id: 'creative-workshop', text: '创意工坊', icon: 'ph-paint-brush-broad' },
+  { id: 'portrait-workshop', text: '人像工坊', icon: 'ph-user-focus' },
+  { id: 'mood-painting', text: '心情画板', icon: 'ph-paint-brush-household' },
   { id: 'art-qa', text: '艺术小百科', icon: 'ph-question' },
   { id: 'idea-generator', text: '创意灵感生成', icon: 'ph-lightbulb' },
-  // 移除 style-workshop, self-portrait, art-fusion
 ];
 
-// (已修改) 更新首页卡片
+// 更新首页卡片
 const featureCards = [
   { id: 'line-coloring', icon: 'ph-paint-brush', title: 'AI智能上色', description: '上传线稿，一键变为专业彩绘' },
-  { id: 'creative-workshop', icon: 'ph-paint-brush-broad', title: '创意工坊', description: '用文本或图像改变图片风格' }, // 新增
-  { id: 'portrait-workshop', icon: 'ph-user-focus', title: '人像工坊', description: '生成不同风格的艺术人像' },     // 新增
-  { id: 'idea-generator', icon: 'ph-lightbulb', title: '创意灵感生成', description: '输入主题，获取绘画新点子' }, // 调整顺序
-  // 移除 style-workshop, self-portrait, art-fusion
+  { id: 'creative-workshop', icon: 'ph-paint-brush-broad', title: '创意工坊', description: '用文本或图像改变图片风格' },
+  { id: 'portrait-workshop', icon: 'ph-user-focus', title: '人像工坊', description: '生成不同风格的艺术人像' },
+  { id: 'mood-painting', icon: 'ph-paint-brush-household', title: '心情画板', description: '结合心理学，引导情绪表达' }
 ];
 
-// (已修改) 更新侧边栏内容
+// 更新侧边栏内容
 const sidebarContentData = {
-    'default': { tips: `<h3><i class="icon ph-bold ph-lightbulb-filament"></i> 教学小贴士</h3><p>欢迎来到“艺启智AI”！从顶部导航栏选择一个工具开始。</p><p>您可以利用这些工具，辅助学生理解色彩、风格和构图。</p>`, examples: `<h3><i class="icon ph-bold ph-image"></i> 示例作品</h3><div class="example-images"><img src="/img/Starry-Night.jpg" alt="示例1"><img src="/img/千里江山图.jpg" alt="示例2"></div>` },
-    'line-coloring': { tips: `<h3><i class="icon ph-bold ph-paint-brush"></i> 上色小贴士</h3><ul><li><strong>风格多样：</strong> 尝试“水彩画”、“油画”、“动漫风格”或“赛博朋克”等关键词。</li><li><strong>色彩词：</strong> 使用“明亮的颜色”、“柔和的色调”或“复古色”来引导AI。</li><li><strong>教学应用：</strong> 让学生上传同一张线稿，但使用不同的风格提示词，比较结果。</li></ul>`, examples: `<h3><i class="icon ph-bold ph-image"></i> 上色示例</h3><div class="example-images"><img src="/img/lineart_example1.png" alt="上色示例1"><img src="/img/lineart_example2.png" alt="上色示例2"></div>` },
-    'creative-workshop': { tips: `<h3><i class="icon ph-bold ph-paint-brush-broad"></i> 创意工坊小贴士</h3><ul><li><strong>文本指令：</strong> 上传一张校园照片，在“文本指令”模式下输入“变成梵高风格”或“雪景”。</li><li><strong>图像风格：</strong> 上传校园照片作为“内容图”，再上传一张《星空》作为“风格图”。</li><li><strong>教学应用：</strong> 结合“名画鉴赏室”进行风格模仿练习。</li></ul>`, examples: `<h3><i class="icon ph-bold ph-image"></i> 风格示例</h3><div class="example-images"><img src="/img/Starry-Night.jpg" alt="梵高"><img src="/img/千里江山图.jpg" alt="水墨画"></div>` },
-    'portrait-workshop': { tips: `<h3><i class="icon ph-bold ph-user-focus"></i> 人像工坊小贴士</h3><ul><li><strong>预设风格：</strong> 上传人像照片，在“预设风格”中选择“动漫风”、“3D童话”等快速体验。</li><li><strong>自定义风格：</strong> 上传人像照片，在“自定义风格”中上传一张艺术作品图片（如蒙娜丽莎）。</li><li><strong>教学应用：</strong> 探索不同文化和艺术流派的人像表达方式。</li></ul>`, examples: `<h3><i class="icon ph-bold ph-image"></i> 示例作品</h3><div class="example-images"><img src="/img/portrait_example1.png" alt="人像示例1"><img src="/img/portrait_example2.png" alt="人像示例2"></div>` },
+    'line-coloring': { tips: `<h3><i class="icon ph-bold ph-paint-brush"></i> 上色小贴士</h3><ul><li><strong>风格多样：</strong> 尝试“水彩画”、“油画”、“动漫风格”或“赛博朋克”等关键词。</li><li><strong>色彩词：</strong> 使用“明亮的颜色”、“柔和的色调”或“复古色”来引导AI。</li><li><strong>教学应用：</strong> 让学生上传同一张线稿，但使用不同的风格提示词，比较结果。</li></ul>`, examples: `<h3><i class="icon ph-bold ph-image"></i> 上色示例</h3><div class="example-images"><img src="/img/lineart.png" alt="上色示例1"><img src="/img/line-color.png" alt="上色示例2"></div>` },
+    'creative-workshop': { tips: `<h3><i class="icon ph-bold ph-paint-brush-broad"></i> 创意工坊小贴士</h3><ul><li><strong>文本指令：</strong> 上传一张校园照片，在“文本指令”模式下输入“变成梵高风格”或“雪景”。</li><li><strong>图像风格：</strong> 上传校园照片作为“内容图”，再上传一张《星空》作为“风格图”。</li><li><strong>教学应用：</strong> 结合“名画鉴赏室”进行风格模仿练习。</li></ul>`, examples: `<h3><i class="icon ph-bold ph-image"></i> 风格示例</h3><div class="example-images"><img src="/img/cloud-boy.png" alt="原图"><img src="/img/cloud-boy-fangao.png" alt="复古漫画"></div>` },
+    'portrait-workshop': { tips: `<h3><i class="icon ph-bold ph-user-focus"></i> 人像工坊小贴士</h3><ul><li><strong>预设风格：</strong> 上传人像照片，在“预设风格”中选择“动漫风”、“3D童话”等快速体验。</li><li><strong>自定义风格：</strong> 上传人像照片，在“自定义风格”中上传一张艺术作品图片（如蒙娜丽莎）。</li><li><strong>教学应用：</strong> 探索不同文化和艺术流派的人像表达方式。</li></ul>`, examples: `<h3><i class="icon ph-bold ph-image"></i> 示例作品</h3><div class="example-images"><img src="/img/style-pic.png" alt="原图"><img src="/img/style-fussion.png" alt="复古漫画"></div>` },
     'art-qa': { tips: `<h3><i class="icon ph-bold ph-question"></i> 提问小贴士</h3><ul><li><strong>开始对话：</strong> 你可以问任何艺术问题，比如“什么是印象派？”</li><li><strong>深入追问：</strong> “小艺”老师记住了你们的对话。你可以继续追问：“那印象派有哪些著名的画家呢？”</li><li><strong>清空历史：</strong> 如果你想开始一个全新的话题，可以点击“清空对话”按钮。</li></ul>`, examples: `` },
     'idea-generator': { tips: `<h3><i class="icon ph-bold ph-lightbulb"></i> 灵感小贴士</h3><ul><li><strong>激发创意：</strong> 当你不知道画什么时，这是最好的起点。</li><li><strong>主题词：</strong> 尝试输入“节日”、“动物”、“太空”或“梦想”等主题。</li><li><strong>再创作：</strong> AI生成的示例图只是参考，鼓励学生在此基础上进行自己的创作！</li></ul>`, examples: `` },
-    'art-gallery': { tips: `<h3><i class="icon ph-bold ph-palette"></i> 画廊小贴士</h3><ul><li><strong>探索艺术史：</strong> 这是探索世界顶级博物馆藏品的绝佳方式。</li><li><strong>组合筛选：</strong> 尝试组合不同的筛选条件，例如“19世纪”、“绘画”和“欧洲”。</li><li><strong>关键词搜索：</strong> 使用“辅助搜索”来寻找特定主题，如“猫”、“船”或“向日葵”。</li></ul>`, examples: `` }
-    // 移除 style-workshop, self-portrait, art-fusion 的条目
+    'art-gallery': { tips: `<h3><i class="icon ph-bold ph-palette"></i> 画廊小贴士</h3><ul><li><strong>探索艺术史：</strong> 这是探索世界顶级博物馆藏品的绝佳方式。</li><li><strong>组合筛选：</strong> 尝试组合不同的筛选条件，例如“19世纪”、“绘画”和“欧洲”。</li><li><strong>关键词搜索：</strong> 使用“辅助搜索”来寻找特定主题，如“猫”、“船”或“向日葵”。</li></ul>`, examples: `` },
+    'mood-painting': {tips: `<h3><i class="icon ph-bold ph-paint-brush-household"></i> 心情画板小贴士</h3><ul><li><strong>关怀优先：</strong> 这是为学生（尤其是留守儿童）设计的心理关怀工具。</li><li><strong>情绪引导：</strong> 鼓励学生选择真实的心情，AI会提供具有疏导性质的绘画创意。</li><li><strong>教学应用：</strong> 可用于美术课的开始或结束，作为“情绪签到”或“情绪整理”的环节。</li></ul>`,examples: `<h3><i class="icon ph-bold ph-image"></i> 示例作品</h3><div class="example-images"><img src="/img/style-pic.png" alt="原图"><img src="/img/style-fussion.png" alt="复古漫画"></div>`},
 };
 
 // --- 计算属性 (Computed) ---
@@ -159,7 +154,6 @@ const sidebarContentHTML = computed(() => {
   let html = '';
   if (content.tips) html += `<div class="sidebar-widget">${content.tips}</div>`;
   if (content.examples) {
-      // 修正：确保 example-images 类应用正确
       const exampleHtml = content.examples.replace('<div class="example-images">', '<div class="sidebar-widget example-widget"><h3><i class="icon ph-bold ph-image"></i> 示例作品</h3><div class="example-images">');
       html += exampleHtml.includes('sidebar-widget example-widget') ? exampleHtml : `<div class="sidebar-widget example-widget">${content.examples}</div>`;
   }
@@ -167,15 +161,15 @@ const sidebarContentHTML = computed(() => {
 });
 
 
-// (已修改) 更新组件映射
+// 更新组件映射
 const toolComponentMap = {
   'line-coloring': defineAsyncComponent(() => import('./views/LineColoringView.vue')),
   'art-gallery': defineAsyncComponent(() => import('./views/ArtGalleryView.vue')),
-  'creative-workshop': defineAsyncComponent(() => import('./views/CreativeWorkshopView.vue')), // 新增
-  'portrait-workshop': defineAsyncComponent(() => import('./views/PortraitWorkshopView.vue')), // 新增
+  'creative-workshop': defineAsyncComponent(() => import('./views/CreativeWorkshopView.vue')),
+  'portrait-workshop': defineAsyncComponent(() => import('./views/PortraitWorkshopView.vue')),
+  'mood-painting': defineAsyncComponent(() => import('./views/MoodPaintingView.vue')),
   'art-qa': defineAsyncComponent(() => import('./views/ArtQAView.vue')),
   'idea-generator': defineAsyncComponent(() => import('./views/IdeaGeneratorView.vue')),
-  // 移除 style-workshop, self-portrait, art-fusion
 };
 
 
@@ -186,7 +180,7 @@ const currentToolComponent = computed(() => {
 
 // --- 方法 (Methods) ---
 function navigateTo(targetId) {
-  if (navItems.some(item => item.id === targetId)) { // 确保 targetId 是有效的视图 ID
+  if (navItems.some(item => item.id === targetId)) {
       activeView.value = targetId;
       window.scrollTo(0, 0);
   } else {
@@ -197,9 +191,7 @@ function navigateTo(targetId) {
 // --- 生命周期钩子 (Lifecycle Hooks) ---
 onMounted(() => {
   if (!isLoggedIn.value) {
-    // Modal 会自动显示
   } else {
-    // 如果已登录，默认导航到首页
      if (!activeView.value || !navItems.some(item => item.id === activeView.value)) {
         navigateTo('home-view');
      }
@@ -232,10 +224,6 @@ onMounted(() => {
 #tool-content {
   padding: 0;
 }
-/* 移除这个规则，让 KeepAlive 内的组件自然高度 */
-/* #tool-content:not(.view-panel) {
-  height: 100%;
-} */
 
 /* 侧边栏样式微调 */
 .contextual-sidebar {
