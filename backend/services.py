@@ -135,6 +135,14 @@ def _parse_ideas_from_llm_json(content, is_list=False):
         json_string = content[json_start : json_end]
         return json.loads(json_string).get("ideas", [])
 
+def _parse_single_idea_from_llm_json(content):
+    """(新增) 辅助函数，从 LLM 的 (可能含 markdown) 响应中提取单个 JSON 对象"""
+    json_start = content.find('{')
+    json_end = content.rfind('}') + 1
+    if json_start == -1 or json_end == 0:
+        raise Exception("LLM did not return valid JSON object.")
+    json_string = content[json_start : json_end]
+    return json.loads(json_string)
 # ==============================================================================
 # === 3. 功能“管理器” (Public) - 由 app.py 调用 (已适配新的执行器)
 # ==============================================================================
@@ -420,27 +428,92 @@ def generate_ideas(config, ms_key, theme):
                      prompt=img_prompt_cn,
                  )
             else:
-                 print(f"ModelScope Manager: Generating image for idea '{idea['name']}'...")
-                 translator_prompt = PROMPTS["PROMPT_TRANSLATOR"].format(
-                     context=f"Generating an image for creative idea: {idea['name']}",
-                     chinese_description=img_prompt_cn
-                 )
-                 english_prompt = executors.run_llm_generation_modelscope(config, ms_key, translator_prompt)
-                 img_body = {
-                     "model": config["ms_image_model"],
-                     "prompt": english_prompt,
-                     "negative_prompt": ms_negative_prompt,
-                     "size": "1024x1024",
-                 }
-                 idea["exampleImage"] = executors.run_image_gen_modelscope(config, ms_key, img_body, sync=True)
+                print(
+                    f"ModelScope Manager: Generating image for idea '{idea['name']}'..."
+                )
+                translator_prompt = PROMPTS["PROMPT_TRANSLATOR"].format(
+                    context=f"Generating an image for creative idea: {idea['name']}",
+                    chinese_description=img_prompt_cn,
+                )
+                english_prompt = executors.run_llm_generation_modelscope(
+                    config, ms_key, translator_prompt
+                )
+                img_body = {
+                    "model": config["ms_image_model"],
+                    "prompt": english_prompt,
+                    "negative_prompt": ms_negative_prompt,
+                    "size": "1024x1024",
+                }
+                idea["exampleImage"] = executors.run_image_gen_modelscope(
+                    config, ms_key, img_body, sync=True
+                )
 
         except Exception as img_err:
-            print(f"{platform.capitalize()} Manager: Failed to generate image for idea '{idea['name']}': {img_err}")
+            print(
+                f"{platform.capitalize()} Manager: Failed to generate image for idea '{idea['name']}': {img_err}"
+            )
             idea["exampleImage"] = None
         processed_ideas.append(idea)
 
     return processed_ideas
 
+
+def generate_mood_painting(config, ms_key, mood, theme):
+    """心情画板“管理器”"""
+    platform = config.get("api_platform", "modelscope")
+    age_range = config["age_range"]
+
+    # 1. 生成创意文本
+    text_prompt = PROMPTS["PSYCH_ART_PROMPT"].format(
+        mood=mood, theme=theme, age_range=age_range
+    )
+
+    idea = {}
+    if platform == "bailian":
+        print("DashScope Manager: Generating mood painting text...")
+        content = executors.run_llm_generation_dashscope(config, text_prompt)
+        idea = _parse_single_idea_from_llm_json(content)
+    else:
+        print("ModelScope Manager: Generating mood painting text...")
+        content = executors.run_llm_generation_modelscope(config, ms_key, text_prompt)
+        idea = _parse_single_idea_from_llm_json(content)
+
+    # 2. 生成图像
+    try:
+        img_prompt_cn = PROMPTS["IDEA_IMAGE_PROMPT_CN"].format(
+            name=idea["name"],
+            description=idea["description"],
+            elements=idea["elements"],
+            age_range=age_range,
+        )
+        ms_negative_prompt = "text, watermark, signature, blurry, low quality, ugly, deformed, bad anatomy"
+
+        if platform == "bailian":
+             print(f"DashScope Manager: Generating image for mood idea '{idea['name']}'...")
+             idea["exampleImage"] = executors.run_text_to_image_dashscope(
+                 config,
+                 prompt=img_prompt_cn,
+             )
+        else:
+             print(f"ModelScope Manager: Generating image for mood idea '{idea['name']}'...")
+             translator_prompt = PROMPTS["PROMPT_TRANSLATOR"].format(
+                 context=f"Generating an image for creative idea: {idea['name']}",
+                 chinese_description=img_prompt_cn
+             )
+             english_prompt = executors.run_llm_generation_modelscope(config, ms_key, translator_prompt)
+             img_body = {
+                 "model": config["ms_image_model"],
+                 "prompt": english_prompt,
+                 "negative_prompt": ms_negative_prompt,
+                 "size": "1024x1024",
+             }
+             idea["exampleImage"] = executors.run_image_gen_modelscope(config, ms_key, img_body, sync=True)
+
+    except Exception as img_err:
+        print(f"{platform.capitalize()} Manager: Failed to generate image for mood idea '{idea['name']}': {img_err}")
+        idea["exampleImage"] = None
+
+    return idea
 
 def generate_artwork_explanation(config, ms_key, art_info_en):
     """名画鉴赏室“管理器” (AI 讲解)"""

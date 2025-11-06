@@ -21,6 +21,7 @@ from services import (
     generate_portrait_workshop,
     run_chat_completion,
     generate_ideas,
+    generate_mood_painting,
     generate_artwork_explanation
 )
 
@@ -224,6 +225,24 @@ def handle_generate_ideas():
     except Exception as e:
         return handle_api_errors(e)
 
+@app.route("/api/mood-painting", methods=["POST"])
+def handle_mood_painting():
+    """(新增) 心情画板"""
+    try:
+        ms_key = get_api_key()
+        data = request.json
+        config = get_ai_config(data)
+        theme = data.get("theme")
+        mood = data.get("mood")
+        if not theme or not mood:
+            return jsonify({"error": "心情和主题是必需的"}), 400
+
+        processed_idea = generate_mood_painting(
+            config=config, ms_key=ms_key, mood=mood, theme=theme
+        )
+        return jsonify(processed_idea)
+    except Exception as e:
+        return handle_api_errors(e)
 
 # --- 5. 名画鉴赏室路由 (保持不变) ---
 
