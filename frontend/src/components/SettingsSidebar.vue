@@ -173,8 +173,8 @@
             <el-option label="6-8岁 (低年级)" value="6-8岁" />
             <el-option label="9-10岁 (中年级)" value="9-10岁" />
             <el-option label="11-12岁 (高年级)" value="11-12岁" />
-            <el-option label="13-16岁 (初中)" value="13-16岁" />
-            <el-option label="17-18岁 (高中)" value="17-18岁" />
+            <el-option label="13-15岁 (初中)" value="13-15岁" />
+            <el-option label="16-18岁 (高中)" value="16-18岁" />
           </el-select>
         </el-form-item>
       </el-form>

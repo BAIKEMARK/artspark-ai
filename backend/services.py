@@ -143,6 +143,61 @@ def _parse_single_idea_from_llm_json(content):
         raise Exception("LLM did not return valid JSON object.")
     json_string = content[json_start : json_end]
     return json.loads(json_string)
+
+# ==============================================================================
+# === (新增) DashScope 图像尺寸调整辅助函数
+# ==============================================================================
+def _resize_image_for_dashscope(base64_string, min_height=512, max_height=4096):
+    """
+    (新增) 辅助函数：解码Base64图像，检查高度，如有必要则调整，然后重新编码。
+    确保图像高度在 [min_height, max_height] 范围内，并保持宽高比。
+    """
+    try:
+        header, encoded = base64_string.split(",", 1)
+        mime_type = header.split(";")[0].split(":")[-1]
+
+        data = base64.b64decode(encoded)
+        image_bytes = BytesIO(data)
+
+        with Image.open(image_bytes) as img:
+            width, height = img.size
+
+            new_height = height
+            new_width = width
+
+            # 检查是否需要调整尺寸
+            if height > max_height:
+                new_height = max_height
+                new_width = int(width * (max_height / height))
+            elif height < min_height:
+                new_height = min_height
+                new_width = int(width * (min_height / height))
+
+            # 如果尺寸没有变化
+            if new_height == height and new_width == width:
+                return base64_string # 尺寸合适，返回原图
+
+            print(f"DashScope Resizer: Original size {width}x{height}. Resizing to {new_width}x{new_height}...")
+
+            # 使用 LANCZOS 进行高质量缩放
+            img_resized = img.resize((new_width, new_height), Image.LANCZOS)
+
+            output_bytes = BytesIO()
+            # 尝试保留原始格式
+            pil_format = img.format if img.format else "PNG"
+
+            # 修复 PIL 格式问题
+            if pil_format == "JPEG":
+                img_resized = img_resized.convert("RGB") # 确保JPEG是RGB
+
+            img_resized.save(output_bytes, format=pil_format)
+            encoded_resized = base64.b64encode(output_bytes.getvalue()).decode('utf-8')
+            return f"{header},{encoded_resized}"
+
+    except Exception as e:
+        print(f"Error during image resize for DashScope: {e}")
+        raise Exception(f"图像调整失败: {e}")
+
 # ==============================================================================
 # === 3. 功能“管理器” (Public) - 由 app.py 调用 (已适配新的执行器)
 # ==============================================================================
@@ -154,15 +209,18 @@ def generate_colorization(config, ms_key, base64_image, chinese_prompt):
     doodle_prompt = f"{chinese_prompt}风格。"
     if config["age_range"] in ["6-8岁", "9-10岁"]:
         doodle_prompt += " 色彩明亮, 卡通风格。"
-    elif config["age_range"] in ["13-16岁", "17-18岁"]:
+    elif config["age_range"] in ["13-15岁", "16-18岁"]:
          doodle_prompt += " 细节丰富, 写实光影。"
 
     if platform == "bailian":
         print("DashScope Manager: Calling wanx2.1-imageedit (doodle) for colorization.")
+
+        resized_base64_image = _resize_image_for_dashscope(base64_image)
+
         return executors.run_image_edit_wanx21_dashscope(
             config=config,
             function="doodle",
-            base_image_b64=base64_image,
+            base_image_b64=resized_base664_image,
             prompt=doodle_prompt,
             is_sketch='false'
         )
@@ -198,12 +256,18 @@ def generate_creative_workshop(config, ms_key, base64_content_image=None, base64
     platform = config.get("api_platform", "modelscope")
 
     if platform == "bailian":
+
+        resized_content_image = _resize_image_for_dashscope(base64_content_image)
+
         if base64_style_image:
             # --- 模式二: 图像风格 ---
             print("DashScope Manager: Simulating style transfer using VL and wanx2.1-imageedit (stylization_all).")
+
+            resized_style_image = _resize_image_for_dashscope(base64_style_image)
+
             # 1. 调用 VL 分析风格图 (获取文本描述)
             style_analysis_content = [
-                {"image": base64_style_image},
+                {"image": resized_style_image},
                 {"text": PROMPTS["STYLE_ANALYSIS_USER"] + " 请用中文描述风格。"}
             ]
             style_description_cn = executors.run_vl_chat_dashscope(config, style_analysis_content)
@@ -213,7 +277,7 @@ def generate_creative_workshop(config, ms_key, base64_content_image=None, base64
             return executors.run_image_edit_wanx21_dashscope(
                 config=config,
                 function="stylization_all",
-                base_image_b64=base64_content_image,
+                base_image_b64=resized_content_image, # 使用调整后的内容图
                 prompt=stylization_prompt,
                 strength=0.6
             )
@@ -222,7 +286,7 @@ def generate_creative_workshop(config, ms_key, base64_content_image=None, base64
              return executors.run_image_edit_wanx21_dashscope(
                  config=config,
                  function="stylization_all",
-                 base_image_b64=base64_content_image,
+                 base_image_b64=resized_content_image, # 使用调整后的内容图
                  prompt=chinese_prompt
              )
         else:
@@ -286,23 +350,28 @@ def generate_portrait_workshop(config, base64_portrait_image, base64_style_image
     if platform == "bailian":
         print("DashScope Manager: Calling wanx-style-cosplay for portrait workshop.")
 
+        resized_portrait_image = _resize_image_for_dashscope(base64_portrait_image)
+
         if base64_style_image is not None:
             # --- 自定义风格模式 ---
             print("DashScope Manager: Custom style mode selected.")
+
+            resized_style_image = _resize_image_for_dashscope(base64_style_image)
+
             return executors.run_portrait_stylization_dashscope(
                 config=config,
-                base_image_b64=base64_portrait_image,
-                style_image_b64=base64_style_image, # 传递风格图
-                style_index=-1                      # 明确 style_index 为 -1
+                base_image_b64=resized_portrait_image,
+                style_image_b64=resized_style_image,
+                style_index=-1
             )
         elif preset_style_index is not None:
             # --- 预设风格模式 ---
             print(f"DashScope Manager: Preset style mode selected (Index: {preset_style_index}).")
             return executors.run_portrait_stylization_dashscope(
                 config=config,
-                base_image_b64=base64_portrait_image,
-                style_image_b64=None,               # 确保风格图为 None
-                style_index=preset_style_index      # 传递预设索引
+                base_image_b64=resized_portrait_image,
+                style_image_b64=None,
+                style_index=preset_style_index
             )
         else:
              # 此情况理论上已被 app.py 捕获，但作为防御添加
