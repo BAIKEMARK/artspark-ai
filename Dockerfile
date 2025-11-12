@@ -29,4 +29,4 @@ COPY --from=frontend-builder /app/frontend/dist ./frontend/dist/
 # 暴露端口
 EXPOSE 7860
 
-CMD ["gunicorn", "--bind", "0.0.0.0:7860", "--chdir", "backend", "app:app"]
+CMD ["gunicorn", "--bind", "0.0.0.0:7860", "--timeout", "300", "--chdir", "backend", "app:app"]
