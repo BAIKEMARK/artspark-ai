@@ -145,12 +145,12 @@ def _parse_single_idea_from_llm_json(content):
     return json.loads(json_string)
 
 # ==============================================================================
-# === (新增) DashScope 图像尺寸调整辅助函数
+# === DashScope 图像尺寸调整辅助函数
 # ==============================================================================
-def _resize_image_for_dashscope(base64_string, min_height=512, max_height=4096):
+def _resize_image_for_dashscope(base64_string, min_dim=512, max_dim=4096):
     """
-    (新增) 辅助函数：解码Base64图像，检查高度，如有必要则调整，然后重新编码。
-    确保图像高度在 [min_height, max_height] 范围内，并保持宽高比。
+    辅助函数：解码Base64图像，检查宽高。
+    如有必要则调整，确保图像的 *两个维度* 都在 [min_dim, max_dim] 范围内，并保持宽高比。
     """
     try:
         header, encoded = base64_string.split(",", 1)
@@ -163,18 +163,31 @@ def _resize_image_for_dashscope(base64_string, min_height=512, max_height=4096):
             width, height = img.size
 
             new_height = height
-            new_width = width
 
-            # 检查是否需要调整尺寸
-            if height > max_height:
-                new_height = max_height
-                new_width = int(width * (max_height / height))
-            elif height < min_height:
-                new_height = min_height
-                new_width = int(width * (min_height / height))
+            needs_resize = False
 
-            # 如果尺寸没有变化
-            if new_height == height and new_width == width:
+            # 1. 检查是否过大 (Oversized)
+            if width > max_dim or height > max_dim:
+                needs_resize = True
+                # 计算缩小比例，确保两个边都小于 max_dim
+                ratio_w = max_dim / width
+                ratio_h = max_dim / height
+                scale = min(ratio_w, ratio_h)
+                new_width = int(width * scale)
+                new_height = int(height * scale)
+
+            # 2. 检查是否过小 (Undersized)
+            if new_width < min_dim or new_height < min_dim:
+                needs_resize = True
+                # 计算放大比例，确保两个边都大于 min_dim
+                ratio_w = min_dim / new_width
+                ratio_h = min_dim / new_height
+                scale = max(ratio_w, ratio_h) # 取较大的比例，确保都达标
+                new_width = int(new_width * scale)
+                new_height = int(new_height * scale)
+
+            # 如果不需要调整尺寸
+            if not needs_resize:
                 return base64_string # 尺寸合适，返回原图
 
             print(f"DashScope Resizer: Original size {width}x{height}. Resizing to {new_width}x{new_height}...")
@@ -220,7 +233,7 @@ def generate_colorization(config, ms_key, base64_image, chinese_prompt):
         return executors.run_image_edit_wanx21_dashscope(
             config=config,
             function="doodle",
-            base_image_b64=resized_base664_image,
+            base_image_b64=resized_base64_image,
             prompt=doodle_prompt,
             is_sketch='false'
         )
