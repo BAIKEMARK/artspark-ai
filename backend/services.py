@@ -162,19 +162,20 @@ def _resize_image_for_dashscope(base64_string, min_dim=512, max_dim=4096):
         with Image.open(image_bytes) as img:
             width, height = img.size
 
+            new_width = width
             new_height = height
 
             needs_resize = False
 
             # 1. 检查是否过大 (Oversized)
-            if width > max_dim or height > max_dim:
+            if new_width > max_dim or new_height > max_dim:
                 needs_resize = True
                 # 计算缩小比例，确保两个边都小于 max_dim
-                ratio_w = max_dim / width
-                ratio_h = max_dim / height
-                scale = min(ratio_w, ratio_h)
-                new_width = int(width * scale)
-                new_height = int(height * scale)
+                ratio_w = max_dim / new_width
+                ratio_h = max_dim / new_height
+                scale = min(ratio_w, ratio_h) # 取较小的比例，确保都装得下
+                new_width = int(new_width * scale)
+                new_height = int(new_height * scale)
 
             # 2. 检查是否过小 (Undersized)
             if new_width < min_dim or new_height < min_dim:
@@ -190,7 +191,7 @@ def _resize_image_for_dashscope(base64_string, min_dim=512, max_dim=4096):
             if not needs_resize:
                 return base64_string # 尺寸合适，返回原图
 
-            print(f"DashScope Resizer: Original size {width}x{height}. Resizing to {new_width}x{new_height}...")
+            print(f"DashScope Resizer: Original size {width}x{height}. Final size {new_width}x{new_height}.")
 
             # 使用 LANCZOS 进行高质量缩放
             img_resized = img.resize((new_width, new_height), Image.LANCZOS)
@@ -199,11 +200,11 @@ def _resize_image_for_dashscope(base64_string, min_dim=512, max_dim=4096):
             # 尝试保留原始格式
             pil_format = img.format if img.format else "PNG"
 
-            # 修复 PIL 格式问题
             if pil_format == "JPEG":
-                img_resized = img_resized.convert("RGB") # 确保JPEG是RGB
+                if img_resized.mode != "RGB":
+                    img_resized = img_resized.convert("RGB")
 
-            img_resized.save(output_bytes, format=pil_format)
+            img_resized.save(output_bytes, format=pil_format, quality=95)
             encoded_resized = base64.b64encode(output_bytes.getvalue()).decode('utf-8')
             return f"{header},{encoded_resized}"
 
