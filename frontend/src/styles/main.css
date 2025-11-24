@@ -168,3 +168,69 @@ h2 {
 .upload-limit-reached .el-upload--picture-card {
   display: none;
 }
+
+/* --- 11. 移动端适配 (新增) --- */
+
+/* 针对手机屏幕 (小于 768px) */
+@media (max-width: 768px) {
+    /* 1. 调整导航栏高度留白 */
+    #vue-app {
+        padding-top: 50px; /* 导航栏在手机上可能稍微变矮，或者保持原样 */
+    }
+
+    /* 2. 首页 Hero 区域调整 */
+    .home-content-overlay h1 {
+        font-size: 2rem !important; /* 缩小标题 */
+        margin-bottom: 0.5rem !important;
+    }
+    .home-content-overlay p {
+        font-size: 1rem !important;
+        padding: 0 10px;
+    }
+
+    /* 3. 特性卡片容器：改为单列或双列紧凑 */
+    .feature-cards-container {
+        gap: 15px;
+        padding: 0 15px;
+    }
+    .feature-card {
+        width: 100% !important; /* 卡片占满宽度 */
+        max-width: 350px;
+        padding: 1rem;
+    }
+
+    /* 4. 强制调整 Element Plus Dialog 宽度 */
+    .el-dialog {
+        width: 90% !important; /* 手机上弹窗宽度占 90% */
+        max-width: none !important;
+    }
+
+    /* 5. 调整视图面板内边距 */
+    .feature-panel {
+        padding: 20px 15px !important; /* 减小内边距 */
+    }
+
+    /* 6. 隐藏或调整侧边栏 (配合 App.vue 的类名切换) */
+    /* 如果侧边栏移动到底部，取消固定宽度 */
+    .contextual-sidebar {
+        width: 100% !important;
+        padding: 15px !important;
+        margin-top: 20px;
+        border-top: 1px dashed var(--border-color);
+    }
+
+    /* 7. 上传组件调整 */
+    .el-upload--picture-card {
+        width: 100px !important;
+        height: 100px !important;
+    }
+    .el-upload-list--picture-card .el-upload-list__item {
+        width: 100px !important;
+        height: 100px !important;
+    }
+
+    /* 8. 调整标题大小 */
+    h2 {
+        font-size: 1.3rem;
+    }
+}
