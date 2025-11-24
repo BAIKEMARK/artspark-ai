@@ -28,7 +28,11 @@
           placeholder="例如：我的家, 一棵树, 未来的我"
           clearable
           @keyup.enter="generate"
-        />
+        >
+           <template #suffix>
+            <VoiceInputButton @update:text="handleVoiceInput" />
+          </template>
+        </el-input>
       </el-form-item>
 
       <el-form-item>
@@ -80,6 +84,7 @@
 import { ref } from 'vue';
 import { useAIApi } from '../composables/useAIApi.js';
 import ImageResult from '../components/ImageResult.vue';
+import VoiceInputButton from '../components/VoiceInputButton.vue';
 
 const theme = ref('');
 const mood = ref('calm'); // 默认心情
@@ -115,6 +120,10 @@ async function generate() {
     // error.value 会在 useAIApi 内部被设置
   }
 }
+
+const handleVoiceInput = (text) => {
+  theme.value += text;
+};
 </script>
 
 <style scoped>

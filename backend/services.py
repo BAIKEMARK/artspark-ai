@@ -9,6 +9,10 @@ import requests
 from PIL import Image
 from flask import current_app
 
+# [新增] 导入 pydub 和 DashScope ASR 相关库
+from pydub import AudioSegment
+from dashscope.audio.asr import Recognition, RecognitionCallback, RecognitionResult
+
 from prompt import PROMPTS
 from utils import calculate_adaptive_size, ApiKeyMissingError
 import api as executors
@@ -143,6 +147,114 @@ def _parse_single_idea_from_llm_json(content):
         raise Exception("LLM did not return valid JSON object.")
     json_string = content[json_start : json_end]
     return json.loads(json_string)
+
+# ==============================================================================
+# === [新增] 语音识别服务 (Paraformer Realtime v2)
+# ==============================================================================
+
+class ASRCallback(RecognitionCallback):
+    """
+    DashScope 语音识别回调类
+    用于收集识别结果
+    """
+    def __init__(self):
+        super().__init__()
+        self.sentences = []
+        self.error = None
+
+    def on_open(self) -> None:
+        print("ASR Connection open.")
+
+    def on_close(self) -> None:
+        print("ASR Connection close.")
+
+    def on_event(self, result: RecognitionResult) -> None:
+        # 当一句话结束时，收集结果
+        if result.get_sentence().get('text') and result.is_sentence_end(result):
+            text = result.get_sentence()['text']
+            print(f"ASR Sentence: {text}")
+            self.sentences.append(text)
+
+    def on_error(self, result: RecognitionResult) -> None:
+        self.error = result.get_sentence().get('text', 'Unknown Error')
+        print(f"ASR Error: {self.error}")
+
+def transcribe_audio_dashscope(config, audio_file_obj):
+    """
+    使用 paraformer-realtime-v2 模型将音频文件转为文字。
+
+    Args:
+        config (dict): 包含 api_key 的配置字典
+        audio_file_obj (FileStorage): Flask 上传的文件对象
+    """
+    api_key = config.get("bailian_api_key")
+    if not api_key:
+        # 如果没配置百炼 Key，尝试使用 ModelScope Key (虽然通常这是两个体系，但为了兼容)
+        api_key = config.get("modelscope_key")
+
+    if not api_key:
+        raise ApiKeyMissingError("未找到有效的 API Key (需配置阿里云百炼 API Key)")
+
+    try:
+        # 1. 格式转换: WebM/WAV -> 16000Hz, Mono, 16-bit PCM
+        # 使用 pydub 读取上传的文件
+        print("ASR: Converting audio format...")
+        audio = AudioSegment.from_file(audio_file_obj)
+        # 强制转换为 16k 采样率, 单声道, 16bit
+        audio = audio.set_frame_rate(16000).set_channels(1).set_sample_width(2)
+
+        # 导出为 raw pcm 数据
+        pcm_data = audio.raw_data
+
+        # 2. 准备识别
+        callback = ASRCallback()
+        recognition = Recognition(
+            model='paraformer-realtime-v2',
+            format='pcm',
+            sample_rate=16000,
+            callback=callback,
+            # [优化] 开启语气词过滤
+            disfluency_removal_enabled=True,
+            # [优化] 语言提示 (中英混合)
+            language_hints=['zh', 'en']
+        )
+
+        # 3. 模拟实时流发送
+        print("ASR: Starting recognition...")
+        recognition.start(api_key=api_key)
+
+        # 分块发送数据 (模拟 stream.read)
+        chunk_size = 3200 # 3200 bytes 约等于 100ms 音频
+        offset = 0
+        total_len = len(pcm_data)
+
+        while offset < total_len:
+            end = min(offset + chunk_size, total_len)
+            chunk = pcm_data[offset:end]
+            recognition.send_audio_frame(chunk)
+            offset = end
+
+        # 发送完毕，停止
+        recognition.stop()
+
+        if callback.error:
+            raise Exception(f"DashScope ASR Error: {callback.error}")
+
+        # 拼接所有句子
+        full_text = "".join(callback.sentences)
+        print(f"ASR Result: {full_text}")
+
+        if not full_text:
+             # 如果没有识别出句子（可能时间太短），尝试获取流中的最后内容
+             # (注：Paraformer v2 通常在 stop 后会触发最后的 on_event)
+             return ""
+
+        return full_text
+    except Exception as e:
+        print(f"Audio Transcription Failed: {e}")
+        # 简单的错误透传
+        raise Exception(f"语音识别失败: {str(e)}")
+
 
 # ==============================================================================
 # === DashScope 图像尺寸调整辅助函数

@@ -8,3 +8,4 @@ pillow
 tencentcloud-sdk-python
 dashscope
 openai
+pydub

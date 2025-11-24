@@ -24,7 +24,11 @@
           v-model="prompt"
           placeholder="例如：水彩画, 明亮的颜色"
           clearable
-        />
+        >
+           <template #suffix>
+            <VoiceInputButton @update:text="handleVoiceInput" />
+          </template>
+        </el-input>
       </el-form-item>
       <el-form-item>
         <el-button
@@ -56,6 +60,7 @@ import { useAIApi } from '../composables/useAIApi.js';
 import ImageResult from '../components/ImageResult.vue';
 import { Upload } from '@element-plus/icons-vue'
 import { useUploadLimiter } from '../composables/useUploadLimiter.js';
+import VoiceInputButton from '../components/VoiceInputButton.vue';
 
 const prompt = ref('');
 
@@ -68,6 +73,9 @@ const {
 
 const { isLoading, error, result, execute, fileToBase64 } = useAIApi('/api/colorize-lineart', { initialResult: { imageUrl: null } });
 
+const handleVoiceInput = (text) => {
+  prompt.value += text;
+};
 
 async function generate() {
   if (!lineartFile.value) {

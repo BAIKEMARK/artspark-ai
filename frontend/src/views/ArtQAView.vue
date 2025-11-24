@@ -64,6 +64,9 @@
           :disabled="isLoading"
           size="large"
         >
+          <template #suffix>
+             <VoiceInputButton @update:text="handleVoiceInput" />
+          </template>
           <template #append>
             <el-button @click="ask" :loading="isLoading" :icon="Promotion" />
           </template>
@@ -74,7 +77,7 @@
 </template>
 
 <script setup>
-// <script> 部分与上一步完全相同，无需修改
+import VoiceInputButton from '../components/VoiceInputButton.vue';
 import { ref, nextTick, watch } from 'vue';
 import { useAIApi } from '../composables/useAIApi.js';
 import { marked } from 'marked';
@@ -146,6 +149,11 @@ function clearHistory() {
     scrollbarRef.value.setScrollTop(0);
   }
 }
+
+// 辅助函数：处理语音输入追加文字
+const handleVoiceInput = (text) => {
+  currentQuestion.value += text;
+};
 </script>
 
 <style scoped>

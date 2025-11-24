@@ -15,8 +15,14 @@ RUN npm ci
 COPY frontend/. ./
 RUN npm run build
 
-# 3. --- 最终的 Python 应用镜像 ---
+# 3. --- Python 应用镜像 ---
 FROM python-base
+
+# 安装系统级依赖 ffmpeg
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends ffmpeg && \
+    rm -rf /var/lib/apt/lists/*
+
 # 复制后端依赖文件并安装
 COPY backend/requirements.txt ./backend/
 RUN pip install --no-cache-dir -r backend/requirements.txt

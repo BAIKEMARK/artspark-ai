@@ -29,7 +29,11 @@
               :rows="3"
               placeholder="例如：变成梵高风格，雪景，水彩画效果"
               clearable
-            />
+            >
+            </el-input>
+             <div style="position: absolute; right: 10px; bottom: 10px; z-index: 5;">
+                <VoiceInputButton @update:text="handleVoiceInput" />
+             </div>
           </el-form-item>
         </el-tab-pane>
 
@@ -91,6 +95,7 @@ import { useAIApi } from '../composables/useAIApi.js';
 import ImageResult from '../components/ImageResult.vue';
 import { Upload } from '@element-plus/icons-vue';
 import { useUploadLimiter } from '../composables/useUploadLimiter.js';
+import VoiceInputButton from '../components/VoiceInputButton.vue';
 
 const activeTab = ref('text'); // 默认激活文本指令 Tab
 const textPrompt = ref('');
@@ -116,6 +121,10 @@ const { isLoading, error, result, execute, fileToBase64 } = useAIApi(
   '/api/creative-workshop', // 指向新的后端 API 端点
   { initialResult: { imageUrl: null } }
 );
+
+const handleVoiceInput = (text) => {
+  textPrompt.value += text;
+};
 
 async function generate() {
   error.value = ''; // 清除旧错误

@@ -8,7 +8,11 @@
           placeholder="例如：春天, 节日"
           clearable
           @keyup.enter="generate"
-        />
+        >
+          <template #suffix>
+            <VoiceInputButton @update:text="handleVoiceInput" />
+          </template>
+        </el-input>
       </el-form-item>
       <el-form-item>
         <el-button
@@ -57,9 +61,14 @@
 import { ref } from 'vue';
 import { useAIApi } from '../composables/useAIApi.js';
 import ImageResult from '../components/ImageResult.vue';
+import VoiceInputButton from '../components/VoiceInputButton.vue';
 
 const theme = ref('');
 const { isLoading, error, result, execute } = useAIApi('/api/generate-ideas', { initialResult: [] });
+
+const handleVoiceInput = (text) => {
+  theme.value += text; // 追加到主题输入框
+};
 
 async function generate() {
   if (!theme.value) {
