@@ -160,6 +160,7 @@ class ASRCallback(RecognitionCallback):
     def __init__(self):
         super().__init__()
         self.sentences = []
+        self.latest_text = ""
         self.error = None
 
     def on_open(self) -> None:
@@ -169,14 +170,31 @@ class ASRCallback(RecognitionCallback):
         print("ASR Connection close.")
 
     def on_event(self, result: RecognitionResult) -> None:
-        # 当一句话结束时，收集结果
-        if result.get_sentence().get('text') and result.is_sentence_end(result):
-            text = result.get_sentence()['text']
-            print(f"ASR Sentence: {text}")
-            self.sentences.append(text)
+        try:
+            sentence = result.get_sentence()
+            if sentence and 'text' in sentence:
+                current_text = sentence['text']
+                self.latest_text = current_text  # 持续更新，保留最后一次识别到的内容
+
+                if result.is_sentence_end(result):
+                    print(f"ASR Sentence End: {current_text}")
+                    self.sentences.append(current_text)
+        except Exception as e:
+            print(f"ASR Event Error: {e}")
 
     def on_error(self, result: RecognitionResult) -> None:
-        self.error = result.get_sentence().get('text', 'Unknown Error')
+        # 简洁且安全的错误提取逻辑
+        try:
+            self.error = "Unknown Error"
+            sentence = result.get_sentence()
+            if sentence and 'text' in sentence:
+                self.error = sentence['text']
+            elif hasattr(result, 'message') and result.message:
+                self.error = result.message
+        except Exception:
+            # 最后的兜底，防止回调中崩溃
+            self.error = str(result)
+
         print(f"ASR Error: {self.error}")
 
 def transcribe_audio_dashscope(config, audio_file_obj):
@@ -196,15 +214,15 @@ def transcribe_audio_dashscope(config, audio_file_obj):
         raise ApiKeyMissingError("未找到有效的 API Key (需配置阿里云百炼 API Key)")
 
     try:
-        # 1. 格式转换: WebM/WAV -> 16000Hz, Mono, 16-bit PCM
-        # 使用 pydub 读取上传的文件
+        # 1. 格式转换
         print("ASR: Converting audio format...")
         audio = AudioSegment.from_file(audio_file_obj)
         # 强制转换为 16k 采样率, 单声道, 16bit
         audio = audio.set_frame_rate(16000).set_channels(1).set_sample_width(2)
-
-        # 导出为 raw pcm 数据
         pcm_data = audio.raw_data
+
+        if len(pcm_data) == 0:
+            raise Exception("Converted audio data is empty.")
 
         # 2. 准备识别
         callback = ASRCallback()
@@ -213,10 +231,9 @@ def transcribe_audio_dashscope(config, audio_file_obj):
             format='pcm',
             sample_rate=16000,
             callback=callback,
-            # [优化] 开启语气词过滤
-            disfluency_removal_enabled=True,
-            # [优化] 语言提示 (中英混合)
+            disfluency_removal_enabled=True, # 开启语气词过滤
             language_hints=['zh', 'en']
+
         )
 
         # 3. 模拟实时流发送
@@ -234,27 +251,23 @@ def transcribe_audio_dashscope(config, audio_file_obj):
             recognition.send_audio_frame(chunk)
             offset = end
 
-        # 发送完毕，停止
         recognition.stop()
 
         if callback.error:
             raise Exception(f"DashScope ASR Error: {callback.error}")
 
-        # 拼接所有句子
+        # 如果没收到完整的句子结束信号，使用最后一次中间结果
+        if not callback.sentences and callback.latest_text:
+            print(f"ASR Info: Using partial result as final: {callback.latest_text}")
+            callback.sentences.append(callback.latest_text)
+
         full_text = "".join(callback.sentences)
         print(f"ASR Result: {full_text}")
-
-        if not full_text:
-             # 如果没有识别出句子（可能时间太短），尝试获取流中的最后内容
-             # (注：Paraformer v2 通常在 stop 后会触发最后的 on_event)
-             return ""
 
         return full_text
     except Exception as e:
         print(f"Audio Transcription Failed: {e}")
-        # 简单的错误透传
         raise Exception(f"语音识别失败: {str(e)}")
-
 
 # ==============================================================================
 # === DashScope 图像尺寸调整辅助函数
@@ -325,7 +338,7 @@ def _resize_image_for_dashscope(base64_string, min_dim=512, max_dim=4096):
         raise Exception(f"图像调整失败: {e}")
 
 # ==============================================================================
-# === 3. 功能“管理器” (Public) - 由 app.py 调用 (已适配新的执行器)
+# === 3. 功能“管理器” (Public) - 由 app.py 调用
 # ==============================================================================
 
 def generate_colorization(config, ms_key, base64_image, chinese_prompt):
