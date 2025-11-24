@@ -9,21 +9,20 @@ import requests
 from PIL import Image
 from flask import current_app
 
-# [新增] 导入 pydub 和 DashScope ASR 相关库
 from pydub import AudioSegment
-from dashscope.audio.asr import Recognition, RecognitionCallback, RecognitionResult
+from dashscope.audio.asr import Recognition, RecognitionResult, RecognitionCallback
 
 from prompt import PROMPTS
 from utils import calculate_adaptive_size, ApiKeyMissingError
 import api as executors
 
-# 导入腾讯云 SDK (保持不变)
+# 导入腾讯云 SDK
 from tencentcloud.common import credential
 from tencentcloud.common.profile.client_profile import ClientProfile
 from tencentcloud.common.profile.http_profile import HttpProfile
 from tencentcloud.tmt.v20180321 import tmt_client, models
 
-# --- R2 S3 客户端配置 (保持不变) ---
+# --- R2 S3 客户端配置 ---
 R2_ENDPOINT_URL = os.getenv("R2_ENDPOINT_URL")
 R2_ACCOUNT_ID = os.getenv("R2_ACCOUNT_ID")
 R2_ACCESS_KEY_ID = os.getenv("R2_ACCESS_KEY_ID")
@@ -39,13 +38,13 @@ s3_client = boto3.client(
     region_name="auto",
 )
 
-# ---  腾讯云翻译配置 (保持不变) ---
+# ---  腾讯云翻译配置  ---
 TENCENT_SECRET_ID = os.getenv("Tencent_SecretId")
 TENCENT_SECRET_KEY = os.getenv("Tencent_Secretkey")
 TENCENT_REGION = "ap-guangzhou"
 
 # ==============================================================================
-# === 0. 平台无关的辅助工具 (保持不变)
+# === 0. 平台无关的辅助工具
 # ==============================================================================
 
 def upload_to_r2(base64_string):
@@ -149,8 +148,9 @@ def _parse_single_idea_from_llm_json(content):
     return json.loads(json_string)
 
 # ==============================================================================
-# === [新增] 语音识别服务 (Paraformer Realtime v2)
+# === 语音识别服务 (Paraformer Realtime v2)
 # ==============================================================================
+
 
 class ASRCallback(RecognitionCallback):
     """
@@ -163,110 +163,80 @@ class ASRCallback(RecognitionCallback):
         self.latest_text = ""
         self.error = None
 
-    def on_open(self) -> None:
-        print("ASR Connection open.")
-
-    def on_close(self) -> None:
-        print("ASR Connection close.")
-
     def on_event(self, result: RecognitionResult) -> None:
-        try:
-            sentence = result.get_sentence()
-            if sentence and 'text' in sentence:
-                current_text = sentence['text']
-                self.latest_text = current_text  # 持续更新，保留最后一次识别到的内容
+        sentence = result.get_sentence()
+        if sentence and "text" in sentence:
+            self.latest_text = sentence["text"]  # 实时更新中间结果
+            if result.is_sentence_end(result):
+                self.sentences.append(self.latest_text)
 
-                if result.is_sentence_end(result):
-                    print(f"ASR Sentence End: {current_text}")
-                    self.sentences.append(current_text)
-        except Exception as e:
-            print(f"ASR Event Error: {e}")
 
     def on_error(self, result: RecognitionResult) -> None:
-        # 简洁且安全的错误提取逻辑
         try:
-            self.error = "Unknown Error"
-            sentence = result.get_sentence()
-            if sentence and 'text' in sentence:
-                self.error = sentence['text']
-            elif hasattr(result, 'message') and result.message:
-                self.error = result.message
+            # 尝试获取标准错误信息，失败则直接转字符串
+            sent = result.get_sentence()
+            self.error = (
+                sent.get("text") if sent else getattr(result, "message", str(result))
+            )
         except Exception:
-            # 最后的兜底，防止回调中崩溃
             self.error = str(result)
-
-        print(f"ASR Error: {self.error}")
 
 def transcribe_audio_dashscope(config, audio_file_obj):
     """
-    使用 paraformer-realtime-v2 模型将音频文件转为文字。
-
-    Args:
-        config (dict): 包含 api_key 的配置字典
-        audio_file_obj (FileStorage): Flask 上传的文件对象
+    使用 paraformer-realtime-v2 流式接口识别音频 。
     """
     api_key = config.get("bailian_api_key")
     if not api_key:
-        # 如果没配置百炼 Key，尝试使用 ModelScope Key (虽然通常这是两个体系，但为了兼容)
-        api_key = config.get("modelscope_key")
-
-    if not api_key:
-        raise ApiKeyMissingError("未找到有效的 API Key (需配置阿里云百炼 API Key)")
+        raise Exception("未配置阿里云 DashScope API Key。请点击右上角'设置'进行配置。")
 
     try:
-        # 1. 格式转换
-        print("ASR: Converting audio format...")
-        audio = AudioSegment.from_file(audio_file_obj)
-        # 强制转换为 16k 采样率, 单声道, 16bit
+        # 1. 格式转换 (WebM -> 16k PCM)
+        print("ASR: Converting audio...")
+        try:
+            audio = AudioSegment.from_file(audio_file_obj)
+        except Exception as e:
+            raise Exception(f"音频格式转换失败 (请检查服务器 ffmpeg): {e}")
+
         audio = audio.set_frame_rate(16000).set_channels(1).set_sample_width(2)
         pcm_data = audio.raw_data
 
-        if len(pcm_data) == 0:
-            raise Exception("Converted audio data is empty.")
+        if not pcm_data:
+            raise Exception("Empty audio data")
 
-        # 2. 准备识别
+        # 2. 初始化识别
         callback = ASRCallback()
         recognition = Recognition(
-            model='paraformer-realtime-v2',
-            format='pcm',
+            model="paraformer-realtime-v2",
+            format="pcm",
             sample_rate=16000,
             callback=callback,
-            disfluency_removal_enabled=True, # 开启语气词过滤
-            language_hints=['zh', 'en']
-
+            disfluency_removal_enabled=True,
+            language_hints=["zh", "en"],
         )
 
-        # 3. 模拟实时流发送
-        print("ASR: Starting recognition...")
+        # 3. 发送数据
         recognition.start(api_key=api_key)
 
-        # 分块发送数据 (模拟 stream.read)
-        chunk_size = 3200 # 3200 bytes 约等于 100ms 音频
-        offset = 0
-        total_len = len(pcm_data)
-
-        while offset < total_len:
-            end = min(offset + chunk_size, total_len)
-            chunk = pcm_data[offset:end]
-            recognition.send_audio_frame(chunk)
-            offset = end
+        # 简化的切片循环
+        chunk_size = 3200
+        for i in range(0, len(pcm_data), chunk_size):
+            recognition.send_audio_frame(pcm_data[i : i + chunk_size])
 
         recognition.stop()
 
+        # 4. 错误处理与结果兜底
         if callback.error:
-            raise Exception(f"DashScope ASR Error: {callback.error}")
+            raise Exception(f"DashScope Error: {callback.error}")
 
-        # 如果没收到完整的句子结束信号，使用最后一次中间结果
+        # [核心] 如果没有完整的句子，使用最后一次识别到的中间结果
         if not callback.sentences and callback.latest_text:
-            print(f"ASR Info: Using partial result as final: {callback.latest_text}")
+            print(f"ASR Info: Recovered partial text: {callback.latest_text}")
             callback.sentences.append(callback.latest_text)
 
-        full_text = "".join(callback.sentences)
-        print(f"ASR Result: {full_text}")
+        return "".join(callback.sentences)
 
-        return full_text
     except Exception as e:
-        print(f"Audio Transcription Failed: {e}")
+        print(f"ASR Failed: {e}")
         raise Exception(f"语音识别失败: {str(e)}")
 
 # ==============================================================================
@@ -676,7 +646,6 @@ def generate_mood_painting(config, ms_key, mood, theme):
         mood=mood, theme=theme, age_range=age_range
     )
 
-    idea = {}
     if platform == "bailian":
         print("DashScope Manager: Generating mood painting text...")
         content = executors.run_llm_generation_dashscope(config, text_prompt)
@@ -732,7 +701,6 @@ def generate_artwork_explanation(config, ms_key, art_info_en):
         age_range=config["age_range"],
         **art_info_en
     )
-    ai_explanation = {}
     if platform == "bailian":
         print("DashScope Manager: Generating artwork explanation...")
         content = executors.run_llm_generation_dashscope(config, ai_user_prompt)
