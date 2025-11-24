@@ -1,124 +1,155 @@
-# 🎨 艺启智AI - 乡村美术助教
+# 🎨 艺启智AI (ArtSpark AI) - 乡村美育助教平台
 
-“艺启智AI”是一个AI驱动的Web应用，旨在为中小学教师提供零门槛、专业化的美术教学支持。
 
-本项目通过集成先进的AI模型（如ModelScope的FLUX和Qwen系列），提供一系列易于使用的美术创作和辅助工具，帮助教师激发学生的创造力，并为他们提供丰富的艺术灵感和知识。
 
-## ✨ 主要功能
+“艺启智AI”是一个基于 **Vue 3** 和 **Python Flask** 构建的现代化 AI 美育教学平台。
 
-该平台围绕六大核心功能构建：
+本项目专为中小学（特别是乡村地区）美术教师设计，旨在通过先进的 AI 技术（通义万相、Qwen、FLUX 等）解决美术教学资源匮乏的问题，并创新性地融合了**心理学**元素，关注留守儿童的心理健康。
 
-1.  **AI智能上色 (AI Smart Coloring)**
 
-      * 用户上传一张线稿或简笔画，并提供简单的上色风格描述（例如：“水彩画, 明亮的颜色”）。
-      * AI将自动为线稿生成专业、色彩丰富的彩色图片。
 
-2.  **创意风格工坊 (Creative Style Workshop)**
+## ✨ 核心功能 (Features)
 
-      * 用户可以选择一种预设的艺术风格（如梵高、毕加索、水墨画等），并选择性地上传草图或输入内容描述。
-      * AI将根据所选风格和输入内容，创作一幅全新的艺术作品。
 
-3.  **AI自画像 (AI Self-Portrait)**
 
-      * 用户上传一张自己的照片，并输入想要的风格（例如：“迪士尼卡通, 像素风”）。
-      * AI会将其照片转换成对应风格的肖像画。
+平台围绕“学、想、练”的教学闭环设计，包含六大核心模块：
 
-4.  **艺术融合 (Art Fusion)**
+### 1. 学 (Learn) - 艺术知识库
 
-      * 用户上传一张“内容图片”（如宠物照片）和一张“风格图片”（如星空图）。
-      * AI将提取风格图的视觉特征，并将其“刷”到内容图上，生成融合后的艺术品。
+- **🏛️ 名画鉴赏室 (Art Gallery)**
+  - **功能**：对接大都会艺术博物馆 (Met) API，提供海量名画数据。
+  - **AI赋能**：集成腾讯云翻译消除语言障碍；独创 **“AI讲解”** 功能，AI 助教（小艺）会根据学生年龄段（如6-8岁或13-15岁），用生动或深度的语言解读名画。
+- **🤖 艺术小百科 (Art Q&A)**
+  - **功能**：基于大语言模型 (LLM) 的智能问答助手。
+  - **特性**：支持多轮对话，能根据设定的“教学情景”（学生年龄）自动调整回答的语气和复杂度，是孩子们的 7x24 小时艺术老师。
 
-5.  **艺术知识问答 (Art Knowledge Q\&A)**
 
-      * 一个面向学生的艺术百科全书。用户可以输入任何艺术相关的问题（例如：“什么是水墨画？”）。
-      * AI（Qwen LLM）将以简洁易懂的语言提供答案。
 
-6.  **创意灵感生成 (Creative Idea Generator)**
+### 2. 想 (Ideate) - 创意启发
 
-      * 当教师需要绘画主题时，可输入一个关键词（如：“春天”）。
-      * AI将生成3个包含创意名称、描述和关键元素的绘画灵感，并为每个灵感生成一张示例图片。
+- **💡 创意灵感生成器 (Idea Generator)**
+  - **功能**：教师输入主题（如“春天”），AI 自动生成 3 个包含名称、描述和关键元素的创意方案，并同步生成示例图供参考。
+- **❤️ 心情画板 (Mood Painting) [特色]**
+  - **功能**：融合心理学的艺术疗愈工具。
+  - **机制**：采用“校验-赋能”心理学模型。学生选择心情（如“难过”）和主题，AI 不会生硬说教，而是生成一个接纳情绪并赋予正向力量的绘画创意（例如：“画一间空荡的房间[校验]，但地板缝隙中长出了一棵发光的树[赋能]”）。
 
-## 🛠️ 技术栈
 
-本项目采用前后端分离架构。
 
-### **前端 (Client)**
+### 3. 练 (Create) - 创作实践
 
-  * **HTML5**
-  * **CSS3:** 使用原生CSS，包含变量、Flexbox、Grid布局和动画。
-  * **Vanilla JavaScript (ES6+):** 使用 `async/await` 和 `fetch` API 与后端通信，无任何外部框架依赖。
+- AI智能上色 (Smart Coloring)
+  - **功能**：学生上传线稿，AI 根据提示词（如“水彩风”）一键上色，帮助学生理解色彩搭配。
+- 创意工坊 (Creative Workshop)
+  - **功能**：风格迁移教学工具。支持“文本指令”模式（如“把校园变成梵高风格”）和“图像风格”模式（上传参考图进行风格融合）。
+- 人像工坊 (Portrait Workshop)
+  - **功能**：将学生照片转化为多种艺术风格（如“3D童话”、“国风工笔”、“二次元”等），增加课堂趣味性。
 
-### **后端 (Server)**
+------
 
-  * **Python 3**
-  * **Flask:** 作为Web框架，提供RESTful API接口。
-  * **Flask-Session:** 用于在服务器端安全地管理用户的API Key。
-  * **Flask-CORS:** 处理跨域请求。
-  * **Requests:** 用于与外部ModelScope API通信。
 
-### **外部AI服务**
 
-  * **ModelScope (魔搭):** 作为所有AI功能的核心后端。
-      * **LLM (文本生成):** `Qwen/Qwen3-30B-A3B-Instruct-2507` (用于艺术问答、创意生成、提示词翻译)。
-      * **VL (多模态):** `Qwen/Qwen3-VL-8B-Instruct` (用于艺术融合中的风格识别)。
-      * **Image Gen (图像生成):** `black-forest-labs/FLUX.1-Krea-dev` (用于所有图像生成任务)。
+## 🛠️ 技术栈 (Tech Stack)
 
-## ⚙️ 架构概览
+本项目采用 **前后端分离** 架构。
 
-1.  **认证:** 用户在前端输入他们的ModelScope API Key。
-2.  **会话存储:** API Key通过 `/api/set_key` 接口发送到Flask后端，并安全地存储在服务器的\*\*会话 (Session)\*\*中。前端仅在 `localStorage` 中保留一个“已设置”的标记。
-3.  **前端请求:** 当用户使用任一功能时（例如“AI上色”），前端将图像（转为Base64）和提示词发送到Flask后端的相应路由（例如 `/api/colorize-lineart`）。
-4.  **后端处理:**
-      * Flask服务器从**会话**中检索API Key。
-      * 对于需要中文转英文的任务（如上色、自画像），后端会先调用Qwen LLM将中文提示词转为优化的英文提示词。
-      * 后端使用该Key和处理后的提示词，向ModelScope API（例如FLUX模型）发起异步生成请求。
-      * 服务器轮询ModelScope任务状态，直到获取到最终的图像URL。
-5.  **结果显示:** Flask将包含结果（例如 `imageUrl`）的JSON响应返回给前端，前端将其显示给用户。
+### **前端 (Frontend)**
 
-## 🚀 部署与运行
+- **Framework**: [Vue 3](https://vuejs.org/) (Composition API, `<script setup>`)
+- **State Management**: [Pinia](https://pinia.vuejs.org/) (管理 Auth 和 Settings 状态)
+- **UI Library**: [Element Plus](https://element-plus.org/) (全套 UI 组件)
+- **Styling**: SCSS + CSS Variables (支持深色/自定义主题配置)
+- **Icons**: Phosphor Icons (`@phosphor-icons/web`)
+- **Markdown**: `marked` (用于渲染 AI 的富文本回答)
 
-### **先决条件**
+### **后端 (Backend)**
 
-  * Python 3.7+
-  * 一个有效的 **ModelScope API Key** (可从 [modelscope.cn](https://www.modelscope.cn/my/myaccesstoken) 获取)
+- **Framework**: [Flask](https://flask.palletsprojects.com/) (Python)
+- **API Protocol**: RESTful API
+- **AI Integration**:
+  - **阿里云 DashScope SDK** (通义千问 Qwen-Plus, 通义万相 Wanx 系列)
+  - **ModelScope** (通过 HTTP 请求调用 FLUX, Qwen-VL 等开源模型)
+- **Cloud Services**:
+  - **Tencent Cloud TMT**: 机器翻译服务
+  - **Cloudflare R2 (AWS S3 Compatible)**: 对象存储，用于处理图片上传
 
-### **1. 后端设置 (Flask Server)**
+------
 
-1.  克隆（或下载）项目文件到本地。
 
-2.  打开一个终端，进入项目根目录。
 
-3.  安装Python依赖项：
+## ⚙️ 核心逻辑架构
 
-    ```bash
-    pip install -r requirements.txt
-    ```
 
-4.  启动Flask服务器：
 
-    ```bash
-    python app.py
-    ```
+1. **分层适配系统 (Adaptive System)**:
+   - 前端 `SettingsSidebar.vue` 允许教师设置“学生年龄”（6-8岁, 9-10岁...）。
+   - 后端 `prompt.py` 中预置了多套 Prompt 模板（如 `ART_QA_USER`, `PSYCH_ART_PROMPT`），根据前端传来的年龄参数动态调整 AI 的人设和输出复杂度。
+2. **双轨 AI 引擎 (Dual-Engine)**:
+   - **ModelScope 模式**: 适合使用开源模型（如 FLUX.1-Krea）。
+   - **Bailian (DashScope) 模式**: 适合追求更高稳定性和速度（使用 Wanx2.1, Qwen-Max）。
+   - 系统会自动根据任务类型（文生图、图生图、对话）选择最优模型。
 
-5.  服务器现在运行在 `http://localhost:7680`。
+------
 
-### **2. 前端运行 (Client)**
 
-1.  **直接打开:** 在现代浏览器中直接打开 `index.html` 文件。
-2.  **推荐方式 (使用本地服务器):**
-      * 由于浏览器安全策略，建议从一个本地服务器访问 `index.html`。
-      * 后端 `app.py` 中的CORS配置已预先允许了来自 `http://localhost:63342` 和 `http://127.0.0.1:63342` 的请求，这些是IDE（如PyCharm或WebStorm）中常见的本地服务器端口。
-      * 您也可以使用VSCode的 "Live Server" 插件，或在项目目录中运行：
-        ```bash
-        python -m http.server 63342 
-        ```
-        (然后访问 `http://localhost:63342`)
 
-### **3. 开始使用**
+## 🚀 部署与运行 (Getting Started)
 
-1.  在浏览器中打开前端页面。
-2.  系统会首先弹出一个模态框，要求输入您的ModelScope API Key。
-3.  输入API Key后，点击“进入美术馆”，即可开始使用所有功能。
+### 前置要求
+
+- **Node.js** (v16+)
+- **Python** (3.8+)
+- **API Keys**:
+  - ModelScope API Key
+  - DashScope API Key (阿里云百炼)
+  - *(可选)* Tencent Cloud SecretId/Key (用于翻译功能)
+  - *(可选)* R2/S3 存储配置 (用于图片上传功能
+
+### 1. 后端启动 (Backend)
+
+进入 `backend` 目录并运行 Flask 服务：
+
+```
+cd backend
+
+# 1. 安装 Python 依赖
+pip install -r requirements.txt
+
+# 2. 配置环境变量 (建议创建 .env 文件，参考 app.py 中的配置)
+# 确保配置了 FLUX, Qwen 等模型的 ID 和必要的 Key
+
+# 3. 启动服务
+python app.py
+# 服务将运行在 http://localhost:7860
+```
+
+> **注意**：`app.py` 配置了 CORS 允许跨域请求，方便前后端独立开发调试。
+
+
+
+### 2. 前端启动 (Frontend)
+
+进入根目录（包含 `package.json` 的目录）：
+
+```
+# 1. 安装 Node 依赖
+npm install
+
+# 2. 启动开发服务器
+npm run dev
+# 前端页面通常运行在 http://localhost:5173
+```
+
+
+
+### 3. 正式使用
+
+1. 打开前端页面，系统会检测登录状态。
+
+2. 首次使用需在弹窗或设置中输入 **ModelScope API Key** 进行认证（Key 安全存储于本地 Session 中）。
+
+3. 在右下角“设置”中，可以选择 AI 平台（ModelScope / DashScope）及目标学生年龄段。
+
+   
 
 ## 📁 项目结构
 
