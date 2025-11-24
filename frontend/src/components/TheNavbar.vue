@@ -7,21 +7,21 @@
     @select="handleSelect"
   >
     <el-menu-item index="home-view" class="nav-logo">
-      🎨 <span>艺启智AI</span>
+      🎨 <span class="logo-text">艺启智AI</span>
     </el-menu-item>
 
     <div class="flex-grow" />
 
-    <el-menu-item v-for="nav in navItems" :key="nav.id" :index="nav.id">
+    <el-menu-item v-for="nav in navItems" :key="nav.id" :index="nav.id" class="nav-item-responsive">
       <i class="icon ph-bold" :class="nav.icon"></i>
-      <span>{{ nav.text }}</span>
+      <span class="nav-text">{{ nav.text }}</span>
     </el-menu-item>
 
     <div class="flex-grow" />
 
     <el-menu-item index="settings-trigger" class="settings-trigger">
       <i class="icon ph-bold ph-gear"></i>
-      <span>设置</span>
+      <span class="nav-text">设置</span>
     </el-menu-item>
   </el-menu>
 </template>
@@ -52,6 +52,14 @@ function handleSelect(index) {
   background-color: var(--primary-color);
   box-shadow: none;
   user-select: none;
+  /* 允许在手机上水平滚动，防止菜单溢出 */
+  overflow-x: auto;
+  overflow-y: hidden;
+  white-space: nowrap;
+}
+/* 隐藏滚动条 */
+.global-nav-menu::-webkit-scrollbar {
+    display: none;
 }
 
 /* 2. Logo 样式：白色文字 */
@@ -59,6 +67,7 @@ function handleSelect(index) {
   font-size: 1.4rem;
   font-weight: bold;
   color: white !important;
+  flex-shrink: 0; /* 防止 Logo 被压缩 */
 }
 
 .flex-grow {
@@ -75,6 +84,7 @@ function handleSelect(index) {
   background-color: transparent !important;
   border-bottom-color: transparent !important;
   transition: all 0.2s ease;
+  flex-shrink: 0; /* 防止菜单项被压缩 */
 }
 
 :deep(.el-menu-item .icon) {
@@ -107,35 +117,36 @@ function handleSelect(index) {
 
 /* 屏幕宽度 <= 1200px (对应我们内容区的 1260px 断点) */
 @media (max-width: 1200px) {
-  :deep(.el-menu-item:not(.nav-logo) span) {
-    display: none;
+  .nav-text {
+    display: none; /* 隐藏文字 */
   }
 
   /* 调整一下间距，让图标更紧凑 */
-  :deep(.el-menu-item:not(.nav-logo)) {
-    padding: 0 15px;
-    min-width: auto;
+  :deep(.el-menu-item) {
+    padding: 0 12px;
   }
 }
 
-/* 屏幕宽度 <= 768px (手机) */
+/* 手机尺寸 (<= 768px) */
 @media (max-width: 768px) {
-   /* 在手机上，隐藏所有文字 */
-   :deep(.el-menu-item span) {
-     display: none;
+   .global-nav-menu {
+     padding: 0 10px; /* 减少两端留白 */
    }
 
    :deep(.nav-logo) {
-     font-size: 1.4rem; /* 保持 Logo 图标大小 */
-     padding-left: 10px; /* 手机上左边距小一点 */
+     font-size: 1.2rem; /* Logo 稍微变小 */
+     padding: 0 10px;
+     margin-right: auto; /* 让Logo靠左，菜单靠右或中间 */
    }
 
+   /* 针对手机屏幕，如果菜单项太多，可以让它们稍微紧凑一点 */
    :deep(.el-menu-item) {
-     padding: 0 10px; /* 手机上间距更小 */
+     padding: 0 8px;
    }
 
-   .global-nav-menu {
-     padding: 0; /* 移除左右内边距 */
+   /* 在极小屏幕上，隐藏 Logo 文字，只留 Emoji */
+   @media (max-width: 360px) {
+       .logo-text { display: none; }
    }
 }
 </style>

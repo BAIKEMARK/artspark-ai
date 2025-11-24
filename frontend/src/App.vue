@@ -14,7 +14,11 @@
       />
     </el-header>
 
-    <el-container class="main-content-container" :class="{ 'centered-layout': activeView !== 'home-view' }">
+    <el-container
+      class="main-content-container"
+      :direction="isMobile ? 'vertical' : 'horizontal'"
+      :class="{ 'centered-layout': activeView !== 'home-view' }"
+    >
 
       <el-main :style="mainStyle">
         <HomeView v-if="activeView === 'home-view'"
@@ -29,7 +33,15 @@
         </div>
       </el-main>
 
-      <el-aside width="300px" class="contextual-sidebar" v-if="activeView !== 'home-view'" style="padding: 20px 20px 0 0;">
+      <el-aside
+        :width="isMobile ? '100%' : '300px'"
+        class="contextual-sidebar"
+        v-if="activeView !== 'home-view'"
+        style="padding: 20px 20px 0 0;"
+      >
+        <div v-if="isMobile" style="margin-bottom: 10px; font-weight: bold; color: var(--secondary-color);">
+           <i class="ph-bold ph-lightbulb"></i> 灵感与贴士
+        </div>
         <div id="dynamic-sidebar-content" v-html="sidebarContentHTML"></div>
       </el-aside>
     </el-container>
@@ -45,7 +57,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, defineAsyncComponent } from 'vue';
+import { ref, computed, onMounted, onUnmounted, defineAsyncComponent } from 'vue';
 import { useAuthStore } from './stores/auth';
 import { storeToRefs } from 'pinia';
 
@@ -64,6 +76,8 @@ const apiKeyError = ref('');
 
 const activeView = ref('home-view');
 const isSettingsSidebarOpen = ref(false);
+// 新增：检测是否为移动端
+const isMobile = ref(window.innerWidth <= 768);
 
 async function saveApiKey(apiKey) {
   if (!apiKey) {
@@ -166,13 +180,15 @@ const mainStyle = computed(() => {
   if (activeView.value === 'home-view') {
     return { padding: 0 };
   }
-  // (修改) 调整工具页面的内边距
-  return { padding: '20px 20px 0 20px' };
+  // 移动端减少内边距
+  const padding = isMobile.value ? '10px' : '20px 20px 0 20px';
+  return { padding };
 });
 
 const bodyClass = computed(() => ({
   'showing-home': activeView.value === 'home-view',
-  'showing-tools': activeView.value !== 'home-view'
+  'showing-tools': activeView.value !== 'home-view',
+  'is-mobile': isMobile.value // 方便全局 CSS 使用
 }));
 
 const sidebarContentHTML = computed(() => {
@@ -187,8 +203,7 @@ const sidebarContentHTML = computed(() => {
   return html;
 });
 
-
-// 更新组件映射
+// 组件映射
 const toolComponentMap = {
   'art-gallery': defineAsyncComponent(() => import('./views/ArtGalleryView.vue')),
   'idea-generator': defineAsyncComponent(() => import('./views/IdeaGeneratorView.vue')),
@@ -201,7 +216,6 @@ const toolComponentMap = {
 
 
 const currentToolComponent = computed(() => {
-  // 简化逻辑，直接使用 activeView 作为 key
   return toolComponentMap[activeView.value];
 });
 
@@ -215,14 +229,24 @@ function navigateTo(targetId) {
   }
 }
 
+// 窗口大小监听
+const handleResize = () => {
+  isMobile.value = window.innerWidth <= 768;
+};
+
 // --- 生命周期钩子 (Lifecycle Hooks) ---
 onMounted(() => {
+  window.addEventListener('resize', handleResize); // 监听窗口变化
   if (!isLoggedIn.value) {
   } else {
      if (!activeView.value || !navItems.some(item => item.id === activeView.value)) {
         navigateTo('home-view');
      }
   }
+});
+
+onUnmounted(() => {
+  window.removeEventListener('resize', handleResize);
 });
 </script>
 
@@ -256,6 +280,12 @@ onMounted(() => {
 .contextual-sidebar {
   background-color: transparent; /* 使其透明以看到背景 */
 }
+/* 移动端侧边栏样式覆盖 */
+.main-content-container[direction="vertical"] .contextual-sidebar {
+    padding-left: 20px !important; /* 修正移动端 padding */
+    padding-bottom: 20px !important;
+}
+
 
 /* 侧边栏示例图片样式 */
 :deep(.example-widget h3) { /* 确保标题选择器正确 */

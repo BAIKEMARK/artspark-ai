@@ -71,4 +71,3 @@ onUnmounted(() => {
   clearInterval(slideInterval);
 });
 </script>
-
