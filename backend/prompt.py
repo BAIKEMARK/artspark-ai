@@ -153,6 +153,13 @@ PROMPTS["IDEA_GENERATOR_USER"] = """<role>
 </format_instructions>
 """
 
+PROMPTS["MOOD_IMAGE_PROMPT_CN"] = """
+绘画创意示例：{name}，{description}，包含元素：{elements}。
+重要：请根据适合的受众（{age_range}）来智能调整最终图像的视觉风格：
+- 如果是低龄（例如 6-10岁），请在提示词中强化：卡通风格, 色彩明亮, 简单形状。
+- 如果是高龄（例如 13-18岁），请在提示词中强化：精细细节, 复杂构图, 写实光影。
+"""
+
 # 用于: handle_generate_ideas (创意灵感 - 图像)
 PROMPTS["IDEA_IMAGE_PROMPT_CN"] = """ 美术教学参考线稿：{name}。{description}。
 画面包含元素：{elements}。

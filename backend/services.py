@@ -626,7 +626,6 @@ def generate_ideas(config, ms_key, theme):
 
     # 2. 并发生成图像
     processed_ideas = []
-    # TODO: 并发处理
     for idea in ideas:
         try:
             # === 修改：将计算好的 style_instruction 传入模板 ===
@@ -696,7 +695,7 @@ def generate_mood_painting(config, ms_key, mood, theme):
 
     # 2. 生成图像
     try:
-        img_prompt_cn = PROMPTS["IDEA_IMAGE_PROMPT_CN"].format(
+        img_prompt_cn = PROMPTS["MOOD_IMAGE_PROMPT_CN"].format(
             name=idea["name"],
             description=idea["description"],
             elements=idea["elements"],
