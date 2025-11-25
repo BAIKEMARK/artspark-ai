@@ -121,7 +121,7 @@ const navItems = [
   // “学” (Learn)
   { id: 'art-gallery', text: '名画鉴赏室', icon: 'ph-palette' },
   // “想” (Ideate)
-  { id: 'idea-generator', text: '创意灵感', icon: 'ph-lightbulb' },
+  { id: 'idea-generator', text: '创意绘练', icon: 'ph-lightbulb' },
   { id: 'mood-painting', text: '心情画板', icon: 'ph-paint-brush-household' },
   // “练” (Create)
   { id: 'line-coloring', text: 'AI智能上色', icon: 'ph-paint-brush' },
