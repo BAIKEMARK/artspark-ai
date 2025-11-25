@@ -115,9 +115,6 @@ def proxy_download():
 def handle_audio_to_text():
     """语音转文字接口"""
     try:
-        # 获取 Key (支持登录态或 Header)
-        ms_key = get_api_key() # 验证 Token
-
         if 'file' not in request.files:
             return jsonify({"error": "No audio file uploaded"}), 400
 
@@ -125,32 +122,15 @@ def handle_audio_to_text():
         if file.filename == '':
             return jsonify({"error": "No selected file"}), 400
 
-        # 获取配置 (包含 API Key)
-        # 注意：这里我们构造一个假的 config 请求体来复用 get_ai_config
-        # 实际生产中可能需要从 User Setting 数据库读，但这里我们用前端传来的 params 或默认值
-        # 为了简化，我们假设前端设置已保存或使用默认
-        # 这里稍微 Hack 一下，复用 get_ai_config 逻辑，但数据来源为空（使用默认值或环境变量）
-        # 更好的方式是前端 FormData 传一个 JSON 字符串，但对于文件上传稍显麻烦
-        # 我们暂时只依赖 get_api_key 校验权限，Key 本身在 services 里会尝试��取 bailian_api_key
-
-        # 如果用户在前端设置了百炼 Key，我们需要前端把这个 Key 传过来，或者存储在 Token 里？
-        # 目前 Token 里存的是 ModelScope Key。
-        # 解决方案：简单起见，利用 get_ai_config 的默认行为（从 app.config 读取默认 Key）
-        # 如果用户在前端配置了自定义 Key，需要前端在 Header 传递或 FormData 传递��
-        # 这里为了保持一致性，我们尝试从请求的 form data 读取 'bailian_api_key'
-
         data = request.form.to_dict()
         config = get_ai_config(data)
-
-        # 补充：如果 services.py 需要 Token 里的 key
-        config['modelscope_key'] = ms_key
 
         text = transcribe_audio_dashscope(config, file)
         return jsonify({"text": text})
     except Exception as e:
         return handle_api_errors(e)
 
-# --- 4. AI 功能路由 (最终版，调用管理器) ---
+# --- 4. AI 功能路由 ---
 
 @app.route("/api/colorize-lineart", methods=["POST"])
 def handle_colorize_lineart():
