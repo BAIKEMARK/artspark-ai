@@ -53,6 +53,7 @@
     <SettingsSidebar :is-open="isSettingsSidebarOpen"
                      @close="isSettingsSidebarOpen = false"
     />
+    <FeedbackForm />
   </el-container>
 </template>
 
@@ -67,6 +68,7 @@ import TheNavbar from './components/TheNavbar.vue';
 import HomeView from './views/HomeView.vue';
 import TheFooter from './components/TheFooter.vue';
 import SettingsSidebar from './components/SettingsSidebar.vue';
+import FeedbackForm from './components/FeedbackForm.vue';
 
 const authStore = useAuthStore();
 const { isLoggedIn } = storeToRefs(authStore);
