@@ -147,6 +147,21 @@ def _parse_single_idea_from_llm_json(content):
     json_string = content[json_start : json_end]
     return json.loads(json_string)
 
+def _parse_critique_json(content):
+    """辅助函数：尝试从 VL 模型的回复中解析 JSON 点评"""
+    try:
+        # 尝试清理 markdown 标记
+        cleaned_content = content.replace("```json", "").replace("```", "").strip()
+        data = json.loads(cleaned_content)
+        return data
+    except Exception as e:
+        print(f"JSON Parse Error in critique: {e}. Content: {content}")
+        # 如果解析失败，进行降级处理，直接返回文本作为评语，默认 4 星
+        return {
+            "stars": 4,
+            "critique": content  # 直接使用原始内容作为评语
+        }
+
 # ==============================================================================
 # === 语音识别服务 (Paraformer Realtime v2)
 # ==============================================================================
@@ -289,7 +304,7 @@ def _resize_image_for_dashscope(base64_string, min_dim=512, max_dim=4096):
             print(f"DashScope Resizer: Original size {width}x{height}. Final size {new_width}x{new_height}.")
 
             # 使用 LANCZOS 进行高质量缩放
-            img_resized = img.resize((new_width, new_height), Image.LANCZOS)
+            img_resized = img.resize((new_width, new_height), Image.Resampling.LANCZOS)
 
             output_bytes = BytesIO()
             # 尝试保留原始格式
@@ -586,16 +601,40 @@ def generate_ideas(config, ms_key, theme):
         content = executors.run_llm_generation_modelscope(config, ms_key, text_prompt)
         ideas = _parse_ideas_from_llm_json(content)
 
+    # === 新增：定义年龄与风格的映射逻辑 ===
+    age_range = config.get("age_range", "6-8岁")
+
+    # 针对低龄段 (6-10岁)：强调几何、加粗、极简
+    if age_range in ["6-8岁", "9-10岁"]:
+        style_instruction = """
+        - **Target Audience**: Children aged 6-10.
+        - **Style**: Cute minimalist doodle, thick outlines (粗线条), simple geometric shapes (basic circles, squares).
+        - **Complexity**: Very Low. Focus on the main silhouette. No small details.
+        - **Vibe**: Playful, cartoon-like coloring book page.
+        """
+    # 针对高龄段 (11-18岁)：强调写实、素描、细节
+    elif age_range in ["11-12岁", "13-15岁", "16-18岁"]:
+        style_instruction = """
+        - **Target Audience**: Teenagers aged 11-18.
+        - **Style**: Professional sketch or manga style line art. Refined lines (精细线条).
+        - **Complexity**: Medium to High. precise anatomy/structure, aesthetic composition.
+        - **Vibe**: Artistic, elegant, suitable for sketching practice.
+        """
+    else:
+        # 默认回退
+        style_instruction = "Simple black and white line art, clear outlines."
+
     # 2. 并发生成图像
     processed_ideas = []
     # TODO: 并发处理
     for idea in ideas:
         try:
+            # === 修改：将计算好的 style_instruction 传入模板 ===
             img_prompt_cn = PROMPTS["IDEA_IMAGE_PROMPT_CN"].format(
                 name=idea['name'],
                 description=idea['description'],
                 elements=idea['elements'],
-                age_range=config["age_range"]
+                style_instruction=style_instruction # <--- 动态注入风格
             )
             ms_negative_prompt = "text, watermark, signature, blurry, low quality, ugly, deformed"
 
@@ -725,13 +764,100 @@ def generate_artwork_explanation(config, ms_key, art_info_en):
             raise Exception("Translation list length mismatch")
     except Exception as e:
         print(f"Error translating original artwork info: {e}")
-        original_description_zh = "\n".join([ # Fallback to English
-            f"Title: {art_info_en['title']}", f"Artist: {art_info_en['artist']}",
-            f"Medium: {art_info_en['medium']}", f"Date: {art_info_en['date']}"
-        ])
+        original_description_zh = "\n".join(
+            [  # Fallback to English
+                f"Title: {art_info_en['title']}",
+                f"Artist: {art_info_en['artist']}",
+                f"Medium: {art_info_en['medium']}",
+                f"Date: {art_info_en['date']}",
+            ]
+        )
 
     # 3. 返回结果
     return {
         "ai_explanation": ai_explanation,
-        "original_description_zh": original_description_zh
+        "original_description_zh": original_description_zh,
     }
+
+
+def critique_student_work(config, ms_key, theme, student_image_b64):
+    """
+    AI 助教点评：利用 VL 模型进行针对性、分龄化的深度点评
+    """
+    platform = config.get("api_platform", "modelscope")
+    age_range = config.get("age_range", "6-8岁")
+
+    # === 1. 定义分龄评价标准 (Rubrics) & 语气 (Tone) ===
+
+    if age_range in ["6-8岁", "9-10岁"]:
+        # 低龄组：重在兴趣保护和基础观察
+        learning_objective = "锻炼手眼协调，敢于下笔，能概括物体基本形状。"
+        age_specific_rubric = """
+        1. **构图 (Composition)**: 画在纸张中间吗？画得够大吗？(很多孩子不敢画大)
+        2. **线条 (Line)**: 线条是否闭合？(防止涂色溢出) 线条是否肯定？(不要反复描线)
+        3. **观察 (Observation)**: 是否画出了物体的主要特征（如兔子的长耳朵）？
+        """
+        tone_instruction = "像幼儿园或小学低年级老师。活泼、夸张、充满童趣。多用感叹号和Emoji。把‘缺点’说成‘小秘密’或‘小挑战’。"
+
+    elif age_range in ["11-12岁", "13-15岁", "16-18岁"]:
+        # 大龄组：重在技法提升和审美培养
+        learning_objective = "提升造型准确度，理解简单的遮挡关系和比例。"
+        age_specific_rubric = """
+        1. **比例 (Proportion)**: 物体各部分的大小关系是否协调？(如头身比)
+        2. **结构 (Structure)**: 物体的转折关系是否合理？有没有歪七扭八？
+        3. **细节 (Detail)**: 是否观察到了参考图中的细节（如花纹、质感）？
+        """
+        tone_instruction = "像美术培训班的专业辅导老师。客观、真诚、亦师亦友。可以直接指出问题，但要马上给出修改方法。语言要平实但有专业度。"
+
+    else:
+        # 默认回退
+        learning_objective = "练习绘画基础。"
+        age_specific_rubric = "观察画面的完整度和相似度。"
+        tone_instruction = "亲切、友好。"
+
+    # === 2. 填充 Prompt ===
+    vl_prompt_text = PROMPTS["CRITIQUE_STUDENT_WORK"].format(
+        age_range=age_range,
+        theme=theme,
+        learning_objective=learning_objective,
+        age_specific_rubric=age_specific_rubric,
+        tone_instruction=tone_instruction
+    )
+
+    # === 3. 调用视觉模型 (VL) ===
+    print(f"[{platform}] Starting critique for age {age_range}...")
+
+    result_json = {}
+
+    try:
+        if platform == "bailian":
+            # DashScope 调用
+            resized_image = _resize_image_for_dashscope(student_image_b64)
+            content = [
+                {"image": resized_image},
+                {"text": vl_prompt_text}
+            ]
+            raw_response = executors.run_vl_chat_dashscope(config, content)
+            result_json = _parse_critique_json(raw_response)
+
+        else:
+            # ModelScope 调用
+            public_url, _, _ = upload_to_r2(student_image_b64)
+            content = [
+                {"type": "image_url", "image_url": {"url": public_url}},
+                {"type": "text", "text": vl_prompt_text}
+            ]
+            # 给 ModelScope 的 System Prompt 也可以稍微强化一下
+            system_prompt = "你是一位专业的少儿美术教育专家，擅长从视觉层面分析儿童画作。"
+            raw_response = executors.run_vl_chat_modelscope(config, ms_key, system_prompt, content)
+            result_json = _parse_critique_json(raw_response)
+
+    except Exception as e:
+        print(f"Critique generation failed: {e}")
+        # 降级处理：如果 AI 挂了，返回一个通用的鼓励
+        return {
+            "stars": 4,
+            "critique": "小艺老师正在努力看你的画，但信号好像不太好... 不过看缩略图，你画得很认真！下次再试一次吧！"
+        }
+
+    return result_json

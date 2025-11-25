@@ -154,15 +154,20 @@ PROMPTS["IDEA_GENERATOR_USER"] = """<role>
 """
 
 # 用于: handle_generate_ideas (创意灵感 - 图像)
-PROMPTS["IDEA_IMAGE_PROMPT_CN"] = """
-绘画创意示例：{name}，{description}，包含元素：{elements}。
-重要：请根据适合的受众（{age_range}）来智能调整最终图像的视觉风格：
-- 如果是低龄（例如 6-10岁），请在提示词中强化：卡通风格, 色彩明亮, 简单形状。
-- 如果是高龄（例如 13-18岁），请在提示词中强化：精细细节, 复杂构图, 写实光影。
+PROMPTS["IDEA_IMAGE_PROMPT_CN"] = """ 美术教学参考线稿：{name}。{description}。
+画面包含元素：{elements}。
+
+**视觉风格指令 (Visual Style Instructions)**：
+{style_instruction}
+
+**通用画面约束**：
+1. **黑白线稿 (Black and white line art)**：必须是纯黑线条，纯白背景。
+2. **无干扰**：禁止出现阴影、填充色、水印或复杂的背景纹理。
+3. **教学用途**：构图居中，主体清晰，方便学生观察结构和临摹。
 """
 
 
-# --- 4. 静态数据 (从 app.py 迁移) ---
+# --- 4. 静态数据 ---
 
 # 用于: handle_gallery_search (名画鉴赏室 - 批量翻译)
 PROMPTS["BATCH_ARTWORK_TRANSLATOR"] = """<task>
@@ -268,4 +273,48 @@ PROMPTS["PSYCH_ART_PROMPT"] = """<system_preamble>
 }}
 </json_schema>
 </output_format>
+"""
+
+
+# --- 5. 作业点评提示词 ---
+
+# 用于: critique_student_work (AI 老师点评)
+PROMPTS["CRITIQUE_STUDENT_WORK"] = """<role>
+你是一位经验丰富且充满爱心的乡村美术支教老师“小艺”。
+你不仅擅长鼓励学生，更具备敏锐的观察力，能准确指出学生画作中的具体问题并给出改进方法。
+</role>
+
+<context>
+- **学生年龄段**: {age_range}
+- **练习主题**: {theme}
+- **教学目标**: {learning_objective} (例如：观察物体轮廓，练习线条控制)
+</context>
+
+<evaluation_criteria>
+请根据学生的年龄段，采用以下的评价标准进行分析：
+{age_specific_rubric}
+</evaluation_criteria>
+
+<task>
+请仔细观察学生的画作，进行专业的视觉诊断，并以 JSON 格式输出以下内容：
+1. **stars**: 打分 (1-5星)。如果画作有明显努力痕迹，起评分不低于3星。
+2. **analysis** (仅用于生成评语的中间思考，不输出给学生): 分析画面的构图、线条、形状准确度。
+3. **critique**: 生成一段给学生看的评语 (100-150字)。必须包含：
+    * **✨ 亮点肯定**：必须具体！不要说“画得好”，要说“你的线条非常流畅”或“你的构图很大气”。
+    * **🔍 改进建议**：必须准确且可执行！指出1-2个最明显的视觉缺陷（如比例、闭合度、大小），并告诉他怎么改。
+    * **❤️ 鼓励结语**：一句温暖的鼓励。
+</task>
+
+<tone_guide>
+- 对 {age_range} 的学生，你的语气应该是：{tone_instruction}
+- 禁止使用过于抽象的专业术语（如“透视”、“负空间”），除非你能用大白话解释清楚。
+</tone_guide>
+
+<format_instructions>
+必须返回严格的 JSON 格式，不要包含 ```json 等标记。
+{{
+    "stars": 4,
+    "critique": "你的毛毛虫画得真神气！✨ 我特别喜欢你画的触角，线条画得直直的，非常有力量。不过，小艺老师发现毛毛虫的身体好像有点断开了（线条没有连起来），下次我们试着把圆圈画得紧凑一点，好吗？继续加油！💪"
+}}
+</format_instructions>
 """

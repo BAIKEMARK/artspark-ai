@@ -23,7 +23,8 @@ from services import (
     generate_ideas,
     generate_mood_painting,
     generate_artwork_explanation,
-    transcribe_audio_dashscope  # [新增] 导入新函数
+    transcribe_audio_dashscope,
+    critique_student_work
 )
 
 # --- 2. 配置 ---
@@ -110,7 +111,6 @@ def proxy_download():
     except requests.exceptions.RequestException as e:
         return jsonify({"error": f"Failed to fetch image: {e}"}), 500
 
-# --- [新增] 语音识别路由 ---
 @app.route("/api/audio-to-text", methods=["POST"])
 def handle_audio_to_text():
     """语音转文字接口"""
@@ -136,7 +136,7 @@ def handle_audio_to_text():
         # 如果用户在前端设置了百炼 Key，我们需要前端把这个 Key 传过来，或者存储在 Token 里？
         # 目前 Token 里存的是 ModelScope Key。
         # 解决方案：简单起见，利用 get_ai_config 的默认行为（从 app.config 读取默认 Key）
-        # 如果用户在前端配置了自定义 Key，需要前端在 Header 传递或 FormData 传递。
+        # 如果用户在前端配置了自定义 Key，需要前端在 Header 传递或 FormData 传递��
         # 这里为了保持一致性，我们尝试从请求的 form data 读取 'bailian_api_key'
 
         data = request.form.to_dict()
@@ -266,6 +266,28 @@ def handle_generate_ideas():
     except Exception as e:
         return handle_api_errors(e)
 
+@app.route("/api/critique-homework", methods=["POST"])
+def handle_critique_homework():
+    """新功能：AI 老师点评作业"""
+    try:
+        # 复用现有的鉴权逻辑
+        ms_key = get_api_key()
+        data = request.json
+        config = get_ai_config(data)
+
+        config['modelscope_key'] = ms_key
+
+        theme = data.get("theme", "自由创作")
+        student_image = data.get("student_image") # Base64
+
+        if not student_image:
+            return jsonify({"error": "请上传作业图片"}), 400
+
+        result = critique_student_work(config, ms_key, theme, student_image)
+        return jsonify(result)
+    except Exception as e:
+        return handle_api_errors(e)
+
 @app.route("/api/mood-painting", methods=["POST"])
 def handle_mood_painting():
     """(新增) 心情画板"""
@@ -285,7 +307,7 @@ def handle_mood_painting():
     except Exception as e:
         return handle_api_errors(e)
 
-# --- 5. 名画鉴赏室路由 (保持不变) ---
+# --- 5. 名画鉴赏室路由  ---
 
 @app.route("/api/gallery/search", methods=["POST"])
 def handle_gallery_search():
