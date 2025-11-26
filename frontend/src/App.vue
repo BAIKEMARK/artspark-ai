@@ -127,9 +127,7 @@ const navItems = [
   { id: 'mood-painting', text: '心情画板', icon: 'ph-paint-brush-household' },
   // “练” (Create)
   { id: 'line-coloring', text: 'AI智能上色', icon: 'ph-paint-brush' },
-  { id: 'creative-workshop', text: '创意工坊', icon: 'ph-paint-brush-broad' },
-  { id: 'portrait-workshop', text: '人像工坊', icon: 'ph-user-focus' },
-  // “支持” (Support)
+  { id: 'style-workshop', text: '风格工坊', icon: 'ph-magic-wand' },
   { id: 'art-qa', text: '艺术小百科', icon: 'ph-question' },
 ];
 
@@ -154,10 +152,10 @@ const featureCards = [
     description: '上传线稿，一键变为专业彩绘'
   },
   {
-    id: 'creative-workshop',
-    icon: 'ph-paint-brush-broad',
-    title: '创意工坊',
-    description: '用文本或图像改变图片风格'
+    id: 'style-workshop', // 指向新页面
+    icon: 'ph-magic-wand',
+    title: '风格工坊',
+    description: '人像变身与艺术风格迁移'
   },
 ];
 
@@ -170,9 +168,22 @@ const sidebarContentData = {
         examples: `<h3><i class="icon ph-bold ph-image"></i> 示例作品</h3><div class="example-images"><img src="/img/moodpainting-a.png" alt="生气"><img src="/img/moodpainting-b.png" alt="难过"></div>`
     },
     'line-coloring': { tips: `<h3><i class="icon ph-bold ph-paint-brush"></i> 上色小贴士</h3><ul><li><strong>风格多样：</strong> 尝试“水彩画”、“油画”、“动漫风格”或“赛博朋克”等关键词。</li><li><strong>色彩词：</strong> 使用“明亮的颜色”、“柔和的色调”或“复古色”来引导AI。</li><li><strong>教学应用：</strong> 让学生上传同一张线稿，但使用不同的风格提示词，比较结果。</li></ul>`, examples: `<h3><i class="icon ph-bold ph-image"></i> 上色示例</h3><div class="example-images"><img src="/img/lineart.png" alt="上色示例1"><img src="/img/line-color.png" alt="上色示例2"></div>` },
-    'creative-workshop': { tips: `<h3><i class="icon ph-bold ph-paint-brush-broad"></i> 创意工坊小贴士</h3><ul><li><strong>文本指令：</strong> 上传一张校园照片，在“文本指令”模式下输入“变成梵高风格”或“雪景”。</li><li><strong>图像风格：</strong> 上传校园照片作为“内容图”，再上传一张《星空》作为“风格图”。</li><li><strong>教学应用：</strong> 结合“名画鉴赏室”进行风格模仿练习。</li></ul>`, examples: `<h3><i class="icon ph-bold ph-image"></i> 风格示例</h3><div class="example-images"><img src="/img/cloud-boy.png" alt="原图"><img src="/img/cloud-boy-fangao.png" alt="复古漫画"></div>` },
-    'portrait-workshop': { tips: `<h3><i class="icon ph-bold ph-user-focus"></i> 人像工坊小贴士</h3><ul><li><strong>预设风格：</strong> 上传人像照片，在“预设风格”中选择“动漫风”、“3D童话”等快速体验。</li><li><strong>自定义风格：</strong> 上传人像照片，在“自定义风格”中上传一张艺术作品图片（如蒙娜丽莎）。</li><li><strong>教学应用：</strong> 探索不同文化和艺术流派的人像表达方式。</li></ul>`, examples: `<h3><i class="icon ph-bold ph-image"></i> 示例作品</h3><div class="example-images"><img src="/img/style-pic.png" alt="原图"><img src="/img/style-fussion.png" alt="复古漫画"></div>` },
     'art-qa': { tips: `<h3><i class="icon ph-bold ph-question"></i> 提问小贴士</h3><ul><li><strong>开始对话：</strong> 你可以问任何艺术问题，比如“什么是印象派？”</li><li><strong>深入追问：</strong> “小艺”老师记住了你们的对话。你可以继续追问：“那印象派有哪些著名的画家呢？”</li><li><strong>清空历史：</strong> 如果你想开始一个全新的话题，可以点击“清空对话”按钮。</li></ul>`, examples: `` },
+    'style-workshop': {
+        tips: `<h3><i class="icon ph-bold ph-magic-wand"></i> 风格工坊小贴士</h3>
+               <ul>
+                 <li><strong>人像变身：</strong> 选择此模式可保留人物面部特征。尝试“3D童话”或“国风工笔”风格。</li>
+                 <li><strong>艺术重绘：</strong> 适用于风景或物品。上传一张普通照片，输入“变成梵高星空风格”，看看 AI 的魔力！</li>
+                 <li><strong>教学应用：</strong> 让学生分别体验两种模式，理解“风格迁移”在不同场景下的应用差异。</li>
+               </ul>`,
+        examples: `<h3><i class="icon ph-bold ph-image"></i> 创意示例</h3>
+                   <div class="example-images">
+                     <img src="/img/cloud-boy.png" alt="原图">
+                     <img src="/img/cloud-boy-fangao.png" alt="梵高风格">
+                     <img src="/img/style-pic.png" alt="人像原图">
+                     <img src="/img/style-fussion.png" alt="人像融合">
+                   </div>`
+    },
 };
 
 // --- 计算属性 (Computed) ---
@@ -211,8 +222,8 @@ const toolComponentMap = {
   'idea-generator': defineAsyncComponent(() => import('./views/IdeaGeneratorView.vue')),
   'mood-painting': defineAsyncComponent(() => import('./views/MoodPaintingView.vue')),
   'line-coloring': defineAsyncComponent(() => import('./views/LineColoringView.vue')),
-  'creative-workshop': defineAsyncComponent(() => import('./views/CreativeWorkshopView.vue')),
-  'portrait-workshop': defineAsyncComponent(() => import('./views/PortraitWorkshopView.vue')),
+  'style-workshop': defineAsyncComponent(() => import('./views/StyleWorkshopView.vue')),
+
   'art-qa': defineAsyncComponent(() => import('./views/ArtQAView.vue')),
 };
 
