@@ -1,5 +1,6 @@
 /* 1. 引入字体 */
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500&family=Noto+Serif+SC:wght@600;700&display=swap');
+/* 用合成栈来保证中英混排优雅且回退可靠 */
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600&family=Source+Sans+3:wght@400;500;600&family=Noto+Serif+SC:wght@500;600&family=LXGW+WenKai+GB:wght@400;500&display=swap');
 
 /* 2. 色板 */
 :root {
@@ -11,8 +12,8 @@
     --dark-text: #333333;
     --border-color: #EAECEE;
     --card-shadow: 0 4px 25px rgba(44, 62, 80, 0.08);
-    --font-serif: 'Noto Serif SC', 'Source Serif Pro', serif;
-    --font-sans: 'Noto Sans SC', -apple-system, sans-serif;
+    --font-serif: 'Playfair Display', 'Noto Serif SC', 'Times New Roman', serif;
+    --font-sans: 'Source Sans 3', 'LXGW WenKai GB', 'Noto Sans SC', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     --nav-height: 60px;
 }
 
