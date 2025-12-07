@@ -25,15 +25,17 @@
 import { computed } from 'vue';
 import { useVoiceRecorder } from '../composables/useVoiceRecorder';
 import { ElMessage } from 'element-plus';
+import { useI18n } from 'vue-i18n';
 
+const { t } = useI18n();
 const emit = defineEmits(['update:text']);
 
 const { isRecording, isProcessing, startRecording, stopRecording } = useVoiceRecorder();
 
 const tooltipContent = computed(() => {
-  if (isProcessing.value) return '正在识别...';
-  if (isRecording.value) return '点击停止并识别';
-  return '点击开始语音输入';
+  if (isProcessing.value) return t('voiceInput.tooltipProcessing');
+  if (isRecording.value) return t('voiceInput.tooltipRecording');
+  return t('voiceInput.tooltipIdle');
 });
 
 async function handleToggle() {
@@ -45,12 +47,12 @@ async function handleToggle() {
       const text = await stopRecording();
       if (text) {
         emit('update:text', text);
-        ElMessage.success('识别成功');
+        ElMessage.success(t('errors.recognitionSuccess'));
       } else {
-        ElMessage.warning('未检测到语音内容');
+        ElMessage.warning(t('errors.noVoiceDetected'));
       }
     } catch (e) {
-      ElMessage.error(`识别失败: ${e.message}`);
+      ElMessage.error(`${t('errors.recognitionFailed')}: ${e.message}`);
     }
   } else {
     // 开始录音

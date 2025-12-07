@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <el-drawer
     :model-value="isOpen"
     direction="rtl"
@@ -8,7 +8,7 @@
     <template #header>
       <div class="drawer-header">
         <i class="icon ph-bold ph-gear"></i>
-        <span>设置</span>
+        <span>{{ t('settings.title') }}</span>
       </div>
     </template>
 
@@ -16,15 +16,25 @@
       <el-form label-position="top" class="settings-form">
 
         <el-text type="info" class="setting-group-title">
-          <i class="icon ph-bold ph-plugs"></i>
-          <span>API 平台配置</span>
+          <i class="icon ph-bold ph-translate"></i>
+          <span>{{ t('settings.languageSettings') }}</span>
         </el-text>
         <el-divider />
 
-        <el-form-item label="默认 API 平台:">
+        <el-form-item :label="t('settings.selectLanguage')">
+          <LanguageSwitcher />
+        </el-form-item>
+
+        <el-text type="info" class="setting-group-title setting-group-spacer">
+          <i class="icon ph-bold ph-plugs"></i>
+          <span>{{ t('settings.apiPlatformConfig') }}</span>
+        </el-text>
+        <el-divider />
+
+        <el-form-item :label="t('settings.defaultApiPlatform')">
           <el-radio-group v-model="aiSettings.api_platform" class="platform-radio-group">
-            <el-radio-button label="modelscope">ModelScope (默认)</el-radio-button>
-            <el-radio-button label="bailian">阿里云 DashScope</el-radio-button>
+            <el-radio-button label="modelscope">{{ t('settings.modelscope') }}</el-radio-button>
+            <el-radio-button label="bailian">{{ t('settings.dashscope') }}</el-radio-button>
           </el-radio-group>
         </el-form-item>
 
@@ -32,10 +42,10 @@
           <el-form-item>
             <template #label>
               <span class="label-with-tooltip" @click.prevent>
-                DashScope API Key:
+                {{ t('settings.dashscopeApiKey') }}
                 <el-tooltip
                   effect="dark"
-                  content="用于调用阿里云 DashScope API 的访问凭证 (sk-xxx)。"
+                  :content="t('settings.dashscopeApiKeyTooltip')"
                   placement="top"
                 >
                   <el-icon :size="14" class="help-icon" ><QuestionFilled /></el-icon>
@@ -44,7 +54,7 @@
             </template>
             <el-input
               v-model="aiSettings.bailian_api_key"
-              placeholder="请输入您的 DashScope API Key"
+              :placeholder="t('settings.dashscopeApiKeyPlaceholder')"
               type="password"
               show-password
             />
@@ -54,7 +64,7 @@
 
         <el-text type="info" class="setting-group-title setting-group-spacer">
           <i class="icon ph-bold ph-robot"></i>
-          <span>AI 模型配置</span>
+          <span>{{ t('settings.aiModelConfig') }}</span>
         </el-text>
         <el-divider />
 
@@ -62,59 +72,59 @@
           <el-form-item>
             <template #label>
               <span class="label-with-tooltip" @click.prevent>
-                对话模型 (ModelScope):
+                {{ t('settings.chatModelModelscope') }}
                 <el-tooltip
                   effect="dark"
-                  content="用于“艺术知识问答”和“创意灵感生成”。"
+                  :content="t('settings.chatModelTooltip')"
                   placement="top"
                 >
                   <el-icon :size="14" class="help-icon" ><QuestionFilled /></el-icon>
                 </el-tooltip>
               </span>
             </template>
-            <el-select v-model="aiSettings.chat_model" placeholder="请选择" style="width: 100%;">
-              <el-option label="Qwen3-30B (推荐)" value="Qwen/Qwen3-30B-A3B-Instruct-2507" />
-  <el-option label="Qwen3-235B" value="Qwen/Qwen3-235B-A22B-Instruct-2507" />
-              <el-option label="Deepseek-V3.2" value="deepseek-ai/DeepSeek-V3.2-Exp" />
+            <el-select v-model="aiSettings.chat_model" :placeholder="t('settings.pleaseSelect')" style="width: 100%;">
+              <el-option :label="t('settings.qwen30BRecommended')" value="Qwen/Qwen3-30B-A3B-Instruct-2507" />
+              <el-option :label="t('settings.qwen235B')" value="Qwen/Qwen3-235B-A22B-Instruct-2507" />
+              <el-option :label="t('settings.deepseekV32')" value="deepseek-ai/Deepseek-V3.2-Exp" />
             </el-select>
             </el-form-item>
 
           <el-form-item>
             <template #label>
               <span class="label-with-tooltip" @click.prevent>
-                识图模型 (ModelScope):
+                {{ t('settings.vlModelModelscope') }}
                 <el-tooltip
                   effect="dark"
-                  content="用于所有需要“上传图片”进行分析的工具，如“AI智能上色”。"
+                  :content="t('settings.vlModelTooltip')"
                   placement="top"
                 >
                   <el-icon :size="14" class="help-icon" ><QuestionFilled /></el-icon>
                 </el-tooltip>
               </span>
             </template>
-            <el-select v-model="aiSettings.vl_model" placeholder="请选择" style="width: 100%;">
-              <el-option label="Qwen-VL-8B (推荐)" value="Qwen/Qwen3-VL-8B-Instruct" />
-              <el-option label="Qwen3-VL-30B" value="Qwen/Qwen3-VL-30B-A3B-Instruct" />
+            <el-select v-model="aiSettings.vl_model" :placeholder="t('settings.pleaseSelect')" style="width: 100%;">
+              <el-option :label="t('settings.qwenVL8BRecommended')" value="Qwen/Qwen3-VL-8B-Instruct" />
+              <el-option :label="t('settings.qwenVL30B')" value="Qwen/Qwen3-VL-30B-A3B-Instruct" />
             </el-select>
           </el-form-item>
 
           <el-form-item>
             <template #label>
               <span class="label-with-tooltip" @click.prevent>
-                绘图模型 (ModelScope):
+                {{ t('settings.imageModelModelscope') }}
                 <el-tooltip
                   effect="dark"
-                  content="用于所有“生成图片”的工具，如“创意风格工坊”。"
+                  :content="t('settings.imageModelTooltip')"
                   placement="top"
                 >
                   <el-icon :size="14" class="help-icon" ><QuestionFilled /></el-icon>
                 </el-tooltip>
               </span>
             </template>
-            <el-select v-model="aiSettings.image_model" placeholder="请选择" style="width: 100%;">
-              <el-option label="FLUX.1-Krea (推荐)" value="black-forest-labs/FLUX.1-Krea-dev" />
-              <el-option label="FLUX.1-dev" value="MusePublic/489_ckpt_FLUX_1" />
-              <el-option label="Qwen-image" value="Qwen/Qwen-Image" />
+            <el-select v-model="aiSettings.image_model" :placeholder="t('settings.pleaseSelect')" style="width: 100%;">
+              <el-option :label="t('settings.fluxKreaRecommended')" value="black-forest-labs/FLUX.1-Krea-dev" />
+              <el-option :label="t('settings.fluxDev')" value="MusePublic/489_ckpt_FLUX_1" />
+              <el-option :label="t('settings.qwenImage')" value="Qwen/Qwen-image" />
             </el-select>
           </el-form-item>
         </div>
@@ -123,27 +133,27 @@
            <el-form-item>
             <template #label>
               <span class="label-with-tooltip" @click.prevent>
-                对话模型 (DashScope):
+                {{ t('settings.chatModelDashscope') }}
                 <el-tooltip
                   effect="dark"
-                  content="用于“艺术知识问答”和“创意灵感生成”。"
+                  :content="t('settings.chatModelTooltip')"
                   placement="top"
                 >
                   <el-icon :size="14" class="help-icon" ><QuestionFilled /></el-icon>
                 </el-tooltip>
               </span>
             </template>
-            <el-select v-model="aiSettings.ds_llm_id" placeholder="请选择" style="width: 100%;">
-              <el-option label="通义千问Plus (推荐)" value="qwen-plus" />
-              <el-option label="通义千问Max (最强)" value="qwen3-max" />
-              <el-option label="通义千问Flash (最快)" value="qwen-flash" />
+            <el-select v-model="aiSettings.ds_llm_id" :placeholder="t('settings.pleaseSelect')" style="width: 100%;">
+              <el-option :label="t('settings.qwenPlusRecommended')" value="qwen-plus" />
+              <el-option :label="t('settings.qwenMaxStrongest')" value="qwen3-max" />
+              <el-option :label="t('settings.qwenFlashFastest')" value="qwen-flash" />
             </el-select>
           </el-form-item>
 
            <el-alert
-            title="图像模型自动选择"
+            :title="t('settings.imageModelAutoSelect')"
             type="info"
-            description="DashScope 平台的识图和绘图模型将根据功能在后端自动选用，暂无需在此处选择。"
+            :description="t('settings.imageModelAutoSelectDesc')"
             show-icon
             :closable="false"
             style="margin-top: 10px;"
@@ -152,29 +162,29 @@
 
         <el-text type="info" class="setting-group-title setting-group-spacer">
           <i class="icon ph-bold ph-student"></i>
-          <span>教学情景</span>
+          <span>{{ t('settings.teachingContext') }}</span>
         </el-text>
         <el-divider />
 
         <el-form-item>
           <template #label>
             <span class="label-with-tooltip" @click.prevent>
-              学生年龄:
+              {{ t('settings.studentAge') }}
               <el-tooltip
                 effect="dark"
-                content="AI将根据所选年龄调整其回答的复杂度和语气。"
+                :content="t('settings.studentAgeTooltip')"
                 placement="top"
               >
                 <el-icon :size="14" class="help-icon" ><QuestionFilled /></el-icon>
               </el-tooltip>
             </span>
           </template>
-          <el-select v-model="aiSettings.age_range" placeholder="请选择" style="width: 100%;">
-            <el-option label="6-8岁 (低年级)" value="6-8岁" />
-            <el-option label="9-10岁 (中年级)" value="9-10岁" />
-            <el-option label="11-12岁 (高年级)" value="11-12岁" />
-            <el-option label="13-15岁 (初中)" value="13-15岁" />
-            <el-option label="16-18岁 (高中)" value="16-18岁" />
+          <el-select v-model="aiSettings.age_range" :placeholder="t('settings.pleaseSelect')" style="width: 100%;">
+            <el-option :label="t('settings.age6to8')" value="6-8岁" />
+            <el-option :label="t('settings.age9to10')" value="9-10岁" />
+            <el-option :label="t('settings.age11to12')" value="11-12岁" />
+            <el-option :label="t('settings.age13to15')" value="13-15岁" />
+            <el-option :label="t('settings.age16to18')" value="16-18岁" />
           </el-select>
         </el-form-item>
       </el-form>
@@ -184,10 +194,15 @@
 </template>
 
 <script setup>
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
+
 import { useSettingsStore } from '../stores/settings';
 import { storeToRefs } from 'pinia';
 
 import { QuestionFilled } from '@element-plus/icons-vue';
+import LanguageSwitcher from './LanguageSwitcher.vue';
 
 const props = defineProps({
   isOpen: Boolean,

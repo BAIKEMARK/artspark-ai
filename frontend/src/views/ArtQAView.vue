@@ -1,11 +1,11 @@
-<template>
+﻿<template>
   <section id="art-qa" class="chat-page-container">
 
     <div class="chat-page-header">
-      <h2 class="chat-page-title">艺术小百科</h2>
+      <h2 class="chat-page-title">{{ t('views.artQA.title') }}</h2>
       <el-button @click="clearHistory" link type="info" size="small" class="clear-btn">
         <el-icon><Delete /></el-icon>
-        <span>清空对话</span>
+        <span>{{ t('views.artQA.clearConversation') }}</span>
       </el-button>
     </div>
 
@@ -39,7 +39,7 @@
         <div v-if="isLoading" class="chat-message assistant">
           <div class="message-bubble loading-bubble">
             <el-icon class="is-loading"><Loading /></el-icon>
-            <span>小艺正在思考...</span>
+            <span>{{ t('views.artQA.thinking') }}</span>
           </div>
         </div>
       </div>
@@ -59,7 +59,7 @@
       <div class="input-wrapper">
         <el-input
           v-model="currentQuestion"
-          placeholder="问小艺任何关于艺术的问题..."
+          :placeholder="t('views.artQA.placeholder')"
           @keyup.enter="ask"
           :disabled="isLoading"
           size="large"
@@ -77,19 +77,22 @@
 </template>
 
 <script setup>
+import { useI18n } from 'vue-i18n';
+const { t } = useI18n();
+
 import VoiceInputButton from '../components/VoiceInputButton.vue';
-import { ref, nextTick, watch } from 'vue';
+import { ref, computed, nextTick, watch } from 'vue';
 import { useAIApi } from '../composables/useAIApi.js';
 import { marked } from 'marked';
 import { Promotion, Loading, Delete } from '@element-plus/icons-vue';
 
 const currentQuestion = ref('');
 const messages = ref([]);
-const welcomeMessage = "你好呀！我是你的艺术老师小艺。你对什么艺术知识感兴趣呢？";
-const suggestionChips = ref([
-  '什么是印象派？',
-  '梵高为什么出名？',
-  '水墨画有什么特点？',
+const welcomeMessage = computed(() => t('views.artQA.welcomeMessage'));
+const suggestionChips = computed(() => [
+  t('views.artQA.suggestions.impressionism'),
+  t('views.artQA.suggestions.vanGogh'),
+  t('views.artQA.suggestions.inkPainting'),
 ]);
 
 const { isLoading, error, result, execute } = useAIApi('/api/ask-question');

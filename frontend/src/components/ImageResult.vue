@@ -16,7 +16,7 @@
         size="small"
         @click="downloadImage"
       >
-        <i class="icon ph-bold ph-download-simple"></i> 下载图片
+        <i class="icon ph-bold ph-download-simple"></i> {{ $t('common.download') }}
       </el-button>
     </div>
   </el-card>
@@ -25,9 +25,13 @@
 <script setup>
 import { computed } from 'vue';
 
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
+
 const props = defineProps({
   imageUrl: String,
-  altText: { type: String, default: 'AI 生成作品' },
+  altText: { type: String, default: '' },
   filename: { type: String, default: 'art-ai-image.png' },
 });
 

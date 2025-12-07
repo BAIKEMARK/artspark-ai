@@ -1,13 +1,13 @@
 <template>
   <section id="mood-painting" class="feature-panel">
-    <h2>心情画板</h2>
-    <p class="sub-heading">（融合艺术与心理，引导学生用绘画表达情绪）</p>
+    <h2>{{ $t('views.moodPainting.title') }}</h2>
+    <p class="sub-heading">{{ $t('views.moodPainting.subtitle') }}</p>
 
     <el-form label-position="top" @submit.prevent="generate">
-      <el-form-item label="选择你现在的心情:">
+      <el-form-item :label="$t('views.moodPainting.selectMood')">
         <el-select
           v-model="mood"
-          placeholder="请选择一种心情"
+          :placeholder="$t('views.moodPainting.selectMoodPlaceholder')"
           style="width: 100%; max-width: 400px;"
         >
           <el-option
@@ -22,10 +22,10 @@
         </el-select>
       </el-form-item>
 
-      <el-form-item label="你想画一个关于什么的主题？">
+      <el-form-item :label="$t('views.moodPainting.themeQuestion')">
         <el-input
           v-model="theme"
-          placeholder="例如：我的家, 一棵树, 未来的我"
+          :placeholder="$t('views.moodPainting.themePlaceholder')"
           clearable
           @keyup.enter="generate"
         >
@@ -43,7 +43,7 @@
           style="width: 100%;"
           size="large"
         >
-          生成专属绘画创意
+          {{ $t('views.moodPainting.generateIdea') }}
         </el-button>
       </el-form-item>
     </el-form>
@@ -73,7 +73,7 @@
       <div class="idea-content">
         <h3>{{ result.name }}</h3>
         <p class="description">{{ result.description }}</p>
-        <p><small>关键元素: {{ result.elements }}</small></p>
+        <p><small>{{ $t('views.moodPainting.keyElements') }}: {{ result.elements }}</small></p>
       </div>
     </el-card>
 
@@ -81,22 +81,24 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useAIApi } from '../composables/useAIApi.js';
 import ImageResult from '../components/ImageResult.vue';
 import VoiceInputButton from '../components/VoiceInputButton.vue';
 
+const { t } = useI18n();
 const theme = ref('');
 const mood = ref('calm'); // 默认心情
 
 // 心情列表
-const moods = ref([
-  { value: 'happy', label: '开心', emoji: '😄' },
-  { value: 'calm', label: '平静', emoji: '😌' },
-  { value: 'excited', label: '激动', emoji: '🤩' },
-  { value: 'sad', label: '难过', emoji: '😢' },
-  { value: 'anxious', label: '焦虑', emoji: '😟' },
-  { value: 'angry', label: '生气', emoji: '😠' },
+const moods = computed(() => [
+  { value: 'happy', label: t('views.moodPainting.moods.happy'), emoji: '😄' },
+  { value: 'calm', label: t('views.moodPainting.moods.calm'), emoji: '😌' },
+  { value: 'excited', label: t('views.moodPainting.moods.excited'), emoji: '🤩' },
+  { value: 'sad', label: t('views.moodPainting.moods.sad'), emoji: '😢' },
+  { value: 'anxious', label: t('views.moodPainting.moods.anxious'), emoji: '😟' },
+  { value: 'angry', label: t('views.moodPainting.moods.angry'), emoji: '😠' },
 ]);
 
 // 注意 initialResult: null
@@ -104,11 +106,11 @@ const { isLoading, error, result, execute } = useAIApi('/api/mood-painting', { i
 
 async function generate() {
   if (!mood.value) {
-    error.value = '请选择一种心情';
+    error.value = t('views.moodPainting.selectMoodPlaceholder');
     return;
   }
   if (!theme.value) {
-    error.value = '请输入一个主题';
+    error.value = t('views.moodPainting.themePlaceholder');
     return;
   }
 

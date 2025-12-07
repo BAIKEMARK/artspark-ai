@@ -1,10 +1,11 @@
 <template>
-  <el-container id="vue-app" :class="bodyClass">
-    <ApiKeyModal v-if="!isLoggedIn"
-                 @save-api-key="saveApiKey"
-                 :is-verifying="isVerifyingApiKey"
-                 :api-error="apiKeyError"
-    />
+  <el-config-provider :locale="elementPlusLocale">
+    <el-container id="vue-app" :class="bodyClass">
+      <ApiKeyModal v-if="!isLoggedIn"
+                   @save-api-key="saveApiKey"
+                   :is-verifying="isVerifyingApiKey"
+                   :api-error="apiKeyError"
+      />
 
     <el-header class="app-header">
       <TheNavbar :nav-items="navItems"
@@ -40,7 +41,7 @@
         style="padding: 20px 20px 0 0;"
       >
         <div v-if="isMobile" style="margin-bottom: 10px; font-weight: bold; color: var(--secondary-color);">
-           <i class="ph-bold ph-lightbulb"></i> 灵感与贴士
+           <i class="ph-bold ph-lightbulb"></i> {{ t('sidebar.tipsAndInspiration') }}
         </div>
         <div id="dynamic-sidebar-content" v-html="sidebarContentHTML"></div>
       </el-aside>
@@ -54,13 +55,16 @@
                      @close="isSettingsSidebarOpen = false"
     />
     <FeedbackForm />
-  </el-container>
+    </el-container>
+  </el-config-provider>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, defineAsyncComponent } from 'vue';
 import { useAuthStore } from './stores/auth';
+import { useLocaleStore } from './stores/locale';
 import { storeToRefs } from 'pinia';
+import { useI18n } from 'vue-i18n';
 
 // 导入组件
 import ApiKeyModal from './components/ApiKeyModal.vue';
@@ -72,6 +76,12 @@ import FeedbackForm from './components/FeedbackForm.vue';
 
 const authStore = useAuthStore();
 const { isLoggedIn } = storeToRefs(authStore);
+const localeStore = useLocaleStore();
+const { currentElementPlusLocale } = storeToRefs(localeStore);
+const { t } = useI18n();
+
+// Element Plus locale for ConfigProvider
+const elementPlusLocale = computed(() => currentElementPlusLocale.value);
 
 const isVerifyingApiKey = ref(false);
 const apiKeyError = ref('');
@@ -83,7 +93,7 @@ const isMobile = ref(window.innerWidth <= 768);
 
 async function saveApiKey(apiKey) {
   if (!apiKey) {
-    apiKeyError.value = '请输入 API Key。';
+    apiKeyError.value = t('errors.apiKeyMissing');
     return;
   }
   isVerifyingApiKey.value = true;
@@ -96,15 +106,15 @@ async function saveApiKey(apiKey) {
     });
     const data = await response.json();
     if (!response.ok) {
-      throw new Error(data.error || `验证失败: ${response.status}`);
+      throw new Error(data.error || `${t('errors.validationFailed')}: ${response.status}`);
     }
     if (data.token) {
       authStore.login(data.token);
     } else {
-      throw new Error('未收到Token，登录失败。');
+      throw new Error(t('errors.loginFailed'));
     }
   } catch (error) {
-    apiKeyError.value = error.message || 'API Key 验证失败，请重试。';
+    apiKeyError.value = error.message || t('errors.apiKeyValidationFailed');
   } finally {
     isVerifyingApiKey.value = false;
   }
@@ -118,73 +128,129 @@ const heroSlides = [
 ];
 
 // 更新导航项
-const navItems = [
-  { id: 'home-view', text: '首页', icon: 'ph-house' },
-  // “学” (Learn)
-  { id: 'art-gallery', text: '名画鉴赏室', icon: 'ph-palette' },
-  // “想” (Ideate)
-  { id: 'idea-generator', text: '创意绘练', icon: 'ph-lightbulb' },
-  { id: 'mood-painting', text: '心情画板', icon: 'ph-paint-brush-household' },
-  // “练” (Create)
-  { id: 'line-coloring', text: 'AI智能上色', icon: 'ph-paint-brush' },
-  { id: 'style-workshop', text: '风格工坊', icon: 'ph-magic-wand' },
-  { id: 'art-qa', text: '艺术小百科', icon: 'ph-question' },
-];
+const navItems = computed(() => [
+  { id: 'home-view', text: t('nav.home'), icon: 'ph-house' },
+  // "学" (Learn)
+  { id: 'art-gallery', text: t('nav.artGallery'), icon: 'ph-palette' },
+  // "想" (Ideate)
+  { id: 'idea-generator', text: t('nav.ideaGenerator'), icon: 'ph-lightbulb' },
+  { id: 'mood-painting', text: t('nav.moodPainting'), icon: 'ph-paint-brush-household' },
+  // "练" (Create)
+  { id: 'line-coloring', text: t('nav.lineColoring'), icon: 'ph-paint-brush' },
+  { id: 'style-workshop', text: t('nav.styleWorkshop'), icon: 'ph-magic-wand' },
+  { id: 'art-qa', text: t('nav.artQA'), icon: 'ph-question' },
+]);
 
 // 更新首页卡片
-const featureCards = [
+const featureCards = computed(() => [
   {
     id: 'art-gallery',
     icon: 'ph-palette',
-    title: '名画鉴赏室',
-    description: 'AI带你深度解析世界名画'
+    title: t('views.home.featureCards.artGallery.title'),
+    description: t('views.home.featureCards.artGallery.description')
   },
   {
     id: 'mood-painting',
     icon: 'ph-paint-brush-household',
-    title: '心情画板',
-    description: '融合心理学，引导情绪表达'
+    title: t('views.home.featureCards.moodPainting.title'),
+    description: t('views.home.featureCards.moodPainting.description')
   },
   {
     id: 'line-coloring',
     icon: 'ph-paint-brush',
-    title: 'AI智能上色',
-    description: '上传线稿，一键变为专业彩绘'
+    title: t('views.home.featureCards.lineColoring.title'),
+    description: t('views.home.featureCards.lineColoring.description')
   },
   {
     id: 'style-workshop', // 指向新页面
     icon: 'ph-magic-wand',
-    title: '风格工坊',
-    description: '人像变身与艺术风格迁移'
+    title: t('views.home.featureCards.styleWorkshop.title'),
+    description: t('views.home.featureCards.styleWorkshop.description')
   },
-];
+]);
 
-// 更新侧边栏内容
-const sidebarContentData = {
-    'art-gallery': { tips: `<h3><i class="icon ph-bold ph-palette"></i> 画廊小贴士</h3><ul><li><strong>探索艺术史：</strong> 这是探索世界顶级博物馆藏品的绝佳方式。</li><li><strong>组合筛选：</strong> 尝试组合不同的筛选条件，例如“19世纪”、“绘画”和“欧洲”。</li><li><strong>关键词搜索：</strong> 使用“辅助搜索”来寻找特定主题，如“猫”、“船”或“向日葵”。</li></ul>`, examples: `` },
-    'idea-generator': { tips: `<h3><i class="icon ph-bold ph-lightbulb"></i> 灵感小贴士</h3><ul><li><strong>激发创意：</strong> 当你不知道画什么时，这是最好的起点。</li><li><strong>主题词：</strong> 尝试输入“节日”、“动物”、“太空”或“梦想”等主题。</li><li><strong>再创作：</strong> AI生成的示例图只是参考，鼓励学生在此基础上进行自己的创作！</li></ul>`, examples: `` },
-    'mood-painting': {
-        tips: `<h3><i class="icon ph-bold ph-paint-brush-household"></i> 心情画板小贴士</h3><ul><li><strong>关怀优先：</strong> 这是为学生（尤其是留守儿童）设计的心理关怀工具。</li><li><strong>情绪引导：</strong> 鼓励学生选择真实的心情，AI会提供具有疏导性质的绘画创意。</li><li><strong>教学应用：</strong> 可用于美术课的开始或结束，作为“情绪签到”或“情绪整理”的环节。</li></ul>`,
-        examples: `<h3><i class="icon ph-bold ph-image"></i> 示例作品</h3><div class="example-images"><img src="/img/moodpainting-a.png" alt="生气"><img src="/img/moodpainting-b.png" alt="难过"></div>`
-    },
-    'line-coloring': { tips: `<h3><i class="icon ph-bold ph-paint-brush"></i> 上色小贴士</h3><ul><li><strong>风格多样：</strong> 尝试“水彩画”、“油画”、“动漫风格”或“赛博朋克”等关键词。</li><li><strong>色彩词：</strong> 使用“明亮的颜色”、“柔和的色调”或“复古色”来引导AI。</li><li><strong>教学应用：</strong> 让学生上传同一张线稿，但使用不同的风格提示词，比较结果。</li></ul>`, examples: `<h3><i class="icon ph-bold ph-image"></i> 上色示例</h3><div class="example-images"><img src="/img/lineart.png" alt="上色示例1"><img src="/img/line-color.png" alt="上色示例2"></div>` },
-    'art-qa': { tips: `<h3><i class="icon ph-bold ph-question"></i> 提问小贴士</h3><ul><li><strong>开始对话：</strong> 你可以问任何艺术问题，比如“什么是印象派？”</li><li><strong>深入追问：</strong> “小艺”老师记住了你们的对话。你可以继续追问：“那印象派有哪些著名的画家呢？”</li><li><strong>清空历史：</strong> 如果你想开始一个全新的话题，可以点击“清空对话”按钮。</li></ul>`, examples: `` },
-    'style-workshop': {
-        tips: `<h3><i class="icon ph-bold ph-magic-wand"></i> 风格工坊小贴士</h3>
-               <ul>
-                 <li><strong>人像变身：</strong> 选择此模式可保留人物面部特征。尝试“3D童话”或“国风工笔”风格。</li>
-                 <li><strong>艺术重绘：</strong> 适用于风景或物品。上传一张普通照片，输入“变成梵高星空风格”，看看 AI 的魔力！</li>
-                 <li><strong>教学应用：</strong> 让学生分别体验两种模式，理解“风格迁移”在不同场景下的应用差异。</li>
-               </ul>`,
-        examples: `<h3><i class="icon ph-bold ph-image"></i> 创意示例</h3>
-                   <div class="example-images">
-                     <img src="/img/cloud-boy.png" alt="原图">
-                     <img src="/img/cloud-boy-fangao.png" alt="梵高风格">
-                     <img src="/img/style-pic.png" alt="人像原图">
-                     <img src="/img/style-fussion.png" alt="人像融合">
-                   </div>`
-    },
+// 生成侧边栏内容的辅助函数
+const generateTipsHTML = (viewKey, iconClass) => {
+  try {
+    const title = t(`views.${viewKey}.sidebarTitle`);
+    
+    let html = `<h3><i class="icon ph-bold ${iconClass}"></i> ${title}</h3><ul>`;
+    
+    // 根据不同视图生成不同的提示项
+    const tipKeys = {
+      'artGallery': ['explore', 'filter', 'search'],
+      'ideaGenerator': ['inspire', 'theme', 'recreate'],
+      'moodPainting': ['care', 'guide', 'teaching'],
+      'lineColoring': ['style', 'color', 'teaching'],
+      'styleWorkshop': ['portrait', 'artistic', 'teaching'],
+      'artQA': ['start', 'followup', 'clear']
+    };
+    
+    const keys = tipKeys[viewKey] || [];
+    keys.forEach(key => {
+      const tipText = t(`views.${viewKey}.sidebarTips.${key}`);
+      html += `<li>${tipText}</li>`;
+    });
+    
+    html += '</ul>';
+    return html;
+  } catch (error) {
+    console.error(`Error generating tips HTML for ${viewKey}:`, error);
+    return '';
+  }
 };
+
+// 生成示例图片HTML的辅助函数
+const generateExamplesHTML = (viewKey, images) => {
+  const title = t(`views.${viewKey}.examplesTitle`);
+  let html = `<h3><i class="icon ph-bold ph-image"></i> ${title}</h3><div class="example-images">`;
+  
+  images.forEach(img => {
+    html += `<img src="${img.src}" alt="${img.alt}">`;
+  });
+  
+  html += '</div>';
+  return html;
+};
+
+// 更新侧边栏内容 - 使用computed动态生成
+const sidebarContentData = computed(() => ({
+    'art-gallery': { 
+      tips: generateTipsHTML('artGallery', 'ph-palette'), 
+      examples: '' 
+    },
+    'idea-generator': { 
+      tips: generateTipsHTML('ideaGenerator', 'ph-lightbulb'), 
+      examples: '' 
+    },
+    'mood-painting': {
+      tips: generateTipsHTML('moodPainting', 'ph-paint-brush-household'),
+      examples: generateExamplesHTML('moodPainting', [
+        { src: '/img/moodpainting-a.png', alt: t('views.moodPainting.moods.angry') },
+        { src: '/img/moodpainting-b.png', alt: t('views.moodPainting.moods.sad') }
+      ])
+    },
+    'line-coloring': { 
+      tips: generateTipsHTML('lineColoring', 'ph-paint-brush'), 
+      examples: generateExamplesHTML('lineColoring', [
+        { src: '/img/lineart.png', alt: t('views.lineColoring.examplesTitle') + ' 1' },
+        { src: '/img/line-color.png', alt: t('views.lineColoring.examplesTitle') + ' 2' }
+      ])
+    },
+    'art-qa': { 
+      tips: generateTipsHTML('artQA', 'ph-question'), 
+      examples: '' 
+    },
+    'style-workshop': {
+      tips: generateTipsHTML('styleWorkshop', 'ph-magic-wand'),
+      examples: generateExamplesHTML('styleWorkshop', [
+        { src: '/img/cloud-boy.png', alt: t('common.upload') },
+        { src: '/img/cloud-boy-fangao.png', alt: 'Van Gogh Style' },
+        { src: '/img/style-pic.png', alt: t('views.styleWorkshop.portraitMode') },
+        { src: '/img/style-fussion.png', alt: t('views.styleWorkshop.startTransform') }
+      ])
+    },
+}));
 
 // --- 计算属性 (Computed) ---
 
@@ -204,13 +270,19 @@ const bodyClass = computed(() => ({
   'is-mobile': isMobile.value // 方便全局 CSS 使用
 }));
 
+// 将 kebab-case 转换为 camelCase 的辅助函数
+const kebabToCamel = (str) => {
+  return str.replace(/-([a-z])/g, (g) => g[1].toUpperCase());
+};
+
 const sidebarContentHTML = computed(() => {
-  const contentKey = sidebarContentData[activeView.value] ? activeView.value : 'default';
-  const content = sidebarContentData[contentKey];
+  const contentKey = sidebarContentData.value[activeView.value] ? activeView.value : 'default';
+  const content = sidebarContentData.value[contentKey];
   let html = '';
-  if (content.tips) html += `<div class="sidebar-widget">${content.tips}</div>`;
-  if (content.examples) {
-      const exampleHtml = content.examples.replace('<div class="example-images">', '<div class="sidebar-widget example-widget"><h3><i class="icon ph-bold ph-image"></i> 示例作品</h3><div class="example-images">');
+  if (content && content.tips) html += `<div class="sidebar-widget">${content.tips}</div>`;
+  if (content && content.examples) {
+      const viewKey = kebabToCamel(contentKey);
+      const exampleHtml = content.examples.replace('<div class="example-images">', '<div class="sidebar-widget example-widget"><h3><i class="icon ph-bold ph-image"></i> ' + t(`views.${viewKey}.examplesTitle`) + '</h3><div class="example-images">');
       html += exampleHtml.includes('sidebar-widget example-widget') ? exampleHtml : `<div class="sidebar-widget example-widget">${content.examples}</div>`;
   }
   return html;
@@ -234,7 +306,7 @@ const currentToolComponent = computed(() => {
 
 // --- 方法 (Methods) ---
 function navigateTo(targetId) {
-  if (navItems.some(item => item.id === targetId)) {
+  if (navItems.value.some(item => item.id === targetId)) {
       activeView.value = targetId;
       window.scrollTo(0, 0);
   } else {
@@ -252,7 +324,7 @@ onMounted(() => {
   window.addEventListener('resize', handleResize); // 监听窗口变化
   if (!isLoggedIn.value) {
   } else {
-     if (!activeView.value || !navItems.some(item => item.id === activeView.value)) {
+     if (!activeView.value || !navItems.value.some(item => item.id === activeView.value)) {
         navigateTo('home-view');
      }
   }

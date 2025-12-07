@@ -2,8 +2,8 @@
   <section id="style-workshop" class="page-container">
 
     <div class="header-section">
-      <h2 class="page-title">风格工坊</h2>
-      <p class="subtitle">探索 AI 艺术魔法：让照片瞬间拥有独特的艺术灵魂</p>
+      <h2 class="page-title">{{ $t('views.styleWorkshop.title') }}</h2>
+      <p class="subtitle">{{ $t('views.styleWorkshop.subtitle') }}</p>
     </div>
 
     <el-tabs v-model="activeMode" type="border-card" class="mode-tabs">
@@ -11,13 +11,13 @@
       <el-tab-pane name="portrait">
         <template #label>
           <span class="custom-tab-label">
-            <i class="ph-bold ph-user-focus"></i> 人像变身
+            <i class="ph-bold ph-user-focus"></i> {{ $t('views.styleWorkshop.portraitMode') }}
           </span>
         </template>
 
         <div class="tab-content">
           <el-alert
-            title="该模式专注于人像处理，会尽可能保留人物面部特征。"
+            :title="$t('views.styleWorkshop.portraitAlert')"
             type="primary"
             show-icon
             :closable="false"
@@ -25,7 +25,7 @@
           />
 
           <el-form label-position="top" @submit.prevent="generatePortrait">
-            <el-form-item label="第一步：上传人像照片">
+            <el-form-item :label="$t('views.styleWorkshop.step1Portrait')">
               <el-upload
                 action="#"
                 :auto-upload="false"
@@ -38,17 +38,17 @@
               >
                 <div class="upload-demo-box">
                   <el-icon :size="28"><i class="ph-bold ph-user"></i></el-icon>
-                  <span>上传人像</span>
+                  <span>{{ $t('views.styleWorkshop.uploadPortrait') }}</span>
                 </div>
               </el-upload>
             </el-form-item>
 
             <el-tabs v-model="portraitStyleTab" class="inner-tabs">
-              <el-tab-pane label="预设风格" name="preset">
-                <el-form-item label="第二步：选择预设风格">
+              <el-tab-pane :label="$t('views.styleWorkshop.presetStyle')" name="preset">
+                <el-form-item :label="$t('views.styleWorkshop.step2Style')">
                    <el-select
                       v-model="presetStyleIndex"
-                      placeholder="请选择风格"
+                      :placeholder="$t('views.styleWorkshop.selectStyle')"
                       style="width: 100%;"
                    >
                       <el-option
@@ -63,8 +63,8 @@
                    </p>
                 </el-form-item>
               </el-tab-pane>
-              <el-tab-pane label="自定义参考图" name="custom">
-                <el-form-item label="第二步：上传风格参考图">
+              <el-tab-pane :label="$t('views.styleWorkshop.customReference')" name="custom">
+                <el-form-item :label="$t('views.styleWorkshop.step2Reference')">
                    <el-upload
                     action="#"
                     :auto-upload="false"
@@ -77,7 +77,7 @@
                   >
                     <div class="upload-demo-box">
                       <el-icon :size="28"><i class="ph-bold ph-image"></i></el-icon>
-                      <span>风格参考图</span>
+                      <span>{{ $t('views.styleWorkshop.styleReference') }}</span>
                     </div>
                   </el-upload>
                 </el-form-item>
@@ -91,7 +91,7 @@
               size="large"
               class="action-btn"
             >
-              <i class="ph-bold ph-magic-wand"></i> 开始变身
+              <i class="ph-bold ph-magic-wand"></i> {{ $t('views.styleWorkshop.startTransform') }}
             </el-button>
           </el-form>
 
@@ -106,7 +106,7 @@
           <ImageResult
             v-if="portraitResult?.imageUrl"
             :image-url="portraitResult.imageUrl"
-            alt-text="人像作品"
+            :alt-text="$t('views.styleWorkshop.portraitMode')"
             filename="portrait-art.png"
           />
         </div>
@@ -115,13 +115,13 @@
       <el-tab-pane name="creative">
         <template #label>
           <span class="custom-tab-label">
-            <i class="ph-bold ph-paint-brush-broad"></i> 艺术重绘
+            <i class="ph-bold ph-paint-brush-broad"></i> {{ $t('views.styleWorkshop.artisticMode') }}
           </span>
         </template>
 
         <div class="tab-content">
           <el-alert
-            title="该模式适用于风景、静物或需要大幅改变画风的场景。"
+            :title="$t('views.styleWorkshop.artisticAlert')"
             type="primary"
             show-icon
             :closable="false"
@@ -129,7 +129,7 @@
           />
 
           <el-form label-position="top" @submit.prevent="generateCreative">
-            <el-form-item label="第一步：上传内容图片">
+            <el-form-item :label="$t('views.styleWorkshop.step1Content')">
               <el-upload
                 action="#"
                 :auto-upload="false"
@@ -142,19 +142,19 @@
               >
                 <div class="upload-demo-box">
                   <el-icon :size="28"><i class="ph-bold ph-image-square"></i></el-icon>
-                  <span>上传原图</span>
+                  <span>{{ $t('views.styleWorkshop.uploadOriginal') }}</span>
                 </div>
               </el-upload>
             </el-form-item>
 
             <el-tabs v-model="creativeStyleTab" class="inner-tabs">
-              <el-tab-pane label="文本指令" name="text">
-                <el-form-item label="第二步：输入风格指令">
+              <el-tab-pane :label="$t('views.styleWorkshop.textInstruction')" name="text">
+                <el-form-item :label="$t('views.styleWorkshop.step2Instruction')">
                   <el-input
                     v-model="textPrompt"
                     type="textarea"
                     :rows="3"
-                    placeholder="例如：变成梵高风格，雪景，赛博朋克效果..."
+                    :placeholder="$t('views.styleWorkshop.instructionPlaceholder')"
                     resize="none"
                   />
                    <div class="voice-btn-wrapper">
@@ -162,8 +162,8 @@
                    </div>
                 </el-form-item>
               </el-tab-pane>
-              <el-tab-pane label="图像风格" name="image">
-                <el-form-item label="第二步：上传风格图片">
+              <el-tab-pane :label="$t('views.styleWorkshop.imageStyle')" name="image">
+                <el-form-item :label="$t('views.styleWorkshop.step2StyleImage')">
                    <el-upload
                     action="#"
                     :auto-upload="false"
@@ -176,7 +176,7 @@
                   >
                     <div class="upload-demo-box">
                       <el-icon :size="28"><i class="ph-bold ph-palette"></i></el-icon>
-                      <span>风格参考图</span>
+                      <span>{{ $t('views.styleWorkshop.styleReference') }}</span>
                     </div>
                   </el-upload>
                 </el-form-item>
@@ -190,7 +190,7 @@
               size="large"
               class="action-btn"
             >
-              <i class="ph-bold ph-paint-bucket"></i> 开始重绘
+              <i class="ph-bold ph-paint-bucket"></i> {{ $t('views.styleWorkshop.startRedraw') }}
             </el-button>
           </el-form>
 
@@ -205,7 +205,7 @@
           <ImageResult
             v-if="creativeResult?.imageUrl"
             :image-url="creativeResult.imageUrl"
-            alt-text="重绘作品"
+            :alt-text="$t('views.styleWorkshop.artisticMode')"
             filename="creative-art.png"
           />
         </div>
@@ -216,10 +216,13 @@
 
 <script setup>
 import { ref, computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useAIApi } from '../composables/useAIApi.js';
 import { useUploadLimiter } from '../composables/useUploadLimiter.js';
 import ImageResult from '../components/ImageResult.vue';
 import VoiceInputButton from '../components/VoiceInputButton.vue';
+
+const { t } = useI18n();
 
 // 顶层 Tab 状态
 const activeMode = ref('portrait');
@@ -254,37 +257,37 @@ const {
   fileToBase64
 } = useAIApi('/api/portrait-workshop', { initialResult: { imageUrl: null } });
 
-// 预设风格数据 (静态常量，无需 ref)
-const presetStyles = [
-  { value: 0, label: '复古漫画', description: '经典的美式或日式复古漫画风格' },
-  { value: 1, label: '3D童话', description: '类似于迪士尼或皮克斯动画的3D卡通风格' },
-  { value: 2, label: '二次元', description: '现代流行的日系二次元动漫美术风格' },
-  { value: 3, label: '小清新', description: '色彩淡雅、简约清新的插画风格' },
-  { value: 4, label: '未来科技', description: '带有赛博朋克或科幻元素的未来感风格' },
-  { value: 5, label: '国画古风', description: '中国传统水墨画或工笔画的人物风格' },
-  { value: 6, label: '将军百战', description: '描绘古代将军戎马生涯的写实风格' },
-  { value: 7, label: '炫彩卡通', description: '色彩极其鲜艳饱和的卡通风格' },
-  { value: 8, label: '清雅国风', description: '清新淡雅的中国古风插画' },
-  { value: 9, label: '喜迎新年', description: '充满中国新年元素的喜庆风格' },
-  { value: 14, label: '国风工笔', description: '细腻精致的中国工笔画风格'},
-  {value: 15, label: '恭贺新禧', description: '年画或传统节日装饰的风格'},
-  {value: 30, label: '童话世界', description: '梦幻般的童话故事插画风格'},
-  {value: 31, label: '黏土世界', description: '可爱的黏土或橡皮泥质感'},
-  {value: 32, label: '像素世界', description: '复古的8-bit或16-bit像素游戏风格'},
-  {value: 33, label: '冒险世界', description: '奇幻冒险题材的游戏或插画风格'},
-  {value: 34, label: '日漫世界', description: '典型的日本少年或少女漫画风格'},
-  {value: 35, label: '3D世界', description: '通用的写实或半写实3D渲染风格'},
-  {value: 36, label: '二次元世界', description: '更强调场景和氛围的二次元风格'},
-  {value: 37, label: '手绘世界', description: '带有明显手绘笔触感的插画风格'},
-  {value: 38, label: '蜡笔世界', description: '模仿儿童蜡笔画的质感和色彩'},
-  {value: 39, label: '冰箱贴世界', description: '扁平、色彩鲜亮的冰箱贴卡通风格'},
-  {value: 40, label: '吧唧世界', description: '圆形徽章（吧唧）上的Q版人物风格'},
-];
+// 预设风格数据 (使用 computed 以支持 i18n)
+const presetStyles = computed(() => [
+  { value: 0, label: t('views.styleWorkshop.presetStyles.vintage'), description: 'Classic American or Japanese vintage comic style' },
+  { value: 1, label: t('views.styleWorkshop.presetStyles.3dFairy'), description: 'Disney or Pixar-like 3D cartoon style' },
+  { value: 2, label: t('views.styleWorkshop.presetStyles.anime'), description: 'Modern popular Japanese anime art style' },
+  { value: 3, label: t('views.styleWorkshop.presetStyles.fresh'), description: 'Light, elegant, and fresh illustration style' },
+  { value: 4, label: t('views.styleWorkshop.presetStyles.futuristic'), description: 'Futuristic style with cyberpunk or sci-fi elements' },
+  { value: 5, label: t('views.styleWorkshop.presetStyles.traditional'), description: 'Traditional Chinese ink or Gongbi painting style' },
+  { value: 6, label: t('views.styleWorkshop.presetStyles.general'), description: 'Realistic style depicting ancient generals' },
+  { value: 7, label: t('views.styleWorkshop.presetStyles.colorful'), description: 'Highly saturated and vibrant cartoon style' },
+  { value: 8, label: t('views.styleWorkshop.presetStyles.elegant'), description: 'Fresh and elegant Chinese style illustration' },
+  { value: 9, label: t('views.styleWorkshop.presetStyles.newYear'), description: 'Festive style with Chinese New Year elements' },
+  { value: 14, label: t('views.styleWorkshop.presetStyles.gongbi'), description: 'Delicate and refined Chinese Gongbi painting style'},
+  {value: 15, label: t('views.styleWorkshop.presetStyles.celebration'), description: 'New Year painting or traditional festival decoration style'},
+  {value: 30, label: t('views.styleWorkshop.presetStyles.fairyWorld'), description: 'Dreamy fairy tale illustration style'},
+  {value: 31, label: t('views.styleWorkshop.presetStyles.clayWorld'), description: 'Cute clay or plasticine texture'},
+  {value: 32, label: t('views.styleWorkshop.presetStyles.pixelWorld'), description: 'Retro 8-bit or 16-bit pixel game style'},
+  {value: 33, label: t('views.styleWorkshop.presetStyles.adventureWorld'), description: 'Fantasy adventure game or illustration style'},
+  {value: 34, label: t('views.styleWorkshop.presetStyles.mangaWorld'), description: 'Typical Japanese shonen or shojo manga style'},
+  {value: 35, label: t('views.styleWorkshop.presetStyles.3dWorld'), description: 'General realistic or semi-realistic 3D rendering style'},
+  {value: 36, label: t('views.styleWorkshop.presetStyles.animeWorld'), description: 'Anime style emphasizing scene and atmosphere'},
+  {value: 37, label: t('views.styleWorkshop.presetStyles.handDrawn'), description: 'Illustration style with obvious hand-drawn brush strokes'},
+  {value: 38, label: t('views.styleWorkshop.presetStyles.crayonWorld'), description: 'Imitating children\'s crayon drawing texture and colors'},
+  {value: 39, label: t('views.styleWorkshop.presetStyles.magnetWorld'), description: 'Flat, brightly colored fridge magnet cartoon style'},
+  {value: 40, label: t('views.styleWorkshop.presetStyles.badgeWorld'), description: 'Q-version character style on round badges'},
+]);
 
 // 计算当前选中的风格描述
-// 因为 presetStyles 现在是普通数组，直接 .find 即可，不需要 .value
+// presetStyles 是 computed，需要使用 .value
 const selectedPresetDescription = computed(() =>
-    presetStyles.find(s => s.value === presetStyleIndex.value)?.description
+    presetStyles.value.find(s => s.value === presetStyleIndex.value)?.description
 );
 
 async function generatePortrait() {
@@ -292,7 +295,7 @@ async function generatePortrait() {
   portraitResult.value = {imageUrl: null};
 
   if (!portraitFile.value) {
-    portraitError.value = '请上传人像图片';
+    portraitError.value = t('views.styleWorkshop.uploadPortraitError');
     return;
   }
 
@@ -302,13 +305,13 @@ async function generatePortrait() {
 
     if (portraitStyleTab.value === 'preset') {
       if (presetStyleIndex.value === null || presetStyleIndex.value === undefined) {
-        portraitError.value = '请选择预设风格';
+        portraitError.value = t('views.styleWorkshop.selectStyleError');
         return;
       }
       body.preset_style_index = presetStyleIndex.value;
     } else {
       if (!portraitStyleFile.value) {
-        portraitError.value = '请上传风格参考图';
+        portraitError.value = t('views.styleWorkshop.uploadStyleError');
         return;
       }
       body.style_image = await fileToBase64(portraitStyleFile.value);
@@ -354,7 +357,7 @@ async function generateCreative() {
   creativeResult.value = {imageUrl: null};
 
   if (!creativeContentFile.value) {
-    creativeError.value = '请上传内容图片';
+    creativeError.value = t('views.styleWorkshop.uploadContentError');
     return;
   }
 
@@ -364,13 +367,13 @@ async function generateCreative() {
 
     if (creativeStyleTab.value === 'text') {
       if (!textPrompt.value) {
-        creativeError.value = '请输入文本指令';
+        creativeError.value = t('views.styleWorkshop.inputInstructionError');
         return;
       }
       body.prompt = textPrompt.value;
     } else {
       if (!creativeStyleFile.value) {
-        creativeError.value = '请上传风格图片';
+        creativeError.value = t('views.styleWorkshop.uploadStyleImageError');
         return;
       }
       body.style_image = await fileToBase64(creativeStyleFile.value);

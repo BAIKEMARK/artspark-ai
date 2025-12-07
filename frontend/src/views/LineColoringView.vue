@@ -1,8 +1,8 @@
 <template>
   <section id="line-coloring" class="feature-panel">
-    <h2>AI智能上色</h2>
+    <h2>{{ $t('nav.lineColoring') }}</h2>
     <el-form label-position="top" @submit.prevent="generate">
-      <el-form-item label="上传线稿/简笔画:">
+      <el-form-item :label="$t('views.lineColoring.uploadLineart')">
         <el-upload
           action="#"
           :auto-upload="false"
@@ -15,14 +15,14 @@
         >
           <div class="upload-demo-box">
             <el-icon :size="28"><Upload /></el-icon>
-            <span>点击上传线稿</span>
+            <span>{{ $t('views.lineColoring.uploadButton') }}</span>
           </div>
           </el-upload>
       </el-form-item>
-      <el-form-item label="上色风格:">
+      <el-form-item :label="$t('views.lineColoring.coloringStyle')">
         <el-input
           v-model="prompt"
-          placeholder="例如：水彩画, 明亮的颜色"
+          :placeholder="$t('views.lineColoring.stylePlaceholder')"
           clearable
         >
            <template #suffix>
@@ -37,7 +37,7 @@
           :loading="isLoading"
           style="width: 100%;"
         >
-          开始上色
+          {{ $t('views.lineColoring.startColoring') }}
         </el-button>
       </el-form-item>
     </el-form>
@@ -50,18 +50,20 @@
       :closable="false"
       style="margin-top: 20px;"
     />
-    <ImageResult v-if="result?.imageUrl" :image-url="result.imageUrl" alt-text="AI上色作品" filename="ai-coloring.png" />
+    <ImageResult v-if="result?.imageUrl" :image-url="result.imageUrl" :alt-text="$t('views.lineColoring.title')" filename="ai-coloring.png" />
   </section>
 </template>
 
 <script setup>
 import { ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useAIApi } from '../composables/useAIApi.js';
 import ImageResult from '../components/ImageResult.vue';
 import { Upload } from '@element-plus/icons-vue'
 import { useUploadLimiter } from '../composables/useUploadLimiter.js';
 import VoiceInputButton from '../components/VoiceInputButton.vue';
 
+const { t } = useI18n();
 const prompt = ref('');
 
 const {
@@ -79,11 +81,11 @@ const handleVoiceInput = (text) => {
 
 async function generate() {
   if (!lineartFile.value) {
-    error.value = '请上传一张线稿图片';
+    error.value = t('views.lineColoring.uploadError');
     return;
   }
   if (!prompt.value) {
-    error.value = '请输入上色风格';
+    error.value = t('views.lineColoring.styleError');
     return;
   }
 

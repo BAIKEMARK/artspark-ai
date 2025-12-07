@@ -1,13 +1,13 @@
 <template>
   <el-dialog
     v-model="dialogVisible"
-    title="意见反馈"
+    :title="t('feedback.title')"
     width="600px"
     :before-close="handleClose"
     destroy-on-close
   >
     <p style="margin-bottom: 20px; color: #666;">
-      您的建议是我们前进的动力，欢迎畅所欲言。
+      {{ t('feedback.description') }}
     </p>
     <el-form
       :model="feedbackForm"
@@ -16,21 +16,21 @@
       label-position="top"
       size="large"
     >
-      <el-form-item label="反馈内容" prop="content">
+      <el-form-item :label="t('feedback.contentLabel')" prop="content">
         <el-input
           v-model="feedbackForm.content"
           type="textarea"
           :rows="5"
-          placeholder="请描述您遇到的问题或建议..."
+          :placeholder="t('feedback.contentPlaceholder')"
           maxlength="500"
           show-word-limit
           resize="none"
         ></el-input>
       </el-form-item>
-      <el-form-item label="联系方式 (选填)" prop="contact">
+      <el-form-item :label="t('feedback.contactLabel')" prop="contact">
         <el-input
           v-model="feedbackForm.contact"
-          placeholder="留下手机号或邮箱，方便我们回复"
+          :placeholder="t('feedback.contactPlaceholder')"
           clearable
         >
           <template #prefix>
@@ -41,15 +41,15 @@
     </el-form>
     <template #footer>
       <div style="text-align: right;">
-        <el-button @click="handleCloseDialog">取消</el-button>
+        <el-button @click="handleCloseDialog">{{ t('feedback.cancel') }}</el-button>
         <el-button type="primary" @click="submitFeedback" :loading="loading">
-          提交反馈
+          {{ t('feedback.submit') }}
         </el-button>
       </div>
     </template>
   </el-dialog>
 
-  <el-tooltip content="意见反馈" placement="left">
+  <el-tooltip :content="t('feedback.tooltip')" placement="left">
     <div class="feedback-trigger" @click="dialogVisible = true">
       <i class="ph-bold ph-chat-text"></i>
     </div>
@@ -57,9 +57,12 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue';
+import { ref, reactive, computed } from 'vue';
 import { ElMessage } from 'element-plus';
 import axios from 'axios';
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
 
 const dialogVisible = ref(false);
 const loading = ref(false);
@@ -70,12 +73,12 @@ const feedbackForm = reactive({
   contact: '',
 });
 
-const rules = reactive({
+const rules = computed(() => ({
   content: [
-    { required: true, message: '请填写反馈内容', trigger: 'blur' },
-    { min: 5, message: '反馈内容太短啦，多说两句吧', trigger: 'blur' },
+    { required: true, message: t('validation.feedbackRequired'), trigger: 'blur' },
+    { min: 5, message: t('validation.feedbackTooShort'), trigger: 'blur' },
   ],
-});
+}));
 
 const webhookUrl = '/dingtalk-api/robot/send?access_token=' + import.meta.env.VITE_DINGTALK_ACCESS_TOKEN;
 
@@ -104,11 +107,11 @@ const submitFeedback = async () => {
 
         await axios.post(webhookUrl, message);
 
-        ElMessage.success('感谢您的反馈，我们会尽快处理！');
+        ElMessage.success(t('feedback.submitSuccess'));
         dialogVisible.value = false;
       } catch (error) {
         console.error('反馈提交失败:', error);
-        ElMessage.success('反馈已提交'); // 降级提示
+        ElMessage.success(t('feedback.submitFallback')); // 降级提示
         dialogVisible.value = false;
        } finally {
         loading.value = false;

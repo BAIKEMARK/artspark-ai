@@ -5,3 +5,6 @@ flask_session
 /node_modules/
 /frontend/node_modules/
 /frontend/.vite/
+/frontend/dist/
+/ArtSpark素材/
+__pycache__/

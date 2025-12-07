@@ -1,16 +1,16 @@
 <template>
   <section id="art-gallery" class="feature-panel">
-    <h2>名画鉴赏室 </h2>
+    <h2>{{ $t('views.artGallery.title') }}</h2>
 
     <el-form label-position="top">
-      <el-form-item label="第一步：选择一个展厅">
+      <el-form-item :label="$t('views.artGallery.step1')">
         <el-select
           v-model="filters.departmentId"
-          placeholder="所有展厅"
+          :placeholder="$t('views.artGallery.allDepartments')"
           style="width: 100%; max-width: 400px;"
           filterable
         >
-          <el-option value="">所有展厅</el-option>
+          <el-option value="">{{ $t('views.artGallery.allDepartments') }}</el-option>
           <el-option v-for="dept in departments" :key="dept.departmentId" :label="dept.displayName" :value="dept.departmentId" />
         </el-select>
       </el-form-item>
@@ -19,7 +19,7 @@
     <el-card shadow="never" class="tag-card-container">
       <template #header>
         <div class="card-header">
-          <span>第二步：快速筛选</span>
+          <span>{{ $t('views.artGallery.step2') }}</span>
         </div>
       </template>
       <div v-for="group in tagGroups" :key="group.title" class="tag-group">
@@ -38,10 +38,10 @@
     </el-card>
 
     <el-form label-position="top" class="aux-search-form">
-      <el-form-item label="第三步：辅助搜索 (可选)">
+      <el-form-item :label="$t('views.artGallery.step3')">
         <el-input
           v-model="filters.q"
-          placeholder="在以上筛选结果中搜索，例如：Monet, cat"
+          :placeholder="$t('views.artGallery.searchPlaceholder')"
           clearable
           style="max-width: 400px;"
         />
@@ -55,7 +55,7 @@
           :icon="Search"
           style="width: 100%; max-width: 400px;"
         >
-          应用筛选并查看
+          {{ $t('views.artGallery.applyFilters') }}
         </el-button>
       </el-form-item>
     </el-form>
@@ -89,7 +89,7 @@
           />
           <div class="gallery-card-content">
             <h3>{{ art.title }}</h3>
-            <p><strong>{{ art.artist || '未知艺术家' }}</strong></p>
+            <p><strong>{{ art.artist || $t('views.artGallery.unknownArtist') }}</strong></p>
             <p>{{ art.date || 'N/A' }}</p>
             <p><em>{{ art.medium || 'N/A' }}</em></p>
 
@@ -100,7 +100,7 @@
               @click="openArtworkDetail(art)"
             >
               <i class="icon ph-bold ph-eye"></i>
-              查看详情
+              {{ $t('views.artGallery.viewDetails') }}
             </el-button>
           </div>
         </el-card>
@@ -128,7 +128,7 @@
       </div>
       <div class="artwork-info-wrapper">
         <h3>{{ selectedArtwork.title }}</h3> <p><strong>{{ selectedArtwork.artist }}</strong></p> <p>{{ selectedArtwork.date }} | <em>{{ selectedArtwork.medium }}</em></p> <el-divider />
-        <h4><i class="icon ph-bold ph-robot"></i> 小艺为你讲解</h4>
+        <h4><i class="icon ph-bold ph-robot"></i> {{ $t('views.artGallery.aiExplanation') }}</h4>
 
         <el-skeleton :rows="5" animated v-if="isExplainLoading" />
 
@@ -136,7 +136,7 @@
         <div v-if="explainResult?.ai_explanation" class="ai-explanation" v-html="formattedAIExplanation"></div>
 
         <el-divider />
-        <h4><i class="icon ph-bold ph-scroll"></i> 官方介绍 (中文)</h4>
+        <h4><i class="icon ph-bold ph-scroll"></i> {{ $t('views.artGallery.officialDescription') }}</h4>
         <el-skeleton :rows="8" animated v-if="isExplainLoading" />
         <el-alert v-if="explainError" :title="explainError" type="error" show-icon />
         <div v-if="explainResult?.original_description_zh" class="original-explanation">
@@ -146,7 +146,7 @@
         <el-divider />
 
         <el-link type="info" :href="selectedArtwork.metUrl" target="_blank" rel="noopener">
-          访问博物馆官网 <i class="icon ph-bold ph-arrow-up-right"></i>
+          {{ $t('views.artGallery.visitMuseum') }} <i class="icon ph-bold ph-arrow-up-right"></i>
         </el-link>
       </div>
     </div>
@@ -155,9 +155,12 @@
 
 <script setup>
 import { ref, reactive, onMounted, computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { Search } from '@element-plus/icons-vue';
 import { useAIApi } from '../composables/useAIApi.js'; // 导入 useAIApi
 import { marked } from 'marked'; // 导入 marked
+
+const { t } = useI18n();
 
 const departments = ref([]);
 const filters = reactive({ departmentId: '', q: '', activeTags: {} });
@@ -175,25 +178,25 @@ const {
   result: explainResult,
   execute: fetchExplanation
 } = useAIApi('/api/gallery/explain');
-const tagGroups = [
-    { title: '热门筛选', tags: [{ label: '博物馆精选', type: 'isHighlight', value: 'true' }] },
-    { title: '时代', tags: [
-        { label: '19世纪 (印象派等)', type: 'dateRange', begin: '1800', end: '1900' },
-        { label: '文艺复兴 (1400-1600)', type: 'dateRange', begin: '1400', end: '1600' },
-        { label: '古典时期 (希腊/罗马)', type: 'dateRange', begin: '-1000', end: '400' },
+const tagGroups = computed(() => [
+    { title: t('views.artGallery.tags.popular'), tags: [{ label: t('views.artGallery.tags.museumHighlight'), type: 'isHighlight', value: 'true' }] },
+    { title: t('views.artGallery.tags.era'), tags: [
+        { label: t('views.artGallery.tags.era19th'), type: 'dateRange', begin: '1800', end: '1900' },
+        { label: t('views.artGallery.tags.eraRenaissance'), type: 'dateRange', begin: '1400', end: '1600' },
+        { label: t('views.artGallery.tags.eraClassical'), type: 'dateRange', begin: '-1000', end: '400' },
     ]},
-    { title: '媒介', tags: [
-        { label: '绘画', type: 'medium', value: 'Paintings' },
-        { label: '雕塑', type: 'medium', value: 'Sculpture' },
-        { label: '陶瓷', type: 'medium', value: 'Ceramics' },
+    { title: t('views.artGallery.tags.medium'), tags: [
+        { label: t('views.artGallery.tags.paintings'), type: 'medium', value: 'Paintings' },
+        { label: t('views.artGallery.tags.sculpture'), type: 'medium', value: 'Sculpture' },
+        { label: t('views.artGallery.tags.ceramics'), type: 'medium', value: 'Ceramics' },
     ]},
-    { title: '地区', tags: [
-        { label: '中国', type: 'geoLocation', value: 'China' },
-        { label: '日本', type: 'geoLocation', value: 'Japan' },
-        { label: '欧洲', type: 'geoLocation', value: 'Europe' },
-        { label: '埃及', type: 'geoLocation', value: 'Egypt' },
+    { title: t('views.artGallery.tags.region'), tags: [
+        { label: t('views.artGallery.tags.china'), type: 'geoLocation', value: 'China' },
+        { label: t('views.artGallery.tags.japan'), type: 'geoLocation', value: 'Japan' },
+        { label: t('views.artGallery.tags.europe'), type: 'geoLocation', value: 'Europe' },
+        { label: t('views.artGallery.tags.egypt'), type: 'geoLocation', value: 'Egypt' },
     ]},
-];
+]);
 const formattedAIExplanation = computed(() => {
   return explainResult.value && explainResult.value.ai_explanation && explainResult.value.ai_explanation.content
     ? marked(explainResult.value.ai_explanation.content)
@@ -331,10 +334,10 @@ async function search() {
     }
 
     if (resultData.artworks.length === 0) {
-      error.value = '没有找到符合条件的作品。';
+      error.value = t('views.artGallery.noResults');
     }
   } catch (e) {
-    error.value = `搜索失败: ${e.message}`;
+    error.value = `${t('views.artGallery.searchFailed')}: ${e.message}`;
   } finally {
     isLoading.value = false;
   }

@@ -7,7 +7,7 @@
     @select="handleSelect"
   >
     <el-menu-item index="home-view" class="nav-logo">
-      🎨 <span class="logo-text">艺启智AI</span>
+      🎨 <span class="logo-text">{{ t('common.appName') }}</span>
     </el-menu-item>
 
     <div class="flex-grow" />
@@ -21,12 +21,16 @@
 
     <el-menu-item index="settings-trigger" class="settings-trigger">
       <i class="icon ph-bold ph-gear"></i>
-      <span class="nav-text">设置</span>
+      <span class="nav-text">{{ t('nav.settings') }}</span>
     </el-menu-item>
   </el-menu>
 </template>
 
 <script setup>
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
+
 const props = defineProps({
   navItems: Array,
   activeView: String,

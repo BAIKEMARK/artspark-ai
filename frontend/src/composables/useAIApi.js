@@ -1,6 +1,9 @@
 import { ref } from 'vue';
 import { useAuthStore } from '../stores/auth';
 import { useSettingsStore } from '../stores/settings';
+import { useLocaleStore } from '../stores/locale';
+
+import { useI18n } from 'vue-i18n';
 
 export function useAIApi(endpoint, options = {}) {
   const isLoading = ref(false);
@@ -9,6 +12,8 @@ export function useAIApi(endpoint, options = {}) {
 
   const authStore = useAuthStore();
   const settingsStore = useSettingsStore();
+  const localeStore = useLocaleStore();
+  const { t } = useI18n();
 
   const fileToBase64 = (file) => {
     return new Promise((resolve, reject) => {
@@ -25,7 +30,7 @@ export function useAIApi(endpoint, options = {}) {
     result.value = options.initialResult || null;
 
     if (!authStore.isLoggedIn) {
-      error.value = '您尚未登录。';
+      error.value = t('errors.notLoggedIn');
       isLoading.value = false;
       authStore.logout(); // Ensure state is clean
       return;
@@ -39,23 +44,26 @@ export function useAIApi(endpoint, options = {}) {
 
       const response = await fetch(`${endpoint}?token=${encodeURIComponent(authStore.token)}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept-Language': localeStore.locale
+        },
         body: JSON.stringify(fullBody),
       });
 
       if (!response.ok) {
         if (response.status === 401) {
           authStore.logout();
-          throw new Error('API Key 无效或已过期，请重新登录。');
+          throw new Error(t('errors.apiKeyInvalid'));
         }
         const errData = await response.json();
-        throw new Error(errData.error || `请求失败: ${response.status}`);
+        throw new Error(errData.error || `${t('errors.requestFailed')}: ${response.status}`);
       }
 
       result.value = await response.json();
       return result.value;
     } catch (e) {
-      error.value = `生成失败: ${e.message}`;
+      error.value = `${t('errors.generationFailed')}: ${e.message}`;
     } finally {
       isLoading.value = false;
     }

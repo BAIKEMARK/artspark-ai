@@ -2,15 +2,15 @@
   <section id="idea-generator" class="page-container">
 
     <div class="header-section">
-      <h2 class="page-title">创意灵感 & 绘画练习</h2>
-      <p class="subtitle">输入你想画的主题，AI 为你生成专属线稿教材，并像老师一样点评你的作品。</p>
+      <h2 class="page-title">{{ $t('views.ideaGenerator.pageTitle') }}</h2>
+      <p class="subtitle">{{ $t('views.ideaGenerator.subtitle') }}</p>
     </div>
 
     <el-form class="search-form" @submit.prevent="generate">
       <el-form-item class="search-input-item">
         <el-input
           v-model="theme"
-          placeholder="例如：森林里的聚会、未来的汽车..."
+          :placeholder="$t('views.ideaGenerator.inputPlaceholder')"
           class="huge-input"
           clearable
           @keyup.enter="generate"
@@ -23,7 +23,7 @@
           </template>
           <template #append>
             <el-button type="primary" @click="generate" :loading="isLoading" class="generate-btn">
-              <i class="ph-bold ph-magic-wand"></i> 生成教材
+              <i class="ph-bold ph-magic-wand"></i> {{ $t('views.ideaGenerator.generateMaterial') }}
             </el-button>
           </template>
         </el-input>
@@ -45,7 +45,7 @@
 
           <div class="card-header">
             <div class="title-group">
-              <span class="index-badge">练习 {{ index + 1 }}</span>
+              <span class="index-badge">{{ $t('views.ideaGenerator.practice') }} {{ index + 1 }}</span>
               <h3>{{ idea.name }}</h3>
             </div>
             <p class="desc">{{ idea.description }}</p>
@@ -56,7 +56,7 @@
             <div class="panel left-panel">
               <div class="panel-header">
                 <i class="ph-bold ph-eye"></i>
-                <span>第一步：观察参考线稿</span>
+                <span>{{ $t('views.ideaGenerator.step1') }}</span>
               </div>
 
               <div class="image-wrapper">
@@ -68,7 +68,7 @@
                   />
                   <div class="guide-tip">
                     <i class="ph-fill ph-lightbulb"></i>
-                    <span>观察重点：{{ idea.elements }}</span>
+                    <span>{{ $t('views.ideaGenerator.observeKey') }}：{{ idea.elements }}</span>
                   </div>
               </div>
             </div>
@@ -78,7 +78,7 @@
             <div class="panel right-panel">
               <div class="panel-header">
                 <i class="ph-bold ph-pencil-simple"></i>
-                <span>第二步：交作业求点评</span>
+                <span>{{ $t('views.ideaGenerator.step2') }}</span>
               </div>
 
               <div v-if="!idea.critique" class="upload-canvas-area">
@@ -94,7 +94,7 @@
                       <div class="icon-circle">
                         <i class="ph-bold ph-camera"></i>
                       </div>
-                      <p>点击拍照 / 上传作品</p>
+                      <p>{{ $t('views.ideaGenerator.uploadWork') }}</p>
                     </div>
                     <img v-else :src="idea.tempImageUrl" class="homework-preview" />
                   </el-upload>
@@ -107,17 +107,17 @@
                       @click="submitHomework(index)"
                       :loading="idea.submitting"
                     >
-                      <i class="ph-bold ph-paper-plane-right"></i> 请老师点评
+                      <i class="ph-bold ph-paper-plane-right"></i> {{ $t('views.ideaGenerator.submitForReview') }}
                     </el-button>
-                    <el-button text bg size="small" @click.stop="clearFile(index)">重选</el-button>
+                    <el-button text bg size="small" @click.stop="clearFile(index)">{{ $t('views.ideaGenerator.reselect') }}</el-button>
                   </div>
               </div>
 
               <div v-else class="critique-report">
                  <div class="report-header">
                     <div class="teacher-info">
-                      <el-avatar :size="32" style="background:var(--accent-color); color:white;">艺</el-avatar>
-                      <span>小艺老师</span>
+                      <el-avatar :size="32" style="background:var(--accent-color); color:white;">{{ $t('common.appName').charAt(0) }}</el-avatar>
+                      <span>{{ $t('views.ideaGenerator.teacherXiaoyi') }}</span>
                     </div>
                     <el-rate v-model="idea.stars" disabled show-score text-color="#ff9900" />
                  </div>
@@ -125,10 +125,10 @@
 
                  <div class="report-actions">
                    <el-button type="primary" plain size="small" @click="submitHomework(index)" :loading="idea.submitting">
-                     <i class="ph-bold ph-arrows-clockwise"></i> 重新点评
+                     <i class="ph-bold ph-arrows-clockwise"></i> {{ $t('views.ideaGenerator.reviewAgain') }}
                    </el-button>
                    <el-button text class="retry-btn" size="small" @click="resetHomework(index)">
-                     <i class="ph-bold ph-camera"></i> 重拍 / 练下一个
+                     <i class="ph-bold ph-camera"></i> {{ $t('views.ideaGenerator.retakeOrNext') }}
                    </el-button>
                  </div>
               </div>
@@ -143,10 +143,13 @@
 
 <script setup>
 import { ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useAIApi } from '../composables/useAIApi.js';
 import ImageResult from '../components/ImageResult.vue';
 import VoiceInputButton from '../components/VoiceInputButton.vue';
 import { ElMessage } from 'element-plus';
+
+const { t } = useI18n();
 
 const theme = ref('');
 const { isLoading, error, result, execute, fileToBase64 } = useAIApi('/api/generate-ideas', { initialResult: [] });
@@ -204,7 +207,7 @@ async function submitHomework(index) {
        idea.stars = critiqueResult.stars || 4;
     }
   } catch (e) {
-    ElMessage.error(e.message || '点评失败，请重试');
+    ElMessage.error(e.message || t('errors.requestFailed'));
   } finally {
     idea.submitting = false;
     result.value[index] = { ...idea };

@@ -2,6 +2,7 @@ import { ref } from 'vue';
 import { useAuthStore } from '../stores/auth';
 import { useSettingsStore } from '../stores/settings';
 import { ElMessage } from 'element-plus';
+import { useI18n } from 'vue-i18n';
 
 export function useVoiceRecorder() {
   const isRecording = ref(false);
@@ -11,10 +12,11 @@ export function useVoiceRecorder() {
 
   const authStore = useAuthStore();
   const settingsStore = useSettingsStore();
+  const { t } = useI18n();
 
   const startRecording = async () => {
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      ElMessage.error('您的浏览器不支持录音功能，或未开启麦克风权限。');
+      ElMessage.error(t('errors.microphoneNotSupported'));
       return;
     }
 
@@ -33,7 +35,7 @@ export function useVoiceRecorder() {
       isRecording.value = true;
     } catch (err) {
       console.error("Error accessing microphone:", err);
-      ElMessage.error('无法访问麦克风，请检查权限。');
+      ElMessage.error(t('errors.microphoneAccessDenied'));
     }
   };
 
@@ -79,11 +81,11 @@ export function useVoiceRecorder() {
       if (!response.ok) {
         if (response.status === 401) {
             authStore.logout(); // 登出，触发重新输入 API Key 的弹窗
-            throw new Error('身份验证过期，请重新验证 API Key');
+            throw new Error(t('errors.authExpired'));
         }
 
         const data = await response.json();
-        throw new Error(data.error || '语音识别失败');
+        throw new Error(data.error || t('errors.voiceRecognitionFailed'));
       }
 
       const data = await response.json();

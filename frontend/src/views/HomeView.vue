@@ -21,8 +21,8 @@
       </div>
     </div>
     <div class="home-content-overlay">
-      <h1>艺启智AI：赋能创意美术教育</h1>
-      <p>触手可及的AI艺术工具，点燃每个学生的创造火花</p>
+      <h1>{{ $t('views.home.heroTitle') }}</h1>
+      <p>{{ $t('views.home.heroSubtitle') }}</p>
 
       <div class="feature-cards-container">
         <div
