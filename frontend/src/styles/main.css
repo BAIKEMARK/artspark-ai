@@ -62,6 +62,97 @@ h2 {
     box-shadow: var(--card-shadow);
 }
 
+/* 5. 现代页面容器样式 (统一布局) */
+.page-container {
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+.page-container.wide {
+    max-width: 1200px;
+}
+
+/* 头部区域 */
+.header-section {
+    text-align: center;
+    margin-bottom: 40px;
+    padding-top: 10px;
+}
+
+.page-title {
+    font-size: 2rem;
+    margin-bottom: 10px;
+    border-bottom: none; /* 移除全局 h2 的下划线 */
+    font-family: var(--font-serif);
+    color: var(--secondary-color);
+}
+
+.subtitle {
+    color: var(--dark-text);
+    font-size: 1rem;
+    margin-top: 0;
+    font-weight: 500;
+    opacity: 0.8;
+}
+
+/* 内容区域 */
+.content-wrapper {
+    background: white;
+    border-radius: 16px;
+    box-shadow: var(--card-shadow);
+    border: 1px solid var(--border-color);
+    padding: 40px;
+    margin-bottom: 20px;
+}
+
+/* 表单样式 */
+.main-form {
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.main-form .el-form-item {
+    margin-bottom: 25px;
+}
+
+.main-form .el-button {
+    font-size: 1.1rem;
+    padding: 15px 0;
+    border-radius: 8px;
+    font-weight: 600;
+}
+
+/* 错误提示 */
+.error-alert {
+    margin-top: 30px;
+    margin-bottom: 20px;
+}
+
+/* 结果区域 */
+.result-section {
+    margin-top: 40px;
+    padding-top: 30px;
+    border-top: 1px solid var(--border-color);
+    animation: result-fade-in 0.5s ease;
+}
+
+/* 上传组件统一样式 */
+.el-upload--picture-card, 
+.el-upload-list--picture-card .el-upload-list__item {
+    border-radius: 12px;
+    border: 2px dashed var(--border-color);
+    transition: all 0.3s ease;
+}
+
+.el-upload--picture-card:hover {
+    border-color: var(--accent-color);
+    background-color: #fffbf0;
+}
+
+.upload-limit-reached .el-upload--picture-card {
+    display: none;
+}
+
 /* 5. 首页视图特定样式 (保留) */
 #home-view {
     position: relative;
@@ -209,6 +300,20 @@ h2 {
     /* 5. 调整视图面板内边距 */
     .feature-panel {
         padding: 20px 15px !important; /* 减小内边距 */
+    }
+
+    /* 页面容器移动端适配 */
+    .content-wrapper {
+        padding: 25px 20px !important;
+        margin: 0 10px 20px 10px !important;
+    }
+    
+    .page-title {
+        font-size: 1.6rem !important;
+    }
+    
+    .main-form {
+        max-width: 100% !important;
     }
 
     /* 6. 隐藏或调整侧边栏 (配合 App.vue 的类名切换) */

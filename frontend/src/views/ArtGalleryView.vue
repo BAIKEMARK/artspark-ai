@@ -1,5 +1,5 @@
 <template>
-  <section id="art-gallery" class="page-container">
+  <section id="art-gallery" class="page-container wide">
 
     <div class="header-section">
       <h2 class="page-title">{{ $t('views.artGallery.title') }}</h2>
@@ -355,55 +355,7 @@ onMounted(loadDepartments);
 </script>
 
 <style scoped>
-/* --- 布局容器 --- */
-.page-container {
-  max-width: 1200px;
-  margin: 0 auto;
-}
-
-/* --- 头部区域 --- */
-.header-section {
-  text-align: center;
-  margin-bottom: 40px;
-  padding-top: 10px;
-}
-
-.page-title {
-  font-size: 2rem;
-  margin-bottom: 10px;
-  border-bottom: none;
-  font-family: var(--font-serif);
-  color: var(--secondary-color);
-}
-
-.subtitle {
-  color: var(--dark-text);
-  font-size: 1rem;
-  margin-top: 0;
-  font-weight: 500;
-  opacity: 0.8;
-}
-
-/* --- 内容区域 --- */
-.content-wrapper {
-  background: white;
-  border-radius: 16px;
-  box-shadow: var(--card-shadow);
-  border: 1px solid var(--border-color);
-  padding: 40px;
-}
-
-/* --- 表单样式 --- */
-.el-form {
-  max-width: 600px;
-  margin: 0 auto 30px auto;
-}
-
-.el-form-item {
-  margin-bottom: 25px;
-}
-
-/* --- 标签卡片 --- */
+/* 页面特有样式 */
 .tag-card-container {
   margin: 20px auto 30px auto;
   background-color: #FDFDFD;
