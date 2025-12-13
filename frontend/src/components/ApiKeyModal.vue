@@ -16,7 +16,7 @@
         <el-input
           v-model="apiKeyInput"
           type="password"
-          placeholder="{{ t('apiKeyModal.placeholder') }}"
+          :placeholder="t('apiKeyModal.placeholder')"
           show-password
           size="large"
           @keyup.enter="handleSaveApiKey"
