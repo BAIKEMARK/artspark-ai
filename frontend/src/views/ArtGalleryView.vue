@@ -1,6 +1,12 @@
 <template>
-  <section id="art-gallery" class="feature-panel">
-    <h2>{{ $t('views.artGallery.title') }}</h2>
+  <section id="art-gallery" class="page-container">
+
+    <div class="header-section">
+      <h2 class="page-title">{{ $t('views.artGallery.title') }}</h2>
+      <p class="subtitle">{{ $t('views.artGallery.subtitle') }}</p>
+    </div>
+
+    <div class="content-wrapper">
 
     <el-form label-position="top">
       <el-form-item :label="$t('views.artGallery.step1')">
@@ -106,6 +112,8 @@
         </el-card>
       </el-col>
     </el-row>
+    </div>
+
   </section>
 
   <el-dialog
@@ -347,11 +355,60 @@ onMounted(loadDepartments);
 </script>
 
 <style scoped>
+/* --- 布局容器 --- */
+.page-container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
 
-.tag-card-container {
-  margin-top: 10px;
+/* --- 头部区域 --- */
+.header-section {
+  text-align: center;
+  margin-bottom: 40px;
+  padding-top: 10px;
+}
+
+.page-title {
+  font-size: 2rem;
+  margin-bottom: 10px;
+  border-bottom: none;
+  font-family: var(--font-serif);
+  color: var(--secondary-color);
+}
+
+.subtitle {
+  color: var(--dark-text);
+  font-size: 1rem;
+  margin-top: 0;
+  font-weight: 500;
+  opacity: 0.8;
+}
+
+/* --- 内容区域 --- */
+.content-wrapper {
+  background: white;
+  border-radius: 16px;
+  box-shadow: var(--card-shadow);
+  border: 1px solid var(--border-color);
+  padding: 40px;
+}
+
+/* --- 表单样式 --- */
+.el-form {
+  max-width: 600px;
+  margin: 0 auto 30px auto;
+}
+
+.el-form-item {
   margin-bottom: 25px;
+}
+
+/* --- 标签卡片 --- */
+.tag-card-container {
+  margin: 20px auto 30px auto;
   background-color: #FDFDFD;
+  border-radius: 12px;
+  max-width: 800px;
 }
 .card-header { font-weight: 500; }
 .tag-group {
@@ -377,11 +434,16 @@ onMounted(loadDepartments);
 
 .aux-search-form {
   margin-top: 20px;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 #gallery-result {
   text-align: left;
-  margin-top: 20px;
+  margin-top: 40px;
+  padding-top: 30px;
+  border-top: 1px solid var(--border-color);
 }
 
 .gallery-card-content {

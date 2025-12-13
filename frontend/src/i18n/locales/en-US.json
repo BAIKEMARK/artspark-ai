@@ -37,6 +37,7 @@
     },
     "artGallery": {
       "title": "Art Gallery",
+      "subtitle": "Explore artistic treasures from world-class museums, with AI providing in-depth analysis of each masterpiece's story and techniques",
       "description": "Appreciate and learn about world-famous paintings",
       "sidebarTitle": "Gallery Tips",
       "sidebarTips": {
@@ -109,7 +110,7 @@
         "teaching": "Teaching Application: Can be used at the beginning or end of art class as an 'emotional check-in' or 'emotional organization' session."
       },
       "examplesTitle": "Example Works",
-      "subtitle": "(Integrating art and psychology to guide students in expressing emotions through drawing)",
+      "subtitle": "Integrating art and psychology to guide students in expressing emotions through drawing",
       "selectMood": "Select your current mood:",
       "selectMoodPlaceholder": "Please select a mood",
       "themeQuestion": "What theme would you like to draw?",
@@ -127,6 +128,7 @@
     },
     "lineColoring": {
       "title": "Line Coloring",
+      "subtitle": "Upload your line art or sketches, and AI will add professional colors and textures based on your style description",
       "description": "Add colors to line art",
       "sidebarTitle": "Coloring Tips",
       "sidebarTips": {

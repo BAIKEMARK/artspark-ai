@@ -36,6 +36,7 @@
     },
     "artGallery": {
       "title": "名画鉴赏室",
+      "subtitle": "探索世界顶级博物馆的艺术珍品，让AI为你深度解析每一幅名画的故事与技法",
       "description": "欣赏和学习世界名画",
       "sidebarTitle": "画廊小贴士",
       "sidebarTips": {
@@ -108,7 +109,7 @@
         "teaching": "教学应用：可用于美术课的开始或结束，作为「情绪签到」或「情绪整理」的环节。"
       },
       "examplesTitle": "示例作品",
-      "subtitle": "（融合艺术与心理，引导学生用绘画表达情绪）",
+      "subtitle": "融合艺术与心理，引导学生用绘画表达情绪",
       "selectMood": "选择你现在的心情:",
       "selectMoodPlaceholder": "请选择一种心情",
       "themeQuestion": "你想画一个关于什么的主题？",
@@ -126,6 +127,7 @@
     },
     "lineColoring": {
       "title": "线稿上色",
+      "subtitle": "上传你的线稿或简笔画，AI将根据你的风格描述为其添加专业的色彩和质感",
       "description": "为线稿添加色彩",
       "sidebarTitle": "上色小贴士",
       "sidebarTips": {

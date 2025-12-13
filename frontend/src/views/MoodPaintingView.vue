@@ -1,9 +1,13 @@
 <template>
-  <section id="mood-painting" class="feature-panel">
-    <h2>{{ $t('views.moodPainting.title') }}</h2>
-    <p class="sub-heading">{{ $t('views.moodPainting.subtitle') }}</p>
+  <section id="mood-painting" class="page-container">
 
-    <el-form label-position="top" @submit.prevent="generate">
+    <div class="header-section">
+      <h2 class="page-title">{{ $t('views.moodPainting.title') }}</h2>
+      <p class="subtitle">{{ $t('views.moodPainting.subtitle') }}</p>
+    </div>
+
+    <div class="content-wrapper">
+      <el-form label-position="top" @submit.prevent="generate" class="main-form">
       <el-form-item :label="$t('views.moodPainting.selectMood')">
         <el-select
           v-model="mood"
@@ -46,36 +50,40 @@
           {{ $t('views.moodPainting.generateIdea') }}
         </el-button>
       </el-form-item>
-    </el-form>
+      </el-form>
 
-    <el-alert
-      v-if="error"
-      :title="error"
-      type="error"
-      show-icon
-      :closable="false"
-      style="margin-top: 20px;"
-    />
-
-    <el-card
-      shadow="hover"
-      :body-style="{ padding: '0px' }"
-      style="margin-top: 20px;"
-      v-if="result?.name"
-      class="mood-result-card"
-    >
-      <ImageResult
-        v-if="result.exampleImage"
-        :image-url="result.exampleImage"
-        :alt-text="result.name"
-        :filename="`${result.name}.png`"
+      <el-alert
+        v-if="error"
+        :title="error"
+        type="error"
+        show-icon
+        :closable="false"
+        class="error-alert"
       />
-      <div class="idea-content">
-        <h3>{{ result.name }}</h3>
-        <p class="description">{{ result.description }}</p>
-        <p><small>{{ $t('views.moodPainting.keyElements') }}: {{ result.elements }}</small></p>
+
+      <div v-if="result?.name" class="result-section">
+        <el-card
+          shadow="hover"
+          :body-style="{ padding: '0px' }"
+          class="mood-result-card"
+        >
+          <ImageResult
+            v-if="result.exampleImage"
+            :image-url="result.exampleImage"
+            :alt-text="result.name"
+            :filename="`${result.name}.png`"
+          />
+          <div class="idea-content">
+            <h3>{{ result.name }}</h3>
+            <p class="description">{{ result.description }}</p>
+            <p class="elements-text">
+              <i class="ph-bold ph-lightbulb"></i>
+              {{ $t('views.moodPainting.keyElements') }}: {{ result.elements }}
+            </p>
+          </div>
+        </el-card>
       </div>
-    </el-card>
+    </div>
 
   </section>
 </template>
@@ -129,31 +137,134 @@ const handleVoiceInput = (text) => {
 </script>
 
 <style scoped>
-.sub-heading {
-  color: var(--el-text-color-secondary);
-  font-size: 0.9rem;
-  margin-top: -20px;
-  margin-bottom: 25px;
+/* --- 布局容器 --- */
+.page-container {
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+/* --- 头部区域 --- */
+.header-section {
   text-align: center;
+  margin-bottom: 40px;
+  padding-top: 10px;
 }
+
+.page-title {
+  font-size: 2rem;
+  margin-bottom: 10px;
+  border-bottom: none; /* 移除全局 h2 的下划线 */
+  font-family: var(--font-serif);
+  color: var(--secondary-color);
+}
+
+.subtitle {
+  color: var(--dark-text);
+  font-size: 1rem;
+  margin-top: 0;
+  font-weight: 500;
+  opacity: 0.8;
+}
+
+/* --- 内容区域 --- */
+.content-wrapper {
+  background: white;
+  border-radius: 16px;
+  box-shadow: var(--card-shadow);
+  border: 1px solid var(--border-color);
+  padding: 40px;
+  margin-bottom: 20px;
+}
+
+.main-form {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.main-form .el-form-item {
+  margin-bottom: 25px;
+}
+
+.main-form .el-button {
+  font-size: 1.1rem;
+  padding: 15px 0;
+  border-radius: 8px;
+  font-weight: 600;
+}
+
+/* --- 错误提示 --- */
+.error-alert {
+  margin-top: 30px;
+  margin-bottom: 20px;
+}
+
+/* --- 结果区域 --- */
+.result-section {
+  margin-top: 40px;
+  padding-top: 30px;
+  border-top: 1px solid var(--border-color);
+}
+
+.mood-result-card {
+  animation: result-fade-in 0.5s ease;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
 .idea-content {
-  padding: 20px;
+  padding: 25px;
 }
+
 .idea-content h3 {
   font-family: var(--font-serif);
   color: var(--secondary-color);
   margin-top: 0;
-}
-.idea-content .description {
-  line-height: 1.7;
+  margin-bottom: 15px;
+  font-size: 1.3rem;
 }
 
-/* 结果卡片动画 */
-.mood-result-card {
-  animation: result-fade-in 0.5s ease;
+.idea-content .description {
+  line-height: 1.7;
+  margin-bottom: 15px;
+  color: var(--dark-text);
 }
+
+.elements-text {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #fff8e1;
+  color: #b8860b;
+  padding: 12px 15px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.elements-text i {
+  font-size: 1rem;
+  color: var(--accent-color);
+}
+
+/* --- 动画效果 --- */
 @keyframes result-fade-in {
-  from { opacity: 0; transform: translateY(10px); }
+  from { opacity: 0; transform: translateY(20px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+/* --- 移动端适配 --- */
+@media (max-width: 768px) {
+  .content-wrapper {
+    padding: 25px 20px;
+    margin: 0 10px 20px 10px;
+  }
+  
+  .page-title {
+    font-size: 1.6rem;
+  }
+  
+  .main-form {
+    max-width: 100%;
+  }
 }
 </style>
