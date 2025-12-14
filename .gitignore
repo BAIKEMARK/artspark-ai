@@ -8,3 +8,4 @@ flask_session
 /frontend/dist/
 /ArtSpark素材/
 __pycache__/
+.kiro/

@@ -66,6 +66,12 @@
   - **场景洞察**：在触控大屏上使用软键盘打字极其繁琐，且低龄儿童拼音熟练度低，传统的文字输入方式严重拖慢课堂节奏。
   - **适配方案**：全站核心功能集成 **DashScope 语音识别 (ASR)**。
     - **动口不动手**：无论是在大屏前还是手机上，孩子只需按住说话：“我想画一只在大海里游泳的猫”，AI 即可精准识别。这不仅解决了打字难的问题，更让课堂互动如聊天般自然高效。
+- **🌐 多语言国际化支持 (Internationalization)**
+  - **功能**：基于 Vue I18n 的完整多语言支持系统，目前支持中文简体和英文。
+  - **价值**：为海外华人学校、国际学校提供本土化体验，同时为未来拓展到"一带一路"沿线国家做好技术储备。
+- **💬 用户反馈系统 (Feedback System)**
+  - **功能**：集成钉钉机器人的实时反馈收集系统，用户可随时提交使用建议和问题反馈。
+  - **价值**：建立产品与用户的直接沟通渠道，持续优化产品体验，确保真正解决乡村教育痛点。
 - **📱 全场景响应式设计 (Responsive Design)**
   - **场景洞察**：乡村学校普遍已配备多媒体触控一体机，但仍存在少数情况，或多媒体设备故障情况；同时需兼顾课后手机使用场景。
   - **适配方案**：
@@ -86,6 +92,8 @@
 - **Styling**: SCSS + CSS Variables (支持深色/自定义主题配置)
 - **Icons**: Phosphor Icons (`@phosphor-icons/web`)
 - **Markdown**: `marked` (用于渲染 AI 的富文本回答)
+- **Internationalization**: [Vue I18n](https://vue-i18n.intlify.dev/) (多语言国际化支持)
+- **HTTP Client**: [Axios](https://axios-http.com/) (API 请求处理)
 
 ### **后端 (Backend)**
 
@@ -94,10 +102,15 @@
 - **AI Integration**:
   - **阿里云 DashScope SDK** (通义千问 Qwen-Plus, 通义万相 Wanx 系列)
   - **ModelScope** (通过 HTTP 请求调用 FLUX, Qwen-VL 等开源模型)
+  - **OpenAI Compatible API**: 兼容 OpenAI 格式的 API 调用
 - **Cloud Services**:
   - **Tencent Cloud TMT**: 机器翻译服务
   - **Cloudflare R2 (AWS S3 Compatible)**: 对象存储，用于处理图片上传
   - **Audio (ASR)**: Paraformer-Realtime (语音识别)
+- **Additional Libraries**:
+  - **Pillow**: 图像处理
+  - **PyDub**: 音频处理
+  - **Gunicorn**: WSGI HTTP 服务器 (生产环境部署)
 
 ------
 
@@ -166,9 +179,35 @@ npm run dev
 # 前端页面通常运行在 http://localhost:5173
 ```
 
+### 3. Docker 部署 (Production)
+
+项目提供了完整的 Docker 部署方案，适合生产环境：
+
+```bash
+# 1. 构建 Docker 镜像
+docker build -t artspark-ai .
+
+# 2. 运行容器
+docker run -d \
+  --name artspark-ai \
+  -p 7860:7860 \
+  -e MODELSCOPE_API_KEY=your_modelscope_key \
+  -e DASHSCOPE_API_KEY=your_dashscope_key \
+  artspark-ai
+
+# 3. 访问应用
+# 应用将在 http://localhost:7860 运行
+```
+
+> **Docker 特性**：
+> - 多阶段构建，优化镜像大小
+> - 自动集成前端构建和后端服务
+> - 内置 Gunicorn WSGI 服务器，适合生产环境
+> - 支持音频处理 (ffmpeg) 和图像处理 (Pillow)
 
 
-### 3. 正式使用
+
+### 4. 正式使用
 
 1. 打开前端页面，系统会检测登录状态。
 
@@ -194,10 +233,26 @@ ArtSpark-AI/
 │   │   └── img/           # 存放公共图片资源
 │   ├── src/
 │   │   ├── components/    # Vue.js 可复用组件
+│   │   │   ├── ApiKeyModal.vue      # API Key 配置弹窗
+│   │   │   ├── FeedbackForm.vue     # 用户反馈表单
+│   │   │   ├── LanguageSwitcher.vue # 语言切换器
+│   │   │   ├── VoiceInputButton.vue # 语音输入按钮
+│   │   │   └── ...        # 其他UI组件
 │   │   ├── composables/   # Vue.js 组合式函数
+│   │   ├── i18n/          # 国际化配置
+│   │   │   ├── locales/   # 语言包
+│   │   │   │   ├── zh-CN.json # 中文语言包
+│   │   │   │   └── en-US.json # 英文语言包
+│   │   │   └── index.js   # i18n 配置入口
 │   │   ├── stores/        # Pinia 状态管理
 │   │   ├── styles/        # 全局 CSS 样式
 │   │   ├── views/         # 主要功能视图组件
+│   │   │   ├── ArtGalleryView.vue   # 名画鉴赏
+│   │   │   ├── IdeaGeneratorView.vue # 创意绘练
+│   │   │   ├── MoodPaintingView.vue  # 心情画板
+│   │   │   ├── LineColoringView.vue  # AI智能上色
+│   │   │   ├── StyleWorkshopView.vue # 风格工坊
+│   │   │   └── ArtQAView.vue        # 艺术小百科
 │   │   ├── App.vue        # 根组件
 │   │   └── main.js        # 前端入口文件
 │   ├── index.html         # HTML 入口
@@ -208,3 +263,19 @@ ArtSpark-AI/
 ├── Dockerfile             # Docker 配置文件
 └── README.md              # 项目说明
 ```
+
+------
+
+## 📞 联系我们 (Contact)
+
+如果您在使用过程中遇到问题，或有任何建议和反馈，欢迎通过以下方式联系我们：
+
+- **应用内反馈**：点击右下角反馈按钮，直接提交问题和建议
+- **GitHub Issues**：在项目仓库提交 Issue
+- **邮箱联系**：[请在此处添加联系邮箱]
+
+我们致力于为乡村教育提供更好的 AI 美育解决方案，您的每一个反馈都是我们前进的动力！
+
+---
+
+*"让每一个乡村孩子都能享受到优质的美育资源，用 AI 点亮他们的创意之光。"* ✨
