@@ -32,10 +32,14 @@ body {
     min-height: 100vh;
     display: flex;
     flex-direction: column;
-    padding-top: var(--nav-height);
     box-sizing: border-box;
     position: relative;
     z-index: 1;
+}
+
+/* 内页需要顶部间距，首页不需要 */
+#vue-app:not(.showing-home) {
+    padding-top: var(--nav-height);
 }
 
 h2 {
@@ -161,7 +165,7 @@ h2 {
     display: flex;
     align-items: center;
     justify-content: center;
-    min-height: calc(100vh - var(--nav-height));
+    min-height: 100vh; /* 改为100vh，占满整个视口高度 */
     box-sizing: border-box;
 }
 .hero-gallery {
@@ -306,8 +310,8 @@ h2 {
 
 /* 针对手机屏幕 (小于 768px) */
 @media (max-width: 768px) {
-    /* 1. 调整导航栏高度留白 */
-    #vue-app {
+    /* 1. 移动端内页顶部间距调整 */
+    #vue-app:not(.showing-home) {
         padding-top: 50px; /* 导航栏在手机上可能稍微变矮，或者保持原样 */
     }
 

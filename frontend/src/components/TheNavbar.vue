@@ -2,6 +2,7 @@
   <el-menu
     :default-active="activeView"
     class="global-nav-menu"
+    :class="{ 'home-transparent': isHomePage, 'inner-page': !isHomePage }"
     mode="horizontal"
     :ellipsis="false"
     @select="handleSelect"
@@ -28,6 +29,7 @@
 
 <script setup>
 import { useI18n } from 'vue-i18n';
+import { computed } from 'vue';
 
 const { t } = useI18n();
 
@@ -37,6 +39,9 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['navigate', 'open-settings']);
+
+// 判断是否为首页
+const isHomePage = computed(() => props.activeView === 'home-view');
 
 function handleSelect(index) {
   if (index === 'settings-trigger') {
@@ -48,19 +53,37 @@ function handleSelect(index) {
 </script>
 
 <style scoped>
-/* 1. 导航栏主体：深蓝色背景 */
+/* 1. 导航栏主体：基础样式 */
 .global-nav-menu {
   height: var(--nav-height);
   border-bottom: 1px solid var(--secondary-color);
   padding: 0 20px;
-  background-color: var(--primary-color);
   box-shadow: none;
   user-select: none;
   /* 允许在手机上水平滚动，防止菜单溢出 */
   overflow-x: auto;
   overflow-y: hidden;
   white-space: nowrap;
+  transition: all 0.3s ease; /* 添加过渡动画 */
 }
+
+/* 内页样式：深蓝色背景，和底部栏一致 */
+.global-nav-menu.inner-page {
+  background-color: var(--secondary-color);
+}
+
+/* 首页样式：半透明背景 */
+.global-nav-menu.home-transparent {
+  background-color: rgba(44, 62, 80, 0.3); /* 30% 不透明度的深蓝色 */
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* 首页悬停样式：变成和内页一致的颜色 */
+.global-nav-menu.home-transparent:hover {
+  background-color: var(--secondary-color);
+  border-bottom: 1px solid var(--secondary-color);
+}
+
 /* 隐藏滚动条 */
 .global-nav-menu::-webkit-scrollbar {
     display: none;
@@ -98,7 +121,7 @@ function handleSelect(index) {
 /* 4. 菜单项 悬停 样式 */
 :deep(.el-menu-item:hover) {
   color: white !important;
-  background-color: var(--secondary-color) !important;
+  background-color: rgba(255, 255, 255, 0.1) !important;
 }
 
 /* 5. 菜单项 激活 样式：金色下划线 */
