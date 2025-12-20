@@ -21,7 +21,14 @@
       </div>
     </div>
     <div class="home-content-overlay">
-      <h1>{{ $t('views.home.heroTitle') }}</h1>
+      <!-- 中文显示图片，英文显示文字 -->
+      <img 
+        v-if="$i18n.locale === 'zh-CN'" 
+        src="/img/ArtSpark-title.png" 
+        alt="艺启智AI" 
+        class="hero-title-image" 
+      />
+      <h1 v-else>{{ $t('views.home.heroTitle') }}</h1>
       <p>{{ $t('views.home.heroSubtitle') }}</p>
 
       <div class="feature-cards-container">
@@ -43,6 +50,9 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue';
+import { useI18n } from 'vue-i18n';
+
+const { locale } = useI18n();
 
 const props = defineProps({
   heroSlides: Array,
