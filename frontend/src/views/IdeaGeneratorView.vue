@@ -6,38 +6,38 @@
       <p class="subtitle">{{ $t('views.ideaGenerator.subtitle') }}</p>
     </div>
 
-    <el-form class="search-form" @submit.prevent="generate">
-      <el-form-item class="search-input-item">
-        <el-input
-          v-model="theme"
-          :placeholder="$t('views.ideaGenerator.inputPlaceholder')"
-          class="huge-input"
-          clearable
-          @keyup.enter="generate"
-        >
-          <template #prefix>
-            <el-icon class="input-icon" :size="20"><i class="ph-bold ph-paint-brush"></i></el-icon>
-          </template>
-          <template #suffix>
-            <VoiceInputButton @update:text="handleVoiceInput" />
-          </template>
-          <template #append>
-            <el-button type="primary" @click="generate" :loading="isLoading" class="generate-btn">
-              <i class="ph-bold ph-magic-wand"></i> {{ $t('views.ideaGenerator.generateMaterial') }}
-            </el-button>
-          </template>
-        </el-input>
-      </el-form-item>
-    </el-form>
+          <el-form class="search-form" @submit.prevent="generate">
+        <el-form-item class="search-input-item">
+          <el-input
+            v-model="theme"
+            :placeholder="$t('views.ideaGenerator.inputPlaceholder')"
+            class="huge-input"
+            clearable
+            @keyup.enter="generate"
+          >
+            <template #prefix>
+              <el-icon class="input-icon" :size="20"><i class="ph-bold ph-paint-brush"></i></el-icon>
+            </template>
+            <template #suffix>
+              <VoiceInputButton @update:text="handleVoiceInput" />
+            </template>
+            <template #append>
+              <el-button type="primary" @click="generate" :loading="isLoading" class="generate-btn">
+                <i class="ph-bold ph-magic-wand"></i> {{ $t('views.ideaGenerator.generateMaterial') }}
+              </el-button>
+            </template>
+          </el-input>
+        </el-form-item>
+      </el-form>
 
-    <el-alert
-      v-if="error"
-      :title="error"
-      type="error"
-      show-icon
-      :closable="false"
-      class="error-alert"
-    />
+      <el-alert
+        v-if="error"
+        :title="error"
+        type="error"
+        show-icon
+        :closable="false"
+        class="error-alert"
+      />
 
     <div v-if="result?.length > 0" class="practice-list">
       <transition-group name="el-fade-in-linear">
@@ -233,9 +233,7 @@ async function submitHomework(index) {
   margin-bottom: 10px;
   border-bottom: none; /* 移除全局 h2 的下划线 */
 }
-.subtitle {
-  color: #666;
-}
+
 
 /* --- 搜索框 (大圆角胶囊风格) --- */
 .search-form {

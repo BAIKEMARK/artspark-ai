@@ -402,12 +402,6 @@ async function generateCreative() {
   border-bottom: none;
 }
 
-.subtitle {
-  color: #666;
-  font-size: 1rem;
-  margin-top: 0;
-}
-
 /* Tabs 样式优化 */
 .mode-tabs {
   box-shadow: var(--card-shadow);

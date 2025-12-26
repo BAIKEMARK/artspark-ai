@@ -1,25 +1,28 @@
 <template>
-  <el-card v-if="imageUrl" class="result-card" shadow="never">
-    <el-image
-      :src="imageUrl"
-      :alt="altText"
-      fit="contain"
-      lazy
-      :preview-src-list="[imageUrl]"
-      hide-on-click-modal
-      preview-teleported
-    />
-    <div class="result-content">
-      <el-button
-        type="primary"
-        plain
-        size="small"
-        @click="downloadImage"
-      >
-        <i class="icon ph-bold ph-download-simple"></i> {{ $t('common.download') }}
-      </el-button>
-    </div>
-  </el-card>
+  <div v-if="imageUrl" class="result-container">
+    <el-card class="result-card" shadow="never">
+      <el-image
+        :src="imageUrl"
+        :alt="altText"
+        fit="contain"
+        lazy
+        :preview-src-list="[imageUrl]"
+        hide-on-click-modal
+        preview-teleported
+        class="result-image"
+      />
+      <div class="result-content">
+        <el-button
+          type="primary"
+          plain
+          size="small"
+          @click="downloadImage"
+        >
+          <i class="icon ph-bold ph-download-simple"></i> {{ $t('common.download') }}
+        </el-button>
+      </div>
+    </el-card>
+  </div>
 </template>
 
 <script setup>
@@ -53,11 +56,50 @@ function downloadImage() {
 </script>
 
 <style scoped>
-.result-card {
+.result-container {
+  text-align: center; /* 让内部的 inline-block 元素居中 */
   margin-top: 20px;
 }
+
+.result-card {
+  display: inline-block; /* 让卡片宽度贴合内容 */
+  max-width: 100%; /* 确保不超出容器 */
+  text-align: left; /* 重置内部文本对齐 */
+}
+
+.result-image {
+  max-width: 100%;
+  width: auto;
+  height: auto;
+  max-height: 600px;
+  display: block;
+  margin: 0 auto;
+}
+
+/* 确保 el-image 内部的 img 标签也能正确缩放 */
+.result-image :deep(.el-image__inner) {
+  max-width: 100%;
+  max-height: 600px;
+  width: auto !important;
+  height: auto !important;
+  object-fit: contain;
+}
+
 .result-content {
   padding: 14px;
   text-align: center;
+}
+
+/* 移动端适配 */
+@media (max-width: 768px) {
+  .result-image {
+    max-height: 400px;
+    max-width: 100%;
+  }
+  
+  .result-image :deep(.el-image__inner) {
+    max-height: 400px;
+    max-width: 100%;
+  }
 }
 </style>
