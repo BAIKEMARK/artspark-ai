@@ -14,8 +14,8 @@
     "home": {
       "title": "Welcome to ArtSpark AI",
       "subtitle": "Explore the infinite possibilities of art",
-      "heroTitle": "ArtSpark AI: Empowering Creative Art Education",
-      "heroSubtitle": "Accessible AI art tools that ignite every student's creative spark",
+      "heroTitle": "ArtSpark AI",
+      "heroSubtitle": "Using AI to illuminate aesthetics and creativity in the mountains, protecting every lonely child's heart",
       "featureCards": {
         "artGallery": {
           "title": "Art Gallery",
@@ -86,7 +86,7 @@
         "recreate": "Re-creation: AI-generated examples are just references, encourage students to create their own based on them!"
       },
       "pageTitle": "Creative Inspiration & Drawing Practice",
-      "subtitle": "Enter a theme you want to draw, and AI will generate custom line art materials and provide teacher-like feedback on your work.",
+      "subtitle": "Enter a theme you want to draw, and AI will generate custom line art materials and provide teacher-like feedback on your work",
       "inputPlaceholder": "e.g.: A party in the forest, Future cars...",
       "generateMaterial": "Generate Material",
       "practice": "Practice",
@@ -366,7 +366,7 @@
   "footer": {
     "guideTitle": "Usage Guide and Teaching Suggestions",
     "teacherGuide": "Teacher Guide:",
-    "teacherGuideText": "Use 'AI Smart Coloring' to help students practice color matching. Use 'Style Workshop' and 'AI Self-Portrait' to inspire students' creativity and imagination. 'Art Q&A' can be used as a classroom encyclopedia. The new 'Art Gallery' can be used for masterpiece appreciation classes.",
+    "teacherGuideText": "'Art Gallery': Connects to world-class museums with age-appropriate AI explanations for masterpiece appreciation classes. 'Creative Drawing Practice': Generates line art materials, students create offline, AI provides intelligent feedback for complete teaching loop. 'Mood Painting': Art therapy tool integrating psychology, focusing on left-behind children's mental health. 'AI Smart Coloring': Upload line art to get various color schemes, cultivating color perception. 'Style Workshop': Experience different art movements through AI style transfer. 'Art Encyclopedia': 24/7 AI teaching assistant answering all art questions.",
     "resourcesTitle": "Art Resources",
     "domesticTitle": "Domestic",
     "internationalTitle": "International",

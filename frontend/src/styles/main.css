@@ -32,10 +32,14 @@ body {
     min-height: 100vh;
     display: flex;
     flex-direction: column;
-    padding-top: var(--nav-height);
     box-sizing: border-box;
     position: relative;
     z-index: 1;
+}
+
+/* 内页需要顶部间距，首页不需要 */
+#vue-app:not(.showing-home) {
+    padding-top: var(--nav-height);
 }
 
 h2 {
@@ -161,7 +165,7 @@ h2 {
     display: flex;
     align-items: center;
     justify-content: center;
-    min-height: calc(100vh - var(--nav-height));
+    min-height: 100vh; /* 改为100vh，占满整个视口高度 */
     box-sizing: border-box;
 }
 .hero-gallery {
@@ -174,13 +178,54 @@ h2 {
     z-index: 1;
 }
 .slider-container { width: 100%; height: 100%; }
-.slide { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-size: cover; background-position: center; opacity: 0; transition: opacity 1.5s ease-in-out; filter: blur(35px) brightness(0.2) scale(1.1); animation: ken-burns 20s infinite; }
-.slide::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-image: inherit; background-size: contain; background-position: center; background-repeat: no-repeat; }
+
+/* 默认模式：直接拉伸填满 */
+.slide { 
+    position: absolute; 
+    top: 0; 
+    left: 0; 
+    width: 100%; 
+    height: 100%; 
+    background-size: cover; 
+    background-position: center; 
+    opacity: 0; 
+    transition: opacity 1.5s ease-in-out; 
+    filter: brightness(0.9); /* 轻微变暗以便文字可读，但不要太暗 */
+    animation: ken-burns 20s infinite; 
+}
+
+/* 双层模式：比例相差悬殊时使用 */
+.slide.dual-layer { 
+    filter: blur(35px) brightness(0.2) scale(1.1); /* 背景层：模糊+变暗+放大 */
+}
+
+.slide.dual-layer::before { 
+    content: ''; 
+    position: absolute; 
+    top: 0; 
+    left: 0; 
+    width: 100%; 
+    height: 100%; 
+    background-image: inherit; 
+    background-size: contain; /* 前景层：保持比例完整显示 */
+    background-position: center; 
+    background-repeat: no-repeat; 
+    filter: none; /* 重置滤镜，保持清晰 */
+}
+
 .slide.active { opacity: 1; }
 @keyframes ken-burns { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
 .home-content-overlay { position: relative; z-index: 2; text-align: center; color: white; padding: 20px; width: 100%; max-width: 1100px; margin: auto; }
-.home-content-overlay h1 { font-family: var(--font-serif); font-size: 3rem; font-weight: 700; text-shadow: 0 2px 8px rgba(0, 0, 0, 0.7); margin-bottom: 1rem; user-select: none;}
-.home-content-overlay p { font-size: 1.25rem; font-weight: 400; text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7); margin-bottom: 2.5rem; max-width: 600px; margin-left: auto; margin-right: auto; user-select: none;}
+.home-content-overlay h1 { font-family: var(--font-serif); font-size: 8rem; font-weight: 700; text-shadow: 0 2px 8px rgba(0, 0, 0, 0.7); margin-bottom: 1rem; user-select: none;}
+.home-content-overlay .hero-title-image { 
+    max-width: 600px; 
+    width: 100%; 
+    height: auto; 
+    margin-bottom: 1rem; 
+    filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.7)); 
+    user-select: none;
+}
+.home-content-overlay p { font-size: 1.5rem; font-weight: 400; text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7); margin-bottom: 2.5rem; max-width: 600px; margin-left: auto; margin-right: auto; user-select: none;}
 .slider-dots {
     position: absolute;
     bottom: 25px; /* 距离底部 25px */
@@ -265,14 +310,18 @@ h2 {
 
 /* 针对手机屏幕 (小于 768px) */
 @media (max-width: 768px) {
-    /* 1. 调整导航栏高度留白 */
-    #vue-app {
+    /* 1. 移动端内页顶部间距调整 */
+    #vue-app:not(.showing-home) {
         padding-top: 50px; /* 导航栏在手机上可能稍微变矮，或者保持原样 */
     }
 
     /* 2. 首页 Hero 区域调整 */
     .home-content-overlay h1 {
-        font-size: 2rem !important; /* 缩小标题 */
+        font-size: 2.5rem !important; /* 缩小标题 */
+        margin-bottom: 0.5rem !important;
+    }
+    .home-content-overlay .hero-title-image {
+        max-width: 280px !important; /* 移动端缩小图片 */
         margin-bottom: 0.5rem !important;
     }
     .home-content-overlay p {
